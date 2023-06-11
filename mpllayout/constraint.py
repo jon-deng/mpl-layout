@@ -3,7 +3,7 @@
 Geometric constraints
 """
 
-from typing import Optional, List, Tuple, Type
+import typing as typ
 from numpy.typing import NDArray
 
 import numpy as np
@@ -13,9 +13,9 @@ import jax.numpy as jnp
 
 from .primitive import Primitive, Point
 
-Prims = Tuple[Primitive, ...]
+Prims = typ.Tuple[Primitive, ...]
 
-Idxs = Tuple[int]
+Idxs = typ.Tuple[int]
 
 
 class Constraint:
@@ -23,9 +23,9 @@ class Constraint:
     Constraint base class
     """
     
-    primitive_types: Tuple[Type[Primitive], ...]
+    primitive_types: typ.Tuple[typ.Type[Primitive], ...]
 
-    def __call__(self, prims: Tuple[Primitive, ...]):
+    def __call__(self, prims: typ.Tuple[Primitive, ...]):
         # Check the input primitives are valid
         assert len(prims) == len(self.primitive_types)
         for prim, prim_type in zip(prims, self.primitive_types):
@@ -33,7 +33,7 @@ class Constraint:
 
         return jnp.atleast_1d(self.assem_res(prims))
     
-    def assem_res(self, prims: Tuple[Primitive, ...]) -> NDArray:
+    def assem_res(self, prims: typ.Tuple[Primitive, ...]) -> NDArray:
         raise NotImplementedError()
 
 class PointToPointAbsDistance(Constraint):
@@ -41,7 +41,7 @@ class PointToPointAbsDistance(Constraint):
     primitive_types = (Point, Point)
 
     def __init__(
-            self, distance: float, direction: Optional[NDArray]=None
+            self, distance: float, direction: typ.Optional[NDArray]=None
         ):
         if direction is None:
             direction = np.array([1, 0])
@@ -62,14 +62,43 @@ class PointToPointAbsDistance(Constraint):
     def assem_res(self, prims):
         return jnp.dot(prims[1].param - prims[0].param, self.direction) - self.distance
 
+ConstraintGraph = typ.List[Idxs]
 
-ConstraintGraph = List[Tuple[int, Idxs]]
+def depack_internal_constraints(prims: Prims, global_prim_idx=0):
+
+    intern_prims = []
+    intern_constraints = []
+    intern_constraint_graph = []
+
+    m = global_prim_idx
+    for prim in prims:
+        if prim.prims == ():
+            sub_prims = prim.prims
+            sub_constraints = prim.constraints
+            sub_constraint_graph = [
+                tuple(idx + m for idx in idxs)
+                for idxs in prim.constraint_graph
+            ]
+        else:
+            sub_prims, sub_constraints, sub_constraint_graph = depack_internal_constraints(prim.prims, m)
+        
+        m = m+len(sub_prims)
+        intern_prims += sub_prims
+        intern_constraints += sub_constraints
+        intern_constraint_graph += sub_constraint_graph
+
+    return intern_prims, intern_constraints, intern_constraint_graph
 
 def solve(
-        constraints: List[Constraint], 
-        prims: List[Primitive], 
+        prims: typ.List[Primitive], 
+        constraints: typ.List[Constraint], 
         constraint_graph: ConstraintGraph
     ):
+
+    int_prims, int_constraints, int_constraint_graph = depack_internal_constraints(prims, global_prim_idx=len(prims))
+    prims += int_prims
+    constraints += int_constraints
+    constraint_graph += int_constraint_graph
 
     prim_sizes = [prim.param.size for prim in prims]
     prim_global_idx_bounds = np.cumsum([0] + prim_sizes)
@@ -78,7 +107,7 @@ def solve(
 
     def assem_global_res(global_param):
         constraint_vals = []
-        for (constraint_idx, prim_idxs) in constraint_graph:
+        for constraint_idx, prim_idxs in enumerate(constraint_graph):
             constraint = constraints[constraint_idx]
             params = tuple(
                 global_param[

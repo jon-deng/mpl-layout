@@ -66,6 +66,18 @@ class Primitive:
         """
         return self._param
     
+    @property
+    def prims(self):
+        return self._prims
+    
+    @property
+    def constraints(self):
+        return self._CONSTRAINTS
+    
+    @property
+    def constraint_graph(self):
+        return self._CONSTRAINT_GRAPH
+    
     def __repr__(self):
         return f'{type(self)}({self.param})'
 

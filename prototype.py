@@ -13,20 +13,15 @@ constraints = [
     cons.PointToPointAbsDistance(5, [0, 1]),
     cons.PointToPointAbsDistance(5, [1, 0])
 ]
-constraint_graph = [
-    (0, (0, 1)),
-    (1, (0, 1))
+constraint_graph = [  
+    (0, 1),
+    (0, 1)
 ]
 
-test = {
-    a: 'a',
-    b: 'b'
-}
-
-for (constraint_idx, prim_idxs) in constraint_graph:
+for constraint_idx, prim_idxs in enumerate(constraint_graph):
     local_constraint = constraints[constraint_idx]
     local_prims = tuple(prims[idx] for idx in prim_idxs)
     print(local_constraint(local_prims))
 
-jac = cons.solve(constraints, prims, constraint_graph)
-print(jac)
+prim_params = cons.solve(prims, constraints, constraint_graph)
+print(prim_params)
