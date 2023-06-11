@@ -23,5 +23,5 @@ for constraint_idx, prim_idxs in enumerate(constraint_graph):
     local_prims = tuple(prims[idx] for idx in prim_idxs)
     print(local_constraint(local_prims))
 
-prim_params = cons.solve(prims, constraints, constraint_graph)
-print(prim_params)
+prim_params, info = cons.solve(prims, constraints, constraint_graph)
+print(prim_params, info)

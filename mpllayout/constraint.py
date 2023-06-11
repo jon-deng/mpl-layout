@@ -127,10 +127,13 @@ def solve(
 
     dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
     global_param_n = global_param_n + dglobal_param
+    solver_info = {
+        'err': err, 'rank': rank, 's': s
+    }
 
     new_prim_params = [
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_global_idx_bounds[:-1], prim_global_idx_bounds[1:])
     ]
 
-    return new_prim_params
+    return new_prim_params, solver_info
