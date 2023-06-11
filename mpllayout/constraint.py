@@ -61,6 +61,19 @@ class PointToPointAbsDistance(Constraint):
 
     def assem_res(self, prims):
         return jnp.dot(prims[1].param - prims[0].param, self.direction) - self.distance
+    
+class PointLocation(Constraint):
+
+    primitive_types = (Point, )
+
+    def __init__(
+            self, 
+            location: NDArray
+        ):
+        self._location = location
+
+    def assem_res(self, prims):
+        return prims[0].param - self._location
 
 ConstraintGraph = typ.List[Idxs]
 

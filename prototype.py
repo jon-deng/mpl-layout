@@ -1,5 +1,7 @@
 from mpllayout import constraint as cons, primitive as primi
 
+import numpy as np
+
 a = primi.Point([0.0, 0])
 b = primi.Point([1, 1.1])
 
@@ -10,10 +12,12 @@ prims = [
     b
 ]
 constraints = [
+    cons.PointLocation(np.array([0, 0])),
     cons.PointToPointAbsDistance(5, [0, 1]),
     cons.PointToPointAbsDistance(5, [1, 0])
 ]
-constraint_graph = [  
+constraint_graph = [
+    (0,),
     (0, 1),
     (0, 1)
 ]
