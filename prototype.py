@@ -1,20 +1,23 @@
-from mpllayout import constraint as cons, primitive as primi
+from mpllayout import constraint as con, primitive as pri
 
 import numpy as np
 
-a = primi.Point([0.0, 0])
-b = primi.Point([1, 1.1])
+a = pri.Point([0.0, 0])
+b = pri.Point([1, 1.1])
+
+sa, sb = pri.Point([10, 5.0]), pri.Point([11, 15.0])
 
 print(a, b)
 
 prims = [
     a, 
-    b
+    b,
+    pri.PolyLine(prims=(sa, sb))
 ]
 constraints = [
-    cons.PointLocation(np.array([0, 0])),
-    cons.PointToPointAbsDistance(5, [0, 1]),
-    cons.PointToPointAbsDistance(5, [1, 0])
+    con.PointLocation(np.array([0, 0])),
+    con.PointToPointAbsDistance(5, [0, 1]),
+    con.PointToPointAbsDistance(5, [1, 0])
 ]
 constraint_graph = [
     (0,),
@@ -27,5 +30,5 @@ for constraint_idx, prim_idxs in enumerate(constraint_graph):
     local_prims = tuple(prims[idx] for idx in prim_idxs)
     print(local_constraint(local_prims))
 
-prim_params, info = cons.solve(prims, constraints, constraint_graph)
+prim_params, info = con.solve(prims, constraints, constraint_graph)
 print(prim_params, info)

@@ -102,11 +102,40 @@ def depack_internal_constraints(prims: Prims, global_prim_idx=0):
 
     return intern_prims, intern_constraints, intern_constraint_graph
 
+def expand_prim(prim: Primitive, prim_idx=0):
+    exp_prims = [prim] + list(prim.prims)
+    exp_constrs = list(prim.constraints)
+    exp_constr_graph = [
+        (idx+prim_idx for idx in idxs) 
+        for idxs in prim.constraint_graph
+    ]
+
+    for sub_prim in prim.prims:
+        _exp_prims, _exp_constrs, _exp_constr_graph = expand_prim(sub_prim)
+        exp_prims += _exp_prims
+        exp_constrs += _exp_constrs
+        exp_constr_graph += _exp_constr_graph
+    return exp_prims, exp_constrs, exp_constr_graph
+
 def solve(
         prims: typ.List[Primitive], 
         constraints: typ.List[Constraint], 
         constraint_graph: ConstraintGraph
     ):
+    exp_prims = []
+    exp_constraints = []
+    exp_constraint_graph = []
+    
+    for _prim in prims:
+        m = len(exp_prims) + len(prims)
+        _exp_prims, _exp_constrs, _exp_constraint_graph = expand_prim(_prim, prim_idx=m)
+        exp_prims += _exp_prims[1:]
+        exp_constraints += _exp_constrs
+        exp_constraint_graph += _exp_constraint_graph
+
+    prims += exp_prims
+    constraints += exp_constraints
+    constraint_graph += exp_constraint_graph
 
     int_prims, int_constraints, int_constraint_graph = depack_internal_constraints(prims, global_prim_idx=len(prims))
     prims += int_prims

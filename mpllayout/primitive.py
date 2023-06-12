@@ -36,7 +36,7 @@ class Primitive:
     _prims: Prims
 
     _PARAM_SHAPE: ArrayShape = ()
-    _PRIM_TYPES: typ.Tuple[typ.Type['Primitive'], ...] = ()
+    _PRIM_TYPES: typ.Union[typ.Tuple[typ.Type['Primitive'], ...], type] = ()
     _CONSTRAINTS: typ.Tuple['Constraint', ...] = ()
     _CONSTRAINT_GRAPH: 'ConstraintGraph' = ()
 
@@ -54,7 +54,12 @@ class Primitive:
         # Check types and shapes are correct
         assert param.shape == self._PARAM_SHAPE
         prim_types = tuple(type(prim) for prim in prims)
-        assert prim_types == self._PRIM_TYPES
+        if isinstance(self._PRIM_TYPES, tuple):
+            assert prim_types == self._PRIM_TYPES
+        elif isinstance(self._PRIM_TYPES, type):
+            assert prim_types == len(prim_types)*(self._PRIM_TYPES,)
+        else:
+            raise TypeError()
         
         self._param: NDArray = param
         self._prims = prims
@@ -79,7 +84,8 @@ class Primitive:
         return self._CONSTRAINT_GRAPH
     
     def __repr__(self):
-        return f'{type(self)}({self.param})'
+        prim_tuple_repr = tuple(prim.__repr__() for prim in self.prims)
+        return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
 
 class Point(Primitive):
 
@@ -88,7 +94,9 @@ class Point(Primitive):
     _CONSTRAINTS = ()
     _CONSTRAINT_GRAPH = ()
 
-    def __init__(self, param: NDArray):
-        super().__init__(param)
+class PolyLine(Primitive):
 
-        assert self.param.shape == (2,)
+    _PARAM_SHAPE = ()
+    _PRIM_TYPES = Point
+    _CONSTRAINTS = ()
+    _CONSTRAINT_GRAPH = ()
