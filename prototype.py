@@ -28,10 +28,12 @@ constraint_graph = [
     (3, 4)
 ]
 
+subprim_graph = []
+
 for constraint_idx, prim_idxs in enumerate(constraint_graph):
     local_constraint = constraints[constraint_idx]
     local_prims = tuple(prims[idx] for idx in prim_idxs)
     print(local_constraint(local_prims))
 
-prim_params, info = solver.solve(prims, constraints, constraint_graph)
+prim_params, info = solver.solve(prims, constraints, constraint_graph, subprim_graph)
 print(prim_params, info)

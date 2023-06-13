@@ -13,7 +13,7 @@ from .primitive import Primitive
 
 Prims = typ.Tuple[Primitive, ...]
 Idxs = typ.Tuple[int]
-ConstraintGraph = typ.List[Idxs]
+Graph = typ.List[Idxs]
 
 def expand_prim(prim: Primitive, prim_idx=0):
 
@@ -35,28 +35,31 @@ def expand_prim(prim: Primitive, prim_idx=0):
             exp_constrs += _exp_constrs
             exp_constr_graph += _exp_constr_graph
         return exp_prims, exp_constrs, exp_constr_graph
-
+   
 def solve(
         prims: typ.List[Primitive], 
         constraints: typ.List[Constraint], 
-        constraint_graph: ConstraintGraph
+        constraint_graph: Graph,
+        subprim_graph: Graph
     ):
-    # int_prims = []
-    # int_constraints = []
-    # int_constraint_graph = []
-    
-    # for _prim in prims:
-    #     # Set `m` so that all internal primitives + constraints are appended to 
-    #     # the end of the supplied `prims` list
-    #     m = len(int_prims) + len(prims)
-    #     _prims, _constrs, _constraint_graph = expand_prim(_prim, prim_idx=m)
-    #     int_prims += _prims[:]
-    #     int_constraints += _constrs
-    #     int_constraint_graph += _constraint_graph
+    """
+    Return a set of primitives that satisfy the given constraints
 
-    # prims += int_prims
-    # constraints += int_constraints
-    # constraint_graph += int_constraint_graph
+    Parameters
+    ----------
+    prims: typ.List[Primitive]
+        The list of primitives
+    constraints: typ.List[Constraint]
+        The list of constraints
+    constraint_graph: Graph
+        A mapping from each constraint to the primitives it applies to.
+        For example, `constraint_graph[0] == (0, 5, 8)` means the first constraint
+        applies to primitives `(prims[0], prims[5], prims[8])`.
+    subprim_graph: Graph
+        A mapping from each primitive to any primitives that belong to it.
+        For example, `subprim_graph[0] == (0, 1, 2)` means the first primitive
+        is parameterized by primitives `(prims[0], prims[1], prims[2])`.
+    """
 
     prim_sizes = [prim.param.size for prim in prims]
     prim_global_idx_bounds = np.cumsum([0] + prim_sizes)
@@ -93,5 +96,12 @@ def solve(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_global_idx_bounds[:-1], prim_global_idx_bounds[1:])
     ]
+
+    # new_prims = 
+
+    # new_prims = [
+
+    #     for Pirm, param in zip(, new_prim_params)
+    # ]
 
     return new_prim_params, solver_info

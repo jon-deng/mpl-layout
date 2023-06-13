@@ -7,7 +7,6 @@ from numpy.typing import NDArray
 
 import numpy as np
 
-import jax
 import jax.numpy as jnp
 
 from .primitive import Primitive, Point
