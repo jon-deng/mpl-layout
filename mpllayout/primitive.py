@@ -35,17 +35,26 @@ class Primitive:
     _param: NDArray
     _prims: Prims
 
-    _PARAM_SHAPE: ArrayShape = ()
-    _PRIM_TYPES: typ.Union[typ.Tuple[typ.Type['Primitive'], ...], type] = ()
+    _PARAM_SHAPE: ArrayShape = (0,)
+    _PRIM_TYPES: typ.Union[typ.Tuple[typ.Type['Primitive'], ...], typ.Type['Primitive']] = ()
     _CONSTRAINTS: typ.Tuple['Constraint', ...] = ()
     _CONSTRAINT_GRAPH: 'ConstraintGraph' = ()
 
     def __init__(
             self, 
             param: typ.Optional[NDArray]=None, 
-            prims: typ.Optional[Prims]=()
+            prims: typ.Optional[Prims]=None
         ):
-        # Create default
+        # Create default `param` and `prims` if they're undefined
+        if param is None:
+            param = np.zeros(self._PARAM_SHAPE)
+        
+        if prims is None:
+            if isinstance(self._PRIM_TYPES, tuple):
+                prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
+            else:
+                PrimType = self._PRIM_TYPES
+                prims = PrimType()
 
         # Parameter vector for the primitive
         if not isinstance(param, (np.ndarray, jnp.ndarray)):
@@ -96,7 +105,7 @@ class Point(Primitive):
 
 class PolyLine(Primitive):
 
-    _PARAM_SHAPE = ()
+    _PARAM_SHAPE = (0,)
     _PRIM_TYPES = Point
     _CONSTRAINTS = ()
     _CONSTRAINT_GRAPH = ()
