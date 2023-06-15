@@ -4,6 +4,8 @@ Routines for solving and managing collections of primitives and constraints
 
 import typing as typ
 
+import itertools
+
 import jax
 from jax import numpy as jnp
 import numpy as np
@@ -15,32 +17,80 @@ Prims = typ.Tuple[Primitive, ...]
 Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
 
-def expand_prim(prim: Primitive, prim_idx=0):
+def expand_prim(
+        prim: Primitive, 
+        prim_idx: typ.Optional[int]=0
+    ):
+    """
+    Expand all child primitives and constraints of `prim`
 
-    # Unpack the sub-primitives, constraints, and constraint graph
-    exp_prims = list(prim.prims)
-    exp_constrs = list(prim.constraints)
-    exp_constr_graph = [
+    Parameters
+    ----------
+    prim: Primitive
+        The primitive to be expanded
+    prim_idx: int
+        The index of the primitive in a global list of primitives
+
+    Returns
+    -------
+    """
+
+    # Expand child primitives, constraints, and constraint graph
+    child_prims = list(prim.prims)
+    child_constrs = list(prim.constraints)
+    child_constr_graph = [
         (idx+prim_idx for idx in idxs) 
         for idxs in prim.constraint_graph
     ]
+    prim_graph = [len(prim.prims)]
 
-    # Recursively unpack any other sub-primitives
+    # Recursively expand any child primitives of the child primitives
     if len(prim.prims) == 0:
-        return exp_prims, exp_constrs, exp_constr_graph
+        return child_prims, child_constrs, child_constr_graph, prim_graph
     else:
         for sub_prim in prim.prims:
-            _exp_prims, _exp_constrs, _exp_constr_graph = expand_prim(sub_prim)
-            exp_prims += _exp_prims
-            exp_constrs += _exp_constrs
-            exp_constr_graph += _exp_constr_graph
-        return exp_prims, exp_constrs, exp_constr_graph
+            _exp_prims, _exp_constrs, _exp_constr_graph, _prim_graph = expand_prim(sub_prim)
+            child_prims += _exp_prims
+            child_constrs += _exp_constrs
+            child_constr_graph += _exp_constr_graph
+            prim_graph += _prim_graph
+        return child_prims, child_constrs, child_constr_graph, prim_graph
+    
+def contract_prim(
+        prim: Primitive, 
+        prims: Prims,
+        prim_graph: typ.List[int]
+    ):
+    """
+    Collapse all child primitives into `prim`
+
+    Parameters
+    ----------
+    prim: Primitive
+        The primitive to be expanded
+    prim_idx: int
+        The index of the primitive in a global list of primitives
+
+    Returns
+    -------
+    """
+    num_child = prim_graph[0]
+    _child_prims = prims[:num_child]
+    # This denotes the index where the child primitives' child primitives would 
+    # start
+    _child_prim_idx = np.cumsum(prim_graph[:num_child])
+    child_prims = tuple(
+        contract_prim(_prim, prims, prim_graph[m:]) 
+        for _prim, m in zip(_child_prims, _child_prim_idx)
+    )
+
+    return type(prim)(param=prim.param, prims=child_prims)
    
 def solve(
         prims: typ.List[Primitive], 
         constraints: typ.List[Constraint], 
         constraint_graph: Graph,
-        subprim_graph: Graph
+        prim_graph: Graph
     ):
     """
     Return a set of primitives that satisfy the given constraints
@@ -55,10 +105,11 @@ def solve(
         A mapping from each constraint to the primitives it applies to.
         For example, `constraint_graph[0] == (0, 5, 8)` means the first constraint
         applies to primitives `(prims[0], prims[5], prims[8])`.
-    subprim_graph: Graph
-        A mapping from each primitive to any primitives that belong to it.
-        For example, `subprim_graph[0] == (0, 1, 2)` means the first primitive
-        is parameterized by primitives `(prims[0], prims[1], prims[2])`.
+    prim_graph: Graph
+        Denotes that the next block of primitives parameterize the current primitive.
+        For example, `subprim_graph[0] == 4` means `prim[0]` is parameterized 
+        by primitives `prims[1:5]`. Primitives that have no sub-primitives obey 
+        `subprim_graph[n] == 0`.
     """
 
     prim_sizes = [prim.param.size for prim in prims]

@@ -37,3 +37,12 @@ for constraint_idx, prim_idxs in enumerate(constraint_graph):
 
 prim_params, info = solver.solve(prims, constraints, constraint_graph, subprim_graph)
 print(prim_params, info)
+
+
+# Test that expanding then contracting a prim are inverses of each other
+test = pri.PolyLine(prims=(sa, sb))
+child_prims, child_constrs, child_constr_graph, prim_graph = solver.expand_prim(test)
+new_test = solver.contract_prim(test, child_prims, prim_graph)
+
+print(test, child_prims)
+print(new_test)
