@@ -14,9 +14,114 @@ from .constraint import Constraint
 from .primitive import Primitive
 
 Prims = typ.Tuple[Primitive, ...]
+Constraints = typ.List[Constraint]
 Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
 
+class ConstrainedPrimitiveManager:
+    """
+    Manage a set of primitives and constraints
+
+    Parameters
+    ----------
+    prims: typ.Optional[Prims]
+        A list of primitives
+    constraints: typ.Optional[Constraints]
+        A list of constraints
+    constraint_graph: typ.Optional[Graph]
+        A constraint graph
+    """
+
+    def __init__(
+            self, 
+            prims: typ.Optional[Prims]=None, 
+            constraints: typ.Optional[Constraints]=None, 
+            constraint_graph: typ.Optional[Graph]=None
+        ):
+
+        if prims is None:
+            prims = []
+        if constraints is None:
+            constraints = []
+        if constraint_graph is None:
+            constraint_graph = []
+
+        self._prims = LabelIndexedList(constraints)
+        self._constraints = LabelIndexedList(constraints)
+        self._constraint_graph = constraint_graph
+
+        self._prim_type_count = {}
+        self._label_to_primidx = {}
+
+        self._constraint_type_count = {}
+        self._label_to_constraintidx = {}
+
+    @property
+    def prims(self):
+        return self._prims
+    
+    @property
+    def constraints(self):
+        return self._constraints
+
+    def add_prim(self, prim: Primitive, prim_label: typ.Optional[str]=None) -> str:
+        """
+        Add a primitive to the collection
+        """
+        prim_label = self.prims.append(prim, label=prim_label)
+        return prim_label
+
+    def add_constraint(
+            self, 
+            constraint: Constraint, 
+            prim_labels: typ.Tuple[str, ...], 
+            constraint_label: typ.Optional[str]=None
+        ):
+        """
+        Add a constraint between primitives
+        """
+        constraint_label = self.constraints.append(constraint, label=constraint_label)
+        prim_idxs = tuple(self.constraints.get_idx(label) for label in prim_labels)
+        self._constraint_graph.append(prim_idxs)
+        return constraint_label
+
+
+T = typ.TypeVar('T')
+class LabelIndexedList(T):
+    """
+    A list with automatically generated labels for indices
+    """
+    def __init__(
+            self, 
+            items: typ.Optional[typ.List[T]]=None,
+            keys: typ.Optional[typ.List[str]]=None
+        ):
+        if items is None:
+            items = []
+        self._items = items
+        # Store the total number of items of each type
+        self._type_to_count = {}
+        self._label_to_idx = {}
+
+    def append(self, item: T, label: typ.Optional[str]=None) -> str:
+        ItemType = type(item)
+        if ItemType in self._type_to_count:
+            self._type_to_count[ItemType] += 1
+        else:
+            self._type_to_count[ItemType] = 1
+
+        if label is None:
+            n =  self._type_to_count[ItemType] - 1
+            label = f'{str(ItemType)}{n:d}'
+        
+        assert label not in self._label_to_idx
+        self._items.append(item)
+        self._label_to_idx[label] = len(self._items)-1
+        return label
+
+    def get_idx(self, label: str):
+        return self._label_to_idx[label]
+    
 def expand_prim(
         prim: Primitive, 
         prim_idx: typ.Optional[int]=0
