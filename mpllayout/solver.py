@@ -63,8 +63,16 @@ class ConstrainedPrimitiveManager:
     @property
     def constraints(self):
         return self._constraints
+    
+    @property
+    def constraint_graph(self):
+        return self._constraint_graph
 
-    def add_prim(self, prim: Primitive, prim_label: typ.Optional[str]=None) -> str:
+    def add_prim(
+            self, 
+            prim: Primitive, 
+            prim_label: typ.Optional[str]=None
+        ) -> str:
         """
         Add a primitive to the collection
         """
@@ -76,24 +84,24 @@ class ConstrainedPrimitiveManager:
             constraint: Constraint, 
             prim_labels: typ.Tuple[str, ...], 
             constraint_label: typ.Optional[str]=None
-        ):
+        ) -> str:
         """
         Add a constraint between primitives
         """
         constraint_label = self.constraints.append(constraint, label=constraint_label)
         prim_idxs = tuple(self.constraints.get_idx(label) for label in prim_labels)
-        self._constraint_graph.append(prim_idxs)
+        self.constraint_graph.append(prim_idxs)
         return constraint_label
 
 
 T = typ.TypeVar('T')
-class LabelIndexedList(T):
+class LabelIndexedList(typ.Generic[T]):
     """
     A list with automatically generated labels for indices
     """
     def __init__(
             self, 
-            items: typ.Optional[typ.List[T]]=None,
+            items: typ.Optional[typ.List[T]]=None, 
             keys: typ.Optional[typ.List[str]]=None
         ):
         if items is None:
