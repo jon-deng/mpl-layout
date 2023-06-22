@@ -76,7 +76,14 @@ class ConstrainedPrimitiveManager:
         """
         Add a primitive to the collection
         """
+        subprims, subprim_graph, subconstrs, subconstr_graph = \
+            expand_prim(prim, prim_idx=len(self.prims)) 
+        
+        # Append the root primitive
         prim_label = self.prims.append(prim, label=prim_label)
+
+        # Append all child primitives
+            
         return prim_label
 
     def add_constraint(
@@ -92,6 +99,35 @@ class ConstrainedPrimitiveManager:
         prim_idxs = tuple(self.prims.key_to_idx(label) for label in prim_labels)
         self.constraint_graph.append(prim_idxs)
         return constraint_label
+
+def expand_prim_labels(
+        prim_label: str,
+        prims: typ.List[Primitive], 
+        prim_graph: typ.List[int]
+    ):
+    num_child = prim_graph[0]
+
+    labels = []
+    type_to_count = {}
+    for prim in prims[:num_child]:
+        PrimType = type(prim)
+        if PrimType not in type_to_count:
+            type_to_count[PrimType] = 0
+        
+        n = type_to_count[PrimType]
+        type_to_count[PrimType] += 1
+
+        labels.append(f'{prim_label}.{PrimType.__name__}{n:d}')
+
+    # print(labels)
+
+    # Recursively expand any child primitives
+    if num_child == 0:
+        return []
+    else:
+        for idx, (sub_prim, prefix) in enumerate(zip(prims[:num_child], labels)):
+            labels = labels + expand_prim_labels(prefix, sub_prim.prims, prim_graph[idx:])
+        return labels
 
 
 T = typ.TypeVar('T')
@@ -151,7 +187,8 @@ class LabelIndexedList(typ.Generic[T]):
             return self._label_to_idx[key]
         else:
             raise TypeError(f"`key` must be `str` or `int`, not `{type(key)}`")
-    
+
+
 def expand_prim(
         prim: Primitive, 
         prim_idx: typ.Optional[int]=0
@@ -179,7 +216,7 @@ def expand_prim(
     ]
     prim_graph = [len(prim.prims)]
 
-    # Recursively expand any child primitives of the child primitives
+    # Recursively expand any child primitives
     if len(prim.prims) == 0:
         return child_prims, child_constrs, child_constr_graph, prim_graph
     else:
