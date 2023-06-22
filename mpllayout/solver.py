@@ -76,13 +76,19 @@ class ConstrainedPrimitiveManager:
         """
         Add a primitive to the collection
         """
-        subprims, subprim_graph, subconstrs, subconstr_graph = \
-            expand_prim(prim, prim_idx=len(self.prims)) 
-        
+    
         # Append the root primitive
         prim_label = self.prims.append(prim, label=prim_label)
 
         # Append all child primitives
+        if len(prim.prims) > 0:
+            subprims, subconstrs, subconstr_graph, subprim_graph = \
+                expand_prim(prim, prim_idx=len(self.prims)) 
+            
+            print('yoyo', subprim_graph)
+            prim_labels = expand_prim_labels(prim_label, subprims, subprim_graph)
+            for label, prim in zip(prim_labels, subprims):
+                self.prims.append(prim, label=label)
             
         return prim_label
 

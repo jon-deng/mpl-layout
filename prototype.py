@@ -53,7 +53,7 @@ _constraint_graph = [
     ('Point0',),
     ('Point0', 'Point1'),
     ('Point0', 'Point1'),
-    ('Line0.Point0', 'Line0.Point1')
+    ('PolyLine0.Point0', 'PolyLine0.Point1')
 ]
 for prim in _prims:
     prim_coll.add_prim(prim)
@@ -61,12 +61,10 @@ for prim in _prims:
 for constraint, prim_idxs in zip(_constraints, _constraint_graph):
     prim_coll.add_constraint(constraint, prim_idxs)
 
-subprim_graph = []
-
-for constraint_idx, prim_idxs in enumerate(constraint_graph):
-    local_constraint = constraints[constraint_idx]
-    local_prims = tuple(prims[idx] for idx in prim_idxs)
-    print(local_constraint(local_prims))
+# for constraint_idx, prim_idxs in enumerate(prim_coll.constraint_graph):
+#     local_constraint = constraints[constraint_idx]
+#     local_prims = tuple(prims[idx] for idx in prim_idxs)
+#     print(local_constraint(local_prims))
 
 print(prim_coll)
 print(prim_coll.prims.keys())
@@ -74,6 +72,7 @@ print(prim_coll.prims.values())
 
 ## Try the solver
 prim_params, info = solver.solve(prims, constraints, constraint_graph, subprim_graph)
+prim_params, info = solver.solve(prim_coll.prims, prim_coll.constraints, prim_coll.constraint_graph, subprim_graph)
 print(prim_params, info)
 
 
