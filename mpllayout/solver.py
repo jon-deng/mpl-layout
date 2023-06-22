@@ -82,14 +82,14 @@ class ConstrainedPrimitiveManager:
     def add_constraint(
             self, 
             constraint: Constraint, 
-            prim_labels: typ.Tuple[str, ...], 
+            prim_labels: typ.Tuple[typ.Union[str, int], ...], 
             constraint_label: typ.Optional[str]=None
         ) -> str:
         """
         Add a constraint between primitives
         """
         constraint_label = self.constraints.append(constraint, label=constraint_label)
-        prim_idxs = tuple(self.constraints.get_idx(label) for label in prim_labels)
+        prim_idxs = tuple(self.prims.key_to_idx(label) for label in prim_labels)
         self.constraint_graph.append(prim_idxs)
         return constraint_label
 
@@ -111,6 +111,17 @@ class LabelIndexedList(typ.Generic[T]):
         self._type_to_count = {}
         self._label_to_idx = {}
 
+    ## List/Dict interface
+    def __getitem__(self, key: typ.Union[str, int]):
+        key = self.key_to_idx(key)
+        return self._items[key]
+    
+    def keys(self):
+        return self._label_to_idx.keys()
+    
+    def values(self):
+        return self._items
+
     def append(self, item: T, label: typ.Optional[str]=None) -> str:
         ItemType = type(item)
         if ItemType in self._type_to_count:
@@ -120,15 +131,20 @@ class LabelIndexedList(typ.Generic[T]):
 
         if label is None:
             n =  self._type_to_count[ItemType] - 1
-            label = f'{str(ItemType)}{n:d}'
+            label = f'{ItemType.__name__}{n:d}'
         
         assert label not in self._label_to_idx
         self._items.append(item)
         self._label_to_idx[label] = len(self._items)-1
         return label
-
-    def get_idx(self, label: str):
-        return self._label_to_idx[label]
+    
+    def key_to_idx(self, key: typ.Union[str, int]):
+        if isinstance(key, int):
+            return key
+        elif isinstance(key, str):
+            return self._label_to_idx[key]
+        else:
+            raise TypeError(f"`key` must be `str` or `int`, not `{type(key)}`")
     
 def expand_prim(
         prim: Primitive, 
