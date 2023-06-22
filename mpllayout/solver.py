@@ -112,6 +112,9 @@ class LabelIndexedList(typ.Generic[T]):
         self._label_to_idx = {}
 
     ## List/Dict interface
+    def __len__(self):
+        return len(self._items)
+
     def __getitem__(self, key: typ.Union[str, int]):
         key = self.key_to_idx(key)
         return self._items[key]
@@ -121,6 +124,9 @@ class LabelIndexedList(typ.Generic[T]):
     
     def values(self):
         return self._items
+    
+    def items(self):
+        return [(key, self[key]) for key in self.keys()]
 
     def append(self, item: T, label: typ.Optional[str]=None) -> str:
         ItemType = type(item)
