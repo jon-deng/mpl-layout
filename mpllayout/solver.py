@@ -46,7 +46,7 @@ class ConstrainedPrimitiveManager:
         if constraint_graph is None:
             constraint_graph = []
 
-        self._prims = LabelIndexedList(constraints)
+        self._prims = LabelIndexedList(prims)
         self._constraints = LabelIndexedList(constraints)
         self._constraint_graph = constraint_graph
 
@@ -194,7 +194,36 @@ class LabelIndexedList(typ.Generic[T]):
         else:
             raise TypeError(f"`key` must be `str` or `int`, not `{type(key)}`")
 
+def expand_prim_graph(
+        prim: Primitive, 
+        prim_idx: typ.Optional[int]=0
+    ):
+    """
+    Expand all child primitives and constraints of `prim`
 
+    Parameters
+    ----------
+    prim: Primitive
+        The primitive to be expanded
+    prim_idx: int
+        The index of the primitive in a global list of primitives
+
+    Returns
+    -------
+    """
+
+    # Expand child primitives, constraints, and constraint graph
+    prim_graph = [len(prim.prims)]
+
+    # Recursively expand any child primitives
+    if len(prim.prims) == 0:
+        return prim_graph
+    else:
+        for sub_prim in prim.prims:
+            _prim_graph = expand_prim_graph(sub_prim)
+            prim_graph += _prim_graph
+        return prim_graph
+    
 def expand_prim(
         prim: Primitive, 
         prim_idx: typ.Optional[int]=0
@@ -236,8 +265,7 @@ def expand_prim(
     
 def contract_prim(
         prim: Primitive, 
-        prims: Prims,
-        prim_graph: typ.List[int]
+        prims: Prims
     ):
     """
     Collapse all child primitives into `prim`
@@ -252,23 +280,22 @@ def contract_prim(
     Returns
     -------
     """
-    num_child = prim_graph[0]
-    _child_prims = prims[:num_child]
-    # This denotes the index where the child primitives' child primitives would 
-    # start
-    _child_prim_idx = np.cumsum(prim_graph[:num_child])
-    child_prims = tuple(
-        contract_prim(_prim, prims, prim_graph[m:]) 
-        for _prim, m in zip(_child_prims, _child_prim_idx)
-    )
+    num_child = len(prim.prims)
 
-    return type(prim)(param=prim.param, prims=child_prims)
+    child_prims = []
+    m = num_child
+    for subprim in prims[:num_child]:
+        cprim, n = contract_prim(subprim, prims[m:])
+
+        child_prims.append(cprim)
+        m += n
+
+    return type(prim)(param=prim.param, prims=tuple(child_prims)), m
    
 def solve(
         prims: typ.List[Primitive], 
         constraints: typ.List[Constraint], 
-        constraint_graph: Graph,
-        prim_graph: Graph
+        constraint_graph: Graph
     ):
     """
     Return a set of primitives that satisfy the given constraints
@@ -286,7 +313,7 @@ def solve(
     prim_graph: Graph
         Denotes that the next block of primitives parameterize the current primitive.
         For example, `subprim_graph[0] == 4` means `prim[0]` is parameterized 
-        by primitives `prims[1:5]`. Primitives that have no sub-primitives obey 
+        by primitives `prims[1:5]`. Primitives that have no sub-primitives have 
         `subprim_graph[n] == 0`.
     """
 
