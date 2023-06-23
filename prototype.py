@@ -32,7 +32,7 @@ constraint_graph = [
 test = pri.PolyLine(prims=(sa, sb))
 prims, constrs, constr_graph, prim_graph = solver.expand_prim(test)
 # print(prim_graph)
-prim_labels = solver.expand_prim_labels('Line0', prims, prim_graph)
+prim_labels = solver.expand_prim_labels(test, 'Line0')
 
 ## Create the same primitives + constraints using `ConstrainedPrimitiveManager`
 prim_coll = solver.ConstrainedPrimitiveManager()
@@ -72,16 +72,17 @@ print(prim_coll.prims.values())
 
 ## Try the solver
 # prim_params, info = solver.solve(prims, constraints, constraint_graph)
-prim_params, info = solver.solve(prim_coll.prims, prim_coll.constraints, prim_coll.constraint_graph)
-print(prim_params, info)
+constr_prims, info = solver.solve(prim_coll.prims, prim_coll.constraints, prim_coll.constraint_graph)
+print(f"Constrained primitives: {constr_prims}")
+print(f"Solver info: {info}")
 
 
 # Test that expanding then contracting a prim are inverses of each other
 test = pri.PolyLine(prims=(sa, sb))
 child_prims, child_constrs, child_constr_graph, prim_graph = solver.expand_prim(test)
 new_test, m = solver.contract_prim(test, child_prims)
-print(test.prims)
-print(m)
+# print(test.prims)
+# print(m)
 
 # print(test, child_prims)
 print(new_test)

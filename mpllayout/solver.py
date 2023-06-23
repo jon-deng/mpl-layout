@@ -153,8 +153,8 @@ class LabelIndexedList(typ.Generic[T]):
         self._label_to_idx[label] = len(self._items)-1
         return label
     
-    def key_to_idx(self, key: typ.Union[str, int]):
-        if isinstance(key, int):
+    def key_to_idx(self, key: typ.Union[str, int, slice]):
+        if isinstance(key, (int, slice)):
             return key
         elif isinstance(key, str):
             return self._label_to_idx[key]
@@ -317,14 +317,21 @@ def solve(
         for idx_start, idx_end in zip(prim_global_idx_bounds[:-1], prim_global_idx_bounds[1:])
     ]
 
-    # new_prims = 
+    _new_prims = [
+        type(prim)(param=param, prims=prim.prims) 
+        for prim, param in zip(prims, new_prim_params)
+    ]
 
-    # new_prims = [
+    # Contract all child primitives into parents
+    m = 0
+    new_prims = []
+    while m < len(_new_prims):
+        prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
+        cprims, *_ = expand_prim(prim)
+        new_prims = new_prims + [prim] + cprims
+        m += 1+dm
 
-    #     for Pirm, param in zip(, new_prim_params)
-    # ]
-
-    return new_prim_params, solver_info
+    return new_prims, solver_info
 
 class Counter:
 

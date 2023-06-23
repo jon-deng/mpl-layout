@@ -53,8 +53,8 @@ class Primitive:
             if isinstance(self._PRIM_TYPES, tuple):
                 prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
             else:
-                PrimType = self._PRIM_TYPES
-                prims = PrimType()
+                # PrimType = self._PRIM_TYPES
+                prims = ()
 
         # Parameter vector for the primitive
         if not isinstance(param, (np.ndarray, jnp.ndarray)):
@@ -93,7 +93,11 @@ class Primitive:
         return self._CONSTRAINT_GRAPH
     
     def __repr__(self):
-        prim_tuple_repr = tuple(prim.__repr__() for prim in self.prims)
+        prim_tuple_repr = (
+            '(' 
+            + str.join(', ', [prim.__repr__() for prim in self.prims]) 
+            + ')'
+        )
         return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
 
 class Point(Primitive):
