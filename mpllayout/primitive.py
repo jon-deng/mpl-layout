@@ -10,6 +10,9 @@ from numpy.typing import NDArray
 import numpy as np
 from jax import numpy as jnp
 
+# import mpllayout.constraint as con
+
+
 ArrayShape = typ.Tuple[int, ...]
 Prims = typ.Tuple['Primitive', ...]
 
@@ -107,9 +110,17 @@ class Point(Primitive):
     _CONSTRAINTS = ()
     _CONSTRAINT_GRAPH = ()
 
-class PolyLine(Primitive):
+class LineSegment(Primitive):
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = Point
+    _PRIM_TYPES = (Point, Point)
     _CONSTRAINTS = ()
     _CONSTRAINT_GRAPH = ()
+
+import mpllayout.constraint as con
+class Box(Primitive):
+
+    _PARAM_SHAPE = (0,)
+    _PRIM_TYPES = (LineSegment, LineSegment, LineSegment, LineSegment)
+    _CONSTRAINTS = (con.CoincidentLine, con.CoincidentLine, con.CoincidentLine, con.CoincidentLine)
+    _CONSTRAINT_GRAPH = ((0, 1), (1, 2), (2, 3), (3, 0))

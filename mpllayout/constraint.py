@@ -9,7 +9,8 @@ import numpy as np
 
 import jax.numpy as jnp
 
-from .primitive import Primitive, Point
+# from . import primitive as pri
+from mpllayout.primitive import Primitive, Point, LineSegment
 
 Prims = typ.Tuple[Primitive, ...]
 
@@ -72,3 +73,18 @@ class PointLocation(Constraint):
 
     def assem_res(self, prims):
         return prims[0].param - self._location
+    
+class CoincidentPoint(Constraint):
+
+    primitive_types = (Point, Point)
+
+    def assem_res(self, prims):
+        return prims[0].param - prims[1].param
+    
+class CoincidentLine(Constraint):
+
+    primitive_types = (LineSegment, LineSegment)
+
+    def assem_res(self, prims):
+        # This joins the start of the second line with the end of the first line
+        return prims[1][0].param - prims[0][1].param
