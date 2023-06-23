@@ -85,8 +85,7 @@ class ConstrainedPrimitiveManager:
             subprims, subconstrs, subconstr_graph, subprim_graph = \
                 expand_prim(prim, prim_idx=len(self.prims)) 
             
-            print('yoyo', subprim_graph)
-            prim_labels = expand_prim_labels(prim_label, subprims, subprim_graph)
+            prim_labels = expand_prim_labels(prim, prim_label)
             for label, prim in zip(prim_labels, subprims):
                 self.prims.append(prim, label=label)
             
@@ -105,32 +104,6 @@ class ConstrainedPrimitiveManager:
         prim_idxs = tuple(self.prims.key_to_idx(label) for label in prim_labels)
         self.constraint_graph.append(prim_idxs)
         return constraint_label
-
-def expand_prim_labels(
-        prim_label: str,
-        prims: typ.List[Primitive], 
-        prim_graph: typ.List[int]
-    ):
-    num_child = prim_graph[0]
-
-    labels = []
-    type_to_count = Counter()
-    for prim in prims[:num_child]:
-        PrimType = type(prim)
-        type_to_count.add(PrimType)
-        n = type_to_count[PrimType] - 1
-
-        labels.append(f'{prim_label}.{PrimType.__name__}{n:d}')
-
-    # print(labels)
-
-    # Recursively expand any child primitives
-    if num_child == 0:
-        return []
-    else:
-        for idx, (sub_prim, prefix) in enumerate(zip(prims[:num_child], labels)):
-            labels = labels + expand_prim_labels(prefix, sub_prim.prims, prim_graph[idx:])
-        return labels
 
 
 T = typ.TypeVar('T')
@@ -188,35 +161,32 @@ class LabelIndexedList(typ.Generic[T]):
         else:
             raise TypeError(f"`key` must be `str` or `int`, not `{type(key)}`")
 
-def expand_prim_graph(
-        prim: Primitive, 
-        prim_idx: typ.Optional[int]=0
+def expand_prim_labels(
+        prim: Primitive,
+        prim_label: str,
+        # prims: typ.List[Primitive],
+        # prim_graph: typ.List[int]
     ):
-    """
-    Expand all child primitives and constraints of `prim`
+    num_child = len(prim.prims)
 
-    Parameters
-    ----------
-    prim: Primitive
-        The primitive to be expanded
-    prim_idx: int
-        The index of the primitive in a global list of primitives
+    labels = []
+    type_to_count = Counter()
+    for prim in prim.prims:
+        PrimType = type(prim)
+        type_to_count.add(PrimType)
+        n = type_to_count[PrimType] - 1
 
-    Returns
-    -------
-    """
+        labels.append(f'{prim_label}.{PrimType.__name__}{n:d}')
 
-    # Expand child primitives, constraints, and constraint graph
-    prim_graph = [len(prim.prims)]
+    # print(labels)
 
     # Recursively expand any child primitives
-    if len(prim.prims) == 0:
-        return prim_graph
+    if num_child == 0:
+        return []
     else:
-        for sub_prim in prim.prims:
-            _prim_graph = expand_prim_graph(sub_prim)
-            prim_graph += _prim_graph
-        return prim_graph
+        for sub_prim, prefix in zip(prim.prims, labels):
+            labels = labels + expand_prim_labels(sub_prim, prefix)
+        return labels
     
 def expand_prim(
         prim: Primitive, 
