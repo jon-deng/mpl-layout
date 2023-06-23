@@ -1,26 +1,26 @@
-from mpllayout import constraint as con, primitive as pri, solver
+from mpllayout import geometry as geo, solver
 
 import numpy as np
 
 ## Manually create the primitives + constraints
-a = pri.Point([0.0, 0])
-b = pri.Point([1, 1.1])
+a = geo.Point([0.0, 0])
+b = geo.Point([1, 1.1])
 
-sa, sb = pri.Point([10, 5.0]), pri.Point([11, 15.0])
+sa, sb = geo.Point([10, 5.0]), geo.Point([11, 15.0])
 
 print(a, b)
 
 prims = [
     a, 
     b,
-    pri.PolyLine(prims=(sa, sb)),
+    geo.LineSegment(prims=(sa, sb)),
         sa, sb
 ]
 constraints = [
-    con.PointLocation(np.array([0, 0])),
-    con.PointToPointAbsDistance(5, [0, 1]),
-    con.PointToPointAbsDistance(5, [1, 0]),
-    con.PointToPointAbsDistance(2.3, [0, 1])
+    geo.PointLocation(np.array([0, 0])),
+    geo.PointToPointAbsDistance(5, [0, 1]),
+    geo.PointToPointAbsDistance(5, [1, 0]),
+    geo.PointToPointAbsDistance(2.3, [0, 1])
 ]
 constraint_graph = [
     (0,),
@@ -29,30 +29,30 @@ constraint_graph = [
     (3, 4)
 ]
 
-test = pri.PolyLine(prims=(sa, sb))
+test = geo.LineSegment(prims=(sa, sb))
 prims, constrs, constr_graph, prim_graph = solver.expand_prim(test)
 # print(prim_graph)
 prim_labels = solver.expand_prim_labels(test, 'Line0')
 
 ## Create the same primitives + constraints using `ConstrainedPrimitiveManager`
 prim_coll = solver.ConstrainedPrimitiveManager()
-
+ 
 _prims = [
     a, 
     b,
-    pri.PolyLine(prims=(sa, sb))
+    geo.LineSegment(prims=(sa, sb))
 ]
 _constraints = [
-    con.PointLocation(np.array([0, 0])),
-    con.PointToPointAbsDistance(5, [0, 1]),
-    con.PointToPointAbsDistance(5, [1, 0]),
-    con.PointToPointAbsDistance(2.3, [0, 1])
+    geo.PointLocation(np.array([0, 0])),
+    geo.PointToPointAbsDistance(5, [0, 1]),
+    geo.PointToPointAbsDistance(5, [1, 0]),
+    geo.PointToPointAbsDistance(2.3, [0, 1])
 ]
 _constraint_graph = [
     ('Point0',),
     ('Point0', 'Point1'),
     ('Point0', 'Point1'),
-    ('PolyLine0.Point0', 'PolyLine0.Point1')
+    ('LineSegment0.Point0', 'LineSegment0.Point1')
 ]
 for prim in _prims:
     prim_coll.add_prim(prim)
@@ -78,7 +78,7 @@ print(f"Solver info: {info}")
 
 
 # Test that expanding then contracting a prim are inverses of each other
-test = pri.PolyLine(prims=(sa, sb))
+test = geo.LineSegment(prims=(sa, sb))
 child_prims, child_constrs, child_constr_graph, prim_graph = solver.expand_prim(test)
 new_test, m = solver.contract_prim(test, child_prims)
 # print(test.prims)

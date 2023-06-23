@@ -4,14 +4,11 @@ Routines for solving and managing collections of primitives and constraints
 
 import typing as typ
 
-import itertools
-
 import jax
 from jax import numpy as jnp
 import numpy as np
 
-from .constraint import Constraint
-from .primitive import Primitive
+from .geometry import Primitive, Constraint
 
 Prims = typ.Tuple[Primitive, ...]
 Constraints = typ.List[Constraint]
