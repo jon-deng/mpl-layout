@@ -114,14 +114,11 @@ def expand_prim_labels(
     num_child = prim_graph[0]
 
     labels = []
-    type_to_count = {}
+    type_to_count = Counter()
     for prim in prims[:num_child]:
         PrimType = type(prim)
-        if PrimType not in type_to_count:
-            type_to_count[PrimType] = 0
-        
-        n = type_to_count[PrimType]
-        type_to_count[PrimType] += 1
+        type_to_count.add(PrimType)
+        n = type_to_count[PrimType] - 1
 
         labels.append(f'{prim_label}.{PrimType.__name__}{n:d}')
 
@@ -150,7 +147,7 @@ class LabelIndexedList(typ.Generic[T]):
             items = []
         self._items = items
         # Store the total number of items of each type
-        self._type_to_count = {}
+        self._type_to_count = Counter()
         self._label_to_idx = {}
 
     ## List/Dict interface
@@ -172,10 +169,7 @@ class LabelIndexedList(typ.Generic[T]):
 
     def append(self, item: T, label: typ.Optional[str]=None) -> str:
         ItemType = type(item)
-        if ItemType in self._type_to_count:
-            self._type_to_count[ItemType] += 1
-        else:
-            self._type_to_count[ItemType] = 1
+        self._type_to_count.add(ItemType)
 
         if label is None:
             n =  self._type_to_count[ItemType] - 1
@@ -361,3 +355,24 @@ def solve(
     # ]
 
     return new_prim_params, solver_info
+
+class Counter:
+
+    def __init__(self):
+        self._count = {}
+
+    @property
+    def count(self):
+        return self._count
+    
+    def __in__(self, key):
+        return key in self.count
+    
+    def __getitem__(self, key):
+        return self.count.get(key, 0)
+    
+    def add(self, item):
+        if item in self.count:
+            self.count[item] += 1
+        else:
+            self.count[item] = 1
