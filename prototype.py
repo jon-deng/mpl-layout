@@ -29,18 +29,37 @@ constraint_graph = [
     (3, 4)
 ]
 
-test = geo.LineSegment(prims=(sa, sb))
-prims, constrs, constr_graph, prim_graph = solver.expand_prim(test)
+# test = geo.LineSegment(prims=(sa, sb))
+# prims, constrs, constr_graph, prim_graph = solver.expand_prim(test)
 # print(prim_graph)
-prim_labels = solver.expand_prim_labels(test, 'Line0')
+# prim_labels = solver.expand_prim_labels(test, 'Line0')
 
 ## Create the same primitives + constraints using `ConstrainedPrimitiveManager`
 prim_coll = solver.ConstrainedPrimitiveManager()
- 
+
+box_points = [
+    geo.Point([10, 5.0]), geo.Point([11, 6.0]),
+    geo.Point([11, 10.0]), geo.Point([9, 15.0]),
+]
+lines = [
+    geo.LineSegment(prims=(pointa, pointb))
+    for pointa, pointb in zip(box_points, box_points[1:]+box_points[:1])
+]
+box = geo.Box(prims=lines)
+
+solver.expand_prim_labels(box, 'Box')
+
+cprims, cconstrs, cconstrgraph, _ = solver.expand_prim(box)
+print(cprims)
+test = solver.contract_prim(box, cprims)
+print(solver.expand_prim_labels(box, 'Box'))
+# breakpoint()
+
 _prims = [
     a, 
     b,
-    geo.LineSegment(prims=(sa, sb))
+    geo.LineSegment(prims=(sa, sb)),
+    geo.Box(prims=lines)
 ]
 _constraints = [
     geo.PointLocation(np.array([0, 0])),

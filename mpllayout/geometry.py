@@ -192,10 +192,24 @@ class CoincidentLine(Constraint):
         # This joins the start of the second line with the end of the first line
         return prims[1][0].param - prims[0][1].param
 
+class Orthogonal(Constraint):
+    primitive_types = (LineSegment, LineSegment)
+
+    def assem_res(self, prims):
+        dir0 = prims[0][1].param - prims[0][0].param
+        dir1 = prims[1][1].param - prims[1][0].param
+        return jnp.dot(dir0, dir1)
+
 
 class Box(Primitive):
 
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (LineSegment, LineSegment, LineSegment, LineSegment)
-    _CONSTRAINTS = (CoincidentLine, CoincidentLine, CoincidentLine, CoincidentLine)
-    _CONSTRAINT_GRAPH = ((0, 1), (1, 2), (2, 3), (3, 0))
+    _CONSTRAINTS = (
+        CoincidentLine, CoincidentLine, CoincidentLine, CoincidentLine,
+        Orthogonal, Orthogonal, Orthogonal, Orthogonal
+    )
+    _CONSTRAINT_GRAPH = (
+        (0, 1), (1, 2), (2, 3), (3, 0),
+        (0, 1), (1, 2), (2, 3), (3, 0)
+    )

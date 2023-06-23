@@ -168,8 +168,8 @@ def expand_prim_labels(
 
     labels = []
     type_to_count = Counter()
-    for prim in prim.prims:
-        PrimType = type(prim)
+    for subprim in prim.prims:
+        PrimType = type(subprim)
         type_to_count.add(PrimType)
         n = type_to_count[PrimType] - 1
 
@@ -178,6 +178,7 @@ def expand_prim_labels(
     # print(labels)
 
     # Recursively expand any child primitives
+    # breakpoint()
     if num_child == 0:
         return []
     else:
