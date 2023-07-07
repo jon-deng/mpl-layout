@@ -41,7 +41,7 @@ class Primitive:
 
     _PARAM_SHAPE: ArrayShape = (0,)
     _PRIM_TYPES: typ.Union[typ.Tuple[typ.Type['Primitive'], ...], typ.Type['Primitive']] = ()
-    _CONSTRAINTS: typ.Tuple['Constraint', ...] = ()
+    _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...] = ()
     _CONSTRAINT_GRAPH: 'ConstraintGraph' = ()
 
     def __init__(
@@ -51,7 +51,9 @@ class Primitive:
         ):
         # Create default `param` and `prims` if they're undefined
         if param is None:
-            param = np.zeros(self._PARAM_SHAPE)
+            param = np.zeros(self._PARAM_SHAPE, dtype=float)
+        elif not isinstance(param, (np.ndarray, jnp.ndarray)):
+            param = np.array(param, dtype=float)
         
         if prims is None:
             if isinstance(self._PRIM_TYPES, tuple):
@@ -60,9 +62,10 @@ class Primitive:
                 # PrimType = self._PRIM_TYPES
                 prims = ()
 
-        # Parameter vector for the primitive
-        if not isinstance(param, (np.ndarray, jnp.ndarray)):
-            param = np.array(param)
+        # Create any internal constraints
+        self._CONSTRAINTS = tuple(
+            Constraint() for Constraint in self._CONSTRAINT_TYPES
+        )
 
         # Check types and shapes are correct
         assert param.shape == self._PARAM_SHAPE
@@ -127,7 +130,7 @@ class Point(Primitive):
 
     _PARAM_SHAPE = (2,)
     _PRIM_TYPES = ()
-    _CONSTRAINTS = ()
+    _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
 
 class PointToPointAbsDistance(Constraint):
@@ -181,7 +184,7 @@ class LineSegment(Primitive):
 
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (Point, Point)
-    _CONSTRAINTS = ()
+    _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
 
 class CoincidentLine(Constraint):
@@ -190,22 +193,39 @@ class CoincidentLine(Constraint):
 
     def assem_res(self, prims):
         # This joins the start of the second line with the end of the first line
-        return prims[1][0].param - prims[0][1].param
+        return prims[1].prims[0].param - prims[0].prims[1].param
 
 class Orthogonal(Constraint):
     primitive_types = (LineSegment, LineSegment)
 
     def assem_res(self, prims):
-        dir0 = prims[0][1].param - prims[0][0].param
-        dir1 = prims[1][1].param - prims[1][0].param
+        dir0 = prims[0].prims[1].param - prims[0].prims[0].param
+        dir1 = prims[1].prims[1].param - prims[1].prims[0].param
         return jnp.dot(dir0, dir1)
+
+class Angle(Constraint):
+    primitive_types = (LineSegment, LineSegment)
+
+    def __init__(
+            self, 
+            angle: NDArray
+        ):
+        self._angle = angle
+
+    def assem_res(self, prims):
+        dir0 = prims[0].prims[1].param - prims[0].prims[0].param
+        dir1 = prims[1].prims[1].param - prims[1].prims[0].param
+
+        dir0 = dir0/jnp.linalg.norm(dir0)
+        dir1 = dir1/jnp.linalg.norm(dir1)
+        return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
 
 
 class Box(Primitive):
 
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (LineSegment, LineSegment, LineSegment, LineSegment)
-    _CONSTRAINTS = (
+    _CONSTRAINT_TYPES = (
         CoincidentLine, CoincidentLine, CoincidentLine, CoincidentLine,
         Orthogonal, Orthogonal, Orthogonal, Orthogonal
     )

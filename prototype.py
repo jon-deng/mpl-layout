@@ -49,7 +49,7 @@ box = geo.Box(prims=lines)
 
 solver.expand_prim_labels(box, 'Box')
 
-cprims, cconstrs, cconstrgraph, _ = solver.expand_prim(box)
+cprims, cconstrs, cconstrgraph = solver.expand_prim(box)
 print(cprims)
 test = solver.contract_prim(box, cprims)
 print(solver.expand_prim_labels(box, 'Box'))
@@ -71,7 +71,8 @@ _constraint_graph = [
     ('Point0',),
     ('Point0', 'Point1'),
     ('Point0', 'Point1'),
-    ('LineSegment0.Point0', 'LineSegment0.Point1')
+    ('LineSegment0.Point0', 'LineSegment0.Point1'),
+    ('Box0.LineSegment3', 'Box0.LineSegment1')
 ]
 for prim in _prims:
     prim_coll.add_prim(prim)
@@ -98,7 +99,7 @@ print(f"Solver info: {info}")
 
 # Test that expanding then contracting a prim are inverses of each other
 test = geo.LineSegment(prims=(sa, sb))
-child_prims, child_constrs, child_constr_graph, prim_graph = solver.expand_prim(test)
+child_prims, child_constrs, child_constr_graph = solver.expand_prim(test)
 new_test, m = solver.contract_prim(test, child_prims)
 # print(test.prims)
 # print(m)

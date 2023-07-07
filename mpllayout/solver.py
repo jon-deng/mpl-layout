@@ -79,12 +79,16 @@ class ConstrainedPrimitiveManager:
 
         # Append all child primitives
         if len(prim.prims) > 0:
-            subprims, subconstrs, subconstr_graph, subprim_graph = \
+            subprims, subconstrs, subconstr_graph = \
                 expand_prim(prim, prim_idx=len(self.prims)) 
             
             prim_labels = expand_prim_labels(prim, prim_label)
             for label, prim in zip(prim_labels, subprims):
                 self.prims.append(prim, label=label)
+
+            breakpoint()
+            for constr, prim_idxs in zip(subconstrs, subconstr_graph):
+                self.add_constraint(constr, prim_idxs)
             
         return prim_label
 
@@ -208,22 +212,20 @@ def expand_prim(
     child_prims = list(prim.prims)
     child_constrs = list(prim.constraints)
     child_constr_graph = [
-        (idx+prim_idx for idx in idxs) 
+        tuple(idx+prim_idx for idx in idxs) 
         for idxs in prim.constraint_graph
     ]
-    prim_graph = [len(prim.prims)]
 
     # Recursively expand any child primitives
     if len(prim.prims) == 0:
-        return child_prims, child_constrs, child_constr_graph, prim_graph
+        return child_prims, child_constrs, child_constr_graph
     else:
         for sub_prim in prim.prims:
-            _exp_prims, _exp_constrs, _exp_constr_graph, _prim_graph = expand_prim(sub_prim)
+            _exp_prims, _exp_constrs, _exp_constr_graph = expand_prim(sub_prim)
             child_prims += _exp_prims
             child_constrs += _exp_constrs
             child_constr_graph += _exp_constr_graph
-            prim_graph += _prim_graph
-        return child_prims, child_constrs, child_constr_graph, prim_graph
+        return child_prims, child_constrs, child_constr_graph
     
 def contract_prim(
         prim: Primitive, 
