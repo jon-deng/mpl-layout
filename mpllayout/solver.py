@@ -325,7 +325,8 @@ def solve(
     dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
     global_param_n = global_param_n + dglobal_param
     solver_info = {
-        'err': err, 'rank': rank, 's': s
+        'err': err, 'rank': rank, 's': s, 'num_dof': len(global_param_n),
+        'res': global_res
     }
 
     ## Build a list of primitives from a global parameter vector

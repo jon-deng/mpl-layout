@@ -203,6 +203,23 @@ class Orthogonal(Constraint):
         dir0 = line0.prims[1].param - line0.prims[0].param
         dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.dot(dir0, dir1)
+    
+class Vertical(Constraint):
+    primitive_types = (LineSegment,)
+
+    def assem_res(self, prims: typ.Tuple[LineSegment]):
+        line0, = prims
+        dir0 = line0.prims[1].param - line0.prims[0].param
+        return jnp.dot(dir0, np.array([1, 0]))
+    
+class Horizontal(Constraint):
+    primitive_types = (LineSegment,)
+
+    def assem_res(self, prims: typ.Tuple[LineSegment]):
+        line0, = prims
+        print("testing line", line0)
+        dir0 = line0.prims[1].param - line0.prims[0].param
+        return jnp.dot(dir0, np.array([0, 1]))
 
 class Angle(Constraint):
     primitive_types = (LineSegment, LineSegment)
@@ -214,8 +231,9 @@ class Angle(Constraint):
         self._angle = angle
 
     def assem_res(self, prims):
-        dir0 = prims[0].prims[1].param - prims[0].prims[0].param
-        dir1 = prims[1].prims[1].param - prims[1].prims[0].param
+        line0, line1 = prims
+        dir0 = line0.prims[1].param - line0.prims[0].param
+        dir1 = line1.prims[1].param - line1.prims[0].param
 
         dir0 = dir0/jnp.linalg.norm(dir0)
         dir1 = dir1/jnp.linalg.norm(dir1)
@@ -228,9 +246,11 @@ class Box(Primitive):
     _PRIM_TYPES = (LineSegment, LineSegment, LineSegment, LineSegment)
     _CONSTRAINT_TYPES = (
         CoincidentLine, CoincidentLine, CoincidentLine, CoincidentLine,
-        Orthogonal, Orthogonal, Orthogonal, Orthogonal
+        # Orthogonal, Orthogonal, Orthogonal, Orthogonal,
+        Horizontal, Vertical, Horizontal, Vertical
     )
     _CONSTRAINT_GRAPH = (
         (0, 1), (1, 2), (2, 3), (3, 0),
-        (0, 1), (1, 2), (2, 3), (3, 0)
+        # (0, 1), (1, 2), (2, 3), (3, 0),
+        (0,), (1,), (2,), (3,)
     )
