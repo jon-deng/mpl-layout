@@ -198,9 +198,10 @@ class CoincidentLine(Constraint):
 class Orthogonal(Constraint):
     primitive_types = (LineSegment, LineSegment)
 
-    def assem_res(self, prims):
-        dir0 = prims[0].prims[1].param - prims[0].prims[0].param
-        dir1 = prims[1].prims[1].param - prims[1].prims[0].param
+    def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
+        line0, line1 = prims
+        dir0 = line0.prims[1].param - line0.prims[0].param
+        dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.dot(dir0, dir1)
 
 class Angle(Constraint):

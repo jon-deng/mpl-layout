@@ -55,11 +55,13 @@ class TestConstraints:
 
         # layout.add_prim(geo.Point([0, 0]), 'Origin')
 
+        xmin, xmax = 1, 4
+        ymin, ymax = 1, 2
         box_points = [
-            geo.Point([1, 1]),
-            geo.Point([2, 1]),
-            geo.Point([2, 2]),
-            geo.Point([1, 2])
+            geo.Point([xmin+0.1, ymin+0.5]),
+            geo.Point([xmax+0.6, ymin]),
+            geo.Point([xmax, ymax]),
+            geo.Point([xmin-0.1, ymax])
         ]
         box_lines = [
             geo.LineSegment(prims=(pointa, pointb))
@@ -69,7 +71,6 @@ class TestConstraints:
         print(layout.constraints)
         print(layout.constraint_graph)
         # assert False
-        breakpoint()
 
         # layout.add_constraint(
         #     geo.PointLocation(np.array([0, 0])), 
@@ -93,6 +94,11 @@ class TestConstraints:
             geo.PointToPointAbsDistance(2.4, np.array([0, 1])), 
             ('Box0.LineSegment0.Point0', 'Box0.LineSegment1.Point1')
         )
+
+        # layout.add_constraint(
+        #     geo.Orthogonal(), 
+        #     ('Box0.LineSegment0', 'Box0.LineSegment1')
+        # )
 
         pprint("Constraints")
         pprint(layout.constraints.keys())

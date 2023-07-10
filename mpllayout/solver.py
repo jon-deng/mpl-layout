@@ -86,7 +86,6 @@ class ConstrainedPrimitiveManager:
             for label, prim in zip(prim_labels, subprims):
                 self.prims.append(prim, label=label)
 
-            breakpoint()
             for constr, prim_idxs in zip(subconstrs, subconstr_graph):
                 self.add_constraint(constr, prim_idxs)
             
@@ -179,10 +178,7 @@ def expand_prim_labels(
 
         labels.append(f'{prim_label}.{PrimType.__name__}{n:d}')
 
-    # print(labels)
-
     # Recursively expand any child primitives
-    # breakpoint()
     if num_child == 0:
         return []
     else:
@@ -256,6 +252,24 @@ def contract_prim(
 
     return type(prim)(param=prim.param, prims=tuple(child_prims)), m
    
+def build_prims(prims, params):
+    
+    _new_prims = [
+        type(prim)(param=param, prims=prim.prims) 
+        for prim, param in zip(prims, params)
+    ]
+
+    # Contract all child primitives into parents
+    m = 0
+    new_prims = []
+    while m < len(_new_prims):
+        prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
+        cprims, *_ = expand_prim(prim)
+        new_prims = new_prims + [prim] + cprims
+        m += 1+dm
+
+    return new_prims
+
 def solve(
         prims: typ.List[Primitive], 
         constraints: typ.List[Constraint], 
@@ -281,24 +295,26 @@ def solve(
         `subprim_graph[n] == 0`.
     """
 
+    # `prim_idx_bounds` stores the right/left indices for each primitive's 
+    # parameter vector in the global parameter vector array
+    # For primitive with index `n`, for example, 
+    # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
+    # the parameter vectors are stored.
     prim_sizes = [prim.param.size for prim in prims]
-    prim_global_idx_bounds = np.cumsum([0] + prim_sizes)
+    prim_idx_bounds = np.cumsum([0] + prim_sizes)
 
     global_param_n = np.concatenate([prim.param for prim in prims])
 
     def assem_global_res(global_param):
+        new_prim_params = [
+            global_param[idx_start:idx_end]
+            for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
+        ]
+        new_prims = build_prims(prims, new_prim_params)
         constraint_vals = []
         for constraint_idx, prim_idxs in enumerate(constraint_graph):
             constraint = constraints[constraint_idx]
-            params = tuple(
-                global_param[
-                    prim_global_idx_bounds[idx]:prim_global_idx_bounds[idx+1]
-                ] 
-                for idx in prim_idxs
-            )
-            local_prims = tuple(
-                Prim(param) for Prim, param in zip(constraint.primitive_types, params)
-            )
+            local_prims = tuple(new_prims[idx] for idx in prim_idxs)
 
             constraint_vals.append(constraint(local_prims))
         return jnp.concatenate(constraint_vals)
@@ -312,24 +328,12 @@ def solve(
         'err': err, 'rank': rank, 's': s
     }
 
+    ## Build a list of primitives from a global parameter vector
     new_prim_params = [
         np.array(global_param_n[idx_start:idx_end])
-        for idx_start, idx_end in zip(prim_global_idx_bounds[:-1], prim_global_idx_bounds[1:])
+        for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-
-    _new_prims = [
-        type(prim)(param=param, prims=prim.prims) 
-        for prim, param in zip(prims, new_prim_params)
-    ]
-
-    # Contract all child primitives into parents
-    m = 0
-    new_prims = []
-    while m < len(_new_prims):
-        prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
-        cprims, *_ = expand_prim(prim)
-        new_prims = new_prims + [prim] + cprims
-        m += 1+dm
+    new_prims = build_prims(prims, new_prim_params)
 
     return new_prims, solver_info
 
