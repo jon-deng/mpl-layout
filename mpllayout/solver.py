@@ -117,11 +117,16 @@ class LabelIndexedList(typ.Generic[T]):
             keys: typ.Optional[typ.List[str]]=None
         ):
         if items is None:
-            items = []
-        self._items = items
+            self._items = []
+        else:
+            self._items = items
+        if keys is None:
+            self._label_to_idx = {}
+        else:
+            self._label_to_idx = {key: idx for idx, key in enumerate(keys)}
+
         # Store the total number of items of each type
         self._type_to_count = Counter()
-        self._label_to_idx = {}
 
     ## List/Dict interface
     def __len__(self):
@@ -335,6 +340,7 @@ def solve(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     new_prims = build_prims(prims, new_prim_params)
+    new_prims = LabelIndexedList(new_prims, list(prims.keys()))
 
     return new_prims, solver_info
 
