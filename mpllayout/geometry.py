@@ -217,7 +217,6 @@ class Horizontal(Constraint):
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         line0, = prims
-        print("testing line", line0)
         dir0 = line0.prims[1].param - line0.prims[0].param
         return jnp.dot(dir0, np.array([0, 1]))
 
