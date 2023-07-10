@@ -209,7 +209,7 @@ class Vertical(Constraint):
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         line0, = prims
-        dir0 = line0.prims[1].param - line0.prims[0].param
+        dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([1, 0]))
     
 class Horizontal(Constraint):
@@ -217,7 +217,7 @@ class Horizontal(Constraint):
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         line0, = prims
-        dir0 = line0.prims[1].param - line0.prims[0].param
+        dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([0, 1]))
 
 class Angle(Constraint):
@@ -231,13 +231,25 @@ class Angle(Constraint):
 
     def assem_res(self, prims):
         line0, line1 = prims
-        dir0 = line0.prims[1].param - line0.prims[0].param
-        dir1 = line1.prims[1].param - line1.prims[0].param
+        dir0 = line_direction(line0)
+        dir1 = line_direction(line1)
 
         dir0 = dir0/jnp.linalg.norm(dir0)
         dir1 = dir1/jnp.linalg.norm(dir1)
         return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
 
+class Collinear(Constraint):
+    primitive_types = (LineSegment, LineSegment)
+
+    def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
+        line0, line1 = prims
+        dir0 = line_direction(line0)
+        dir1 = line_direction(line1)
+        dir_inter = line1.prims[0].param - line0.prims[1].param
+        return jnp.array([
+            jnp.dot(dir0, dir1) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir1), 
+            jnp.dot(dir0, dir_inter) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir_inter)
+        ])
 
 class Box(Primitive):
 
@@ -253,3 +265,7 @@ class Box(Primitive):
         # (0, 1), (1, 2), (2, 3), (3, 0),
         (0,), (1,), (2,), (3,)
     )
+
+
+def line_direction(line: LineSegment):
+    return line.prims[1].param - line.prims[0].param
