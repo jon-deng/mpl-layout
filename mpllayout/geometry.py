@@ -107,6 +107,31 @@ class Primitive:
         )
         return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
 
+class PrimitiveList(Primitive):
+    """
+    Geometric primitives that represent a collection of primitives
+
+    Parameters
+    ----------
+    param: ArrayLike with shape (n,)
+        A parameter vector for the primitive
+
+    Attributes
+    ----------
+    param: ArrayLike with shape (n,)
+        A parameter vector for the primitive
+    prims: Tuple[Primitive, ...]
+        If non-empty, the primitive contains other geometric primitives in `self.prims`
+    constraints: Tuple[Constraint, ...]
+        If non-empty, the primitive contains implicit geometric constraints in `self.constraints`
+    """
+
+    def __len__(self):
+        raise NotImplementedError
+    
+    def __getitem__(self, key):
+        raise NotImplementedError
+
 class Constraint:
     """
     Constraint base class
@@ -186,6 +211,30 @@ class LineSegment(Primitive):
     _PRIM_TYPES = (Point, Point)
     _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
+
+class ClosedPolyline(PrimitiveList):
+    """
+    A closed polyline passing through a given set of points
+    """
+
+    _PARAM_SHAPE = (0,)
+    _PRIM_TYPES = (Point,)
+    _CONSTRAINT_TYPES = ()
+    _CONSTRAINT_GRAPH = ()
+
+    def __len__(self):
+        return len(self.prims) - 1
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            idx1 = key
+            if key == -1 or key == len(self)-1:
+                idx2 = 0
+            else:
+                idx2 = idx1+1
+            return LineSegment(prims=(self.prims[idx1], self.prims[idx2]))
+        else:
+            raise TypeError("`key`, {key}, must be an integer")
 
 class CoincidentLine(Constraint):
 
