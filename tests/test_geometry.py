@@ -72,10 +72,10 @@ class TestConstraints:
         print(layout.constraint_graph)
         # assert False
 
-        # layout.add_constraint(
-        #     geo.PointLocation(np.array([0, 0])), 
-        #     ('Origin',)
-        # )
+        layout.add_constraint(
+            geo.PointLocation(np.array([0, 0])), 
+            ('Box0.LineSegment0.Point0',)
+        )
 
         # layout.add_constraint(
         #     geo.PointToPointAbsDistance(1.2, np.array([1, 0])), 
@@ -96,8 +96,13 @@ class TestConstraints:
         )
 
         # layout.add_constraint(
-        #     geo.Orthogonal(), 
-        #     ('Box0.LineSegment0', 'Box0.LineSegment1')
+        #     geo.Horizontal(), 
+        #     ('Box0.LineSegment0',)
+        # )
+
+        # layout.add_constraint(
+        #     geo.Vertical(), 
+        #     ('Box0.LineSegment1',)
         # )
 
         pprint("Constraints")
@@ -107,4 +112,4 @@ class TestConstraints:
             layout.prims, layout.constraints, layout.constraint_graph
         )
         pprint(new_prims)
-        pprint(info)
+        pprint(info) 

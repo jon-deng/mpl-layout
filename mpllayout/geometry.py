@@ -218,7 +218,7 @@ class ClosedPolyline(PrimitiveList):
     """
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (Point,)
+    _PRIM_TYPES = Point
     _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
 
