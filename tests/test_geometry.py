@@ -12,7 +12,7 @@ from mpllayout import solver, geometry as geo
 class TestConstraints:
 
     def test_point_collection(self):
-        layout = solver.ConstrainedPrimitiveManager()
+        layout = solver.Layout()
 
         layout.add_prim(geo.Point([0, 0]), 'Origin')
         layout.add_prim(geo.Point([1, 1]))
@@ -51,7 +51,7 @@ class TestConstraints:
 
     def test_box(self):
 
-        layout = solver.ConstrainedPrimitiveManager()
+        layout = solver.Layout()
 
         # layout.add_prim(geo.Point([0, 0]), 'Origin')
 

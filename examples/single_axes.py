@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from mpllayout import solver, geometry as geo
 
 if __name__ == '__main__':
-    layout = solver.ConstrainedPrimitiveManager()
+    layout = solver.Layout()
 
     # Create an origin point and the figure max extent point
     layout.add_prim(geo.Point([0, 0]), 'Origin')

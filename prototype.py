@@ -17,7 +17,7 @@ print(quad[1])
 
 ## Constrain the quadrilateral
 
-layout = solver.ConstrainedPrimitiveManager()
+layout = solver.Layout()
 
 layout.add_prim(quad)
 layout.add_constraint()

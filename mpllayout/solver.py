@@ -15,7 +15,7 @@ Constraints = typ.List[Constraint]
 Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
 
-class ConstrainedPrimitiveManager:
+class Layout:
     """
     Manage a set of primitives and constraints
 
