@@ -131,6 +131,12 @@ class PrimitiveList(Primitive):
     
     def __getitem__(self, key):
         raise NotImplementedError
+    
+    def _list_spec(self, key):
+        """
+        Return a helper function that lets you apply a constraint...
+        """
+        raise NotImplementedError
 
 class Constraint:
     """

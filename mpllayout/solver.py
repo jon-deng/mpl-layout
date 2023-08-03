@@ -95,14 +95,37 @@ class Layout:
             self, 
             constraint: Constraint, 
             prim_labels: typ.Tuple[typ.Union[str, int], ...],
+            prim_idxs: typ.Optional[
+                typ.Tuple[typ.Union[int, None], ...]
+            ]=None,
             label: typ.Optional[str]=None
         ) -> str:
         """
         Add a constraint between primitives
+
+        Parameters
+        ----------
+        constraint: Constraint
+            The constraint to apply
+        prim_labels:
+            Label identifiers for the primitives to apply the constraints on
+        prim_idxs:
+            Indices for each primitive if the primitive is a `PrimitiveList` type
         """
+        if prim_idxs is None:
+            prim_idxs = len(prim_labels)*(None,)
+
+        assert len(prim_idxs) == len(prim_labels)
+        if prim_idxs.count(None) != len(prim_idxs):
+            # In this case, some of the primitives are being indexed so
+            # a modified constraint is needed
+            pass
+
         label = self.constraints.append(constraint, label=label)
-        prim_idxs = tuple(self.prims.key_to_idx(_label) for _label in prim_labels)
-        self.constraint_graph.append(prim_idxs)
+        global_prim_idxs = tuple(self.prims.key_to_idx(_label) for _label in prim_labels)
+        # These should be idx offsets for any `PrimitiveList` types
+        # global_prim_didxs
+        self.constraint_graph.append(global_prim_idxs)
         return label
 
 
