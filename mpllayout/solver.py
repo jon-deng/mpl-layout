@@ -17,7 +17,7 @@ Graph = typ.List[Idxs]
 
 class Layout:
     """
-    Manage a set of primitives and constraints
+    Represents a collection of primitives and associated constraints
 
     Parameters
     ----------
@@ -68,42 +68,42 @@ class Layout:
     def add_prim(
             self, 
             prim: Primitive, 
-            prim_label: typ.Optional[str]=None
+            label: typ.Optional[str]=None
         ) -> str:
         """
         Add a primitive to the collection
         """
     
         # Append the root primitive
-        prim_label = self.prims.append(prim, label=prim_label)
+        label = self.prims.append(prim, label=label)
 
         # Append all child primitives
         if len(prim.prims) > 0:
             subprims, subconstrs, subconstr_graph = \
                 expand_prim(prim, prim_idx=len(self.prims)) 
             
-            prim_labels = expand_prim_labels(prim, prim_label)
-            for label, prim in zip(prim_labels, subprims):
-                self.prims.append(prim, label=label)
+            prim_labels = expand_prim_labels(prim, label)
+            for sub_label, sub_prim in zip(prim_labels, subprims):
+                self.prims.append(sub_prim, label=sub_label)
 
             for constr, prim_idxs in zip(subconstrs, subconstr_graph):
                 self.add_constraint(constr, prim_idxs)
             
-        return prim_label
+        return label
 
     def add_constraint(
             self, 
             constraint: Constraint, 
-            prim_labels: typ.Tuple[typ.Union[str, int], ...], 
-            constraint_label: typ.Optional[str]=None
+            prim_labels: typ.Tuple[typ.Union[str, int], ...],
+            label: typ.Optional[str]=None
         ) -> str:
         """
         Add a constraint between primitives
         """
-        constraint_label = self.constraints.append(constraint, label=constraint_label)
-        prim_idxs = tuple(self.prims.key_to_idx(label) for label in prim_labels)
+        label = self.constraints.append(constraint, label=label)
+        prim_idxs = tuple(self.prims.key_to_idx(_label) for _label in prim_labels)
         self.constraint_graph.append(prim_idxs)
-        return constraint_label
+        return label
 
 
 T = typ.TypeVar('T')

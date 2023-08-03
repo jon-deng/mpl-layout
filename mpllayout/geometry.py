@@ -19,7 +19,7 @@ Prims = typ.Tuple['Primitive', ...]
 
 class Primitive:
     """
-    Geometric primitive base class
+    A basic geometric primitive
 
     Parameters
     ----------
@@ -31,7 +31,7 @@ class Primitive:
     param: ArrayLike with shape (n,)
         A parameter vector for the primitive
     prims: Tuple[Primitive, ...]
-        If non-empty, the primitive contains other geometric primitives in `self.prims`
+        If non-empty, the primitive contains child geometric primitives in `self.prims`
     constraints: Tuple[Constraint, ...]
         If non-empty, the primitive contains implicit geometric constraints in `self.constraints`
     """
@@ -109,7 +109,7 @@ class Primitive:
 
 class PrimitiveList(Primitive):
     """
-    Geometric primitives that represent a collection of primitives
+    A geometric primitive representing a list of primitives
 
     Parameters
     ----------
