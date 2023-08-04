@@ -132,7 +132,7 @@ class PrimitiveList(Primitive):
     def __getitem__(self, key):
         raise NotImplementedError
     
-    def _list_spec(self, key):
+    def _list_spec(self, key) -> typ.Tuple[typ.Callable, typ.Tuple[int, ...]]:
         """
         Return a helper function that lets you apply a constraint...
         """
@@ -232,15 +232,24 @@ class ClosedPolyline(PrimitiveList):
         return len(self.prims) - 1
 
     def __getitem__(self, key):
+        make_prim, prim_idxs = self._list_spec(key)
+        return make_prim(tuple(self.prims[idx] for idx in prim_idxs))
+        
+    def _list_spec(self, key):
+        def make_prim(prims):
+            return LineSegment(prims=prims)
+        
         if isinstance(key, int):
             idx1 = key
             if key == -1 or key == len(self)-1:
                 idx2 = 0
             else:
                 idx2 = idx1+1
-            return LineSegment(prims=(self.prims[idx1], self.prims[idx2]))
         else:
             raise TypeError("`key`, {key}, must be an integer")
+        
+        prim_idxs = (idx1, idx2)
+        return make_prim, prim_idxs
 
 class CoincidentLine(Constraint):
 
