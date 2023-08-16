@@ -68,28 +68,28 @@ class Layout:
     def add_prim(
             self, 
             prim: Primitive, 
-            label: typ.Optional[str]=None
+            prim_label: typ.Optional[str]=None
         ) -> str:
         """
         Add a primitive to the collection
         """
     
         # Append the root primitive
-        label = self.prims.append(prim, label=label)
+        prim_label = self.prims.append(prim, label=prim_label)
 
         # Append all child primitives
         if len(prim.prims) > 0:
             subprims, subconstrs, subconstr_graph = \
                 expand_prim(prim, prim_idx=len(self.prims)) 
             
-            prim_labels = expand_prim_labels(prim, label)
+            prim_labels = expand_prim_labels(prim, prim_label)
             for sub_label, sub_prim in zip(prim_labels, subprims):
                 self.prims.append(sub_prim, label=sub_label)
 
             for constr, prim_idxs in zip(subconstrs, subconstr_graph):
                 self.add_constraint(constr, prim_idxs)
             
-        return label
+        return prim_label
 
     def add_constraint(
             self, 
@@ -98,7 +98,7 @@ class Layout:
             prim_idxs: typ.Optional[
                 typ.Tuple[typ.Union[int, None], ...]
             ]=None,
-            label: typ.Optional[str]=None
+            constraint_label: typ.Optional[str]=None
         ) -> str:
         """
         Add a constraint between primitives
@@ -107,10 +107,14 @@ class Layout:
         ----------
         constraint: Constraint
             The constraint to apply
-        prim_labels:
-            Label identifiers for the primitives to apply the constraints on
-        prim_idxs:
+        prim_labels: typ.Tuple[typ.Union[str, int], ...]
+            Labels for the primitives to apply the constraints on
+        prim_idxs: typ.Optional[
+                typ.Tuple[typ.Union[int, None], ...]
+            ]
             Indices for each primitive if the primitive is a `PrimitiveList` type
+        constraint_label: typ.Optional[str]
+            An optional label for the constraint
         """
         if prim_idxs is None:
             prim_idxs = len(prim_labels)*(None,)
@@ -121,12 +125,12 @@ class Layout:
             # a modified constraint is needed
             pass
 
-        label = self.constraints.append(constraint, label=label)
+        constraint_label = self.constraints.append(constraint, label=constraint_label)
         global_prim_idxs = tuple(self.prims.key_to_idx(_label) for _label in prim_labels)
         # These should be idx offsets for any `PrimitiveList` types
         # global_prim_didxs
         self.constraint_graph.append(global_prim_idxs)
-        return label
+        return constraint_label
 
 
 T = typ.TypeVar('T')

@@ -134,7 +134,15 @@ class PrimitiveList(Primitive):
     
     def _list_spec(self, key) -> typ.Tuple[typ.Callable, typ.Tuple[int, ...]]:
         """
-        Return a helper function that lets you apply a constraint...
+        Return a specification for forming an indexed primitive
+
+        Returns
+        -------
+        make_prim:
+            A function that returns a primitive from input primitives
+        prim_idxs:
+            Indices of child primitives that are input to `make_prim` to get the 
+            indexed primitive
         """
         raise NotImplementedError
 
