@@ -120,16 +120,41 @@ class Layout:
             prim_idxs = len(prim_labels)*(None,)
 
         assert len(prim_idxs) == len(prim_labels)
-        if prim_idxs.count(None) != len(prim_idxs):
-            # In this case, some of the primitives are being indexed so
-            # a modified constraint is needed
-            pass
+        
+        # If any primitive is a `PrimitiveList` type and is being indexed, then we
+        # have to modify the constraint and the primitives it applies on
+        global_prim_idxs = tuple(self.prims.key_to_idx(label) for label in prim_labels)
+        prims = tuple(self.prims[label] for label in prim_labels)
+        list_specs = tuple(
+            (None, 0) if prim_idx is None
+            else prim._list_spec(prim_idx)
+            for prim, prim_idx in zip(prims, prim_idxs)
+        )
+        
+        make_prims = tuple(spec[0] for spec in list_specs)
+        make_prims_nargs = tuple(1 if spec[0] is None else len(spec[1]) for spec in list_specs)
+        new_global_prim_idxs = []
+        for spec, global_idx in zip(list_specs, global_prim_idxs):
+            make_prim, idxs = spec
+            if make_prim is None:
+                new_global_prim_idxs = new_global_prim_idxs + [global_idx]
+            else:
+                new_global_prim_idxs = new_global_prim_idxs + [global_idx+ii for ii in idxs]
+        new_global_prim_idxs = tuple(new_global_prim_idxs)
 
-        constraint_label = self.constraints.append(constraint, label=constraint_label)
-        global_prim_idxs = tuple(self.prims.key_to_idx(_label) for _label in prim_labels)
-        # These should be idx offsets for any `PrimitiveList` types
-        # global_prim_didxs
-        self.constraint_graph.append(global_prim_idxs)
+        def new_constraint(*args):
+            arg_bounds = [0] + np.cumsum(make_prims_nargs).tolist()
+            prims = tuple(
+                args[start] if make_prim is None
+                else make_prim(*args[start:end]) 
+                for start, end in zip(arg_bounds[:-1], arg_bounds[1:])
+            )
+            return constraint(prims)
+
+        breakpoint()
+
+        constraint_label = self.constraints.append(new_constraint, label=constraint_label)
+        self.constraint_graph.append(new_global_prim_idxs)
         return constraint_label
 
 
@@ -159,7 +184,7 @@ class LabelIndexedList(typ.Generic[T]):
     def __len__(self):
         return len(self._items)
 
-    def __getitem__(self, key: typ.Union[str, int]):
+    def __getitem__(self, key: typ.Union[str, int]) -> T:
         key = self.key_to_idx(key)
         return self._items[key]
     

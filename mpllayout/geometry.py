@@ -155,9 +155,9 @@ class Constraint:
 
     def __call__(self, prims: typ.Tuple['Primitive', ...]):
         # Check the input primitives are valid
-        assert len(prims) == len(self.primitive_types)
-        for prim, prim_type in zip(prims, self.primitive_types):
-            assert issubclass(type(prim), prim_type)
+        # assert len(prims) == len(self.primitive_types)
+        # for prim, prim_type in zip(prims, self.primitive_types):
+        #     assert issubclass(type(prim), prim_type)
 
         return jnp.atleast_1d(self.assem_res(prims))
     
