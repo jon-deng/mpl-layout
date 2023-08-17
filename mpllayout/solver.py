@@ -151,8 +151,6 @@ class Layout:
             )
             return constraint(prims)
 
-        breakpoint()
-
         constraint_label = self.constraints.append(new_constraint, label=constraint_label)
         self.constraint_graph.append(new_global_prim_idxs)
         return constraint_label
@@ -331,7 +329,7 @@ def solve(
         prims: typ.List[Primitive], 
         constraints: typ.List[Constraint], 
         constraint_graph: Graph
-    ):
+    ) -> typ.Tuple[typ.List[Primitive], typ.Mapping[str, typ.Any]]:
     """
     Return a set of primitives that satisfy the given constraints
 

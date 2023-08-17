@@ -23,4 +23,5 @@ layout.add_constraint(geo.Horizontal(), ('MyBox',), (1,))
 print("layout.constraints:", layout.constraints.values())
 print("layout.constraint_graph:", layout.constraint_graph)
 
-solver.solve(layout.prims, layout.constraints, layout.constraint_graph)
+new_prims, info = solver.solve(layout.prims, layout.constraints, layout.constraint_graph)
+breakpoint()
