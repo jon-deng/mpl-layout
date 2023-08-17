@@ -178,6 +178,12 @@ class LabelIndexedList(typ.Generic[T]):
         # Store the total number of items of each type
         self._type_to_count = Counter()
 
+    def __repr__(self):
+        return f"LabelIndexedList({list(self.values())}, {list(self.keys())})"
+    
+    def __str__(self):
+        return str(self._items)
+
     ## List/Dict interface
     def __len__(self):
         return len(self._items)
