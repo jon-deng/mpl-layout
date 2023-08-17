@@ -107,9 +107,9 @@ class Primitive:
         )
         return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
 
-class PrimitiveList(Primitive):
+class PrimitiveArray(Primitive):
     """
-    A geometric primitive representing a list of primitives
+    A geometric primitive representing an array of primitives
 
     Parameters
     ----------
@@ -132,9 +132,9 @@ class PrimitiveList(Primitive):
     def __getitem__(self, key):
         raise NotImplementedError
     
-    def _list_spec(self, key) -> typ.Tuple[typ.Callable, typ.Tuple[int, ...]]:
+    def index_spec(self, key) -> typ.Tuple[typ.Callable, typ.Tuple[int, ...]]:
         """
-        Return a specification for forming an indexed primitive
+        Return a specification for forming an indexed primitive from the array
 
         Returns
         -------
@@ -226,7 +226,7 @@ class LineSegment(Primitive):
     _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
 
-class ClosedPolyline(PrimitiveList):
+class ClosedPolyline(PrimitiveArray):
     """
     A closed polyline passing through a given set of points
     """
@@ -240,10 +240,10 @@ class ClosedPolyline(PrimitiveList):
         return len(self.prims) - 1
 
     def __getitem__(self, key):
-        make_prim, prim_idxs = self._list_spec(key)
+        make_prim, prim_idxs = self.index_spec(key)
         return make_prim(tuple(self.prims[idx] for idx in prim_idxs))
         
-    def _list_spec(self, key):
+    def index_spec(self, key):
         def make_prim(prims):
             return LineSegment(prims=prims)
         
