@@ -13,7 +13,7 @@ Prims = typ.Tuple['Primitive', ...]
 Idxs = typ.Tuple[int]
 
 ArrayShape = typ.Tuple[int, ...]
-Prims = typ.Tuple['Primitive', ...]
+PrimTuple = typ.Tuple['Primitive', ...]
 
 ## Basic geometric primitives
 
@@ -130,9 +130,13 @@ class PrimitiveArray(Primitive):
         raise NotImplementedError
     
     def __getitem__(self, key):
-        raise NotImplementedError
+        make_prim, child_prim_idxs = self.index_spec(key)
+        return make_prim(tuple(self.prims[idx] for idx in child_prim_idxs))
     
-    def index_spec(self, key) -> typ.Tuple[typ.Callable, typ.Tuple[int, ...]]:
+    def index_spec(self, key) -> typ.Tuple[
+            typ.Callable[[PrimTuple], Primitive], 
+            typ.Tuple[int, ...]
+        ]:
         """
         Return a specification for forming an indexed primitive from the array
 
@@ -140,7 +144,7 @@ class PrimitiveArray(Primitive):
         -------
         make_prim:
             A function that returns a primitive from input primitives
-        prim_idxs:
+        child_prim_idxs:
             Indices of child primitives that are input to `make_prim` to get the 
             indexed primitive
         """
@@ -239,10 +243,6 @@ class ClosedPolyline(PrimitiveArray):
     def __len__(self):
         return len(self.prims) - 1
 
-    def __getitem__(self, key):
-        make_prim, prim_idxs = self.index_spec(key)
-        return make_prim(tuple(self.prims[idx] for idx in prim_idxs))
-        
     def index_spec(self, key):
         def make_prim(prims):
             return LineSegment(prims=prims)
@@ -256,8 +256,8 @@ class ClosedPolyline(PrimitiveArray):
         else:
             raise TypeError("`key`, {key}, must be an integer")
         
-        prim_idxs = (idx1, idx2)
-        return make_prim, prim_idxs
+        child_prim_idxs = (idx1, idx2)
+        return make_prim, child_prim_idxs
 
 class CoincidentLine(Constraint):
 
