@@ -10,11 +10,11 @@ from mpllayout import solver, geometry as geo
 if __name__ == '__main__':
     layout = solver.Layout()
 
-    # Create an origin point
+    ## Create an origin point
     layout.add_prim(geo.Point([0, 0]), 'Origin')
     layout.add_constraint(geo.PointLocation(np.array([0, 0])), ('Origin',))
 
-    # Create the figure box
+    ## Create the Figure box
     verts = np.array([
         [0, 0], [5, 0], [5, 5], [0, 5]
     ])
@@ -28,7 +28,21 @@ if __name__ == '__main__':
         ('Figure.Point0', 'Origin')
     )
 
-    # Create the axes box
+    # Make the box square
+    layout.add_constraint(
+        geo.Horizontal(), ('Figure',), (0,)
+    )
+    # layout.add_constraint(
+    #     geo.Vertical(), ('Figure',), (1,)
+    # )
+    # layout.add_constraint(
+    #     geo.Horizontal(), ('Figure',), (2,)
+    # )
+    # layout.add_constraint(
+    #     geo.Vertical(), ('Figure',), (3,)
+    # )
+
+    ## Create the axes box
     verts = np.array([
         [0, 0], [5, 0], [5, 5], [0, 5]
     ])
@@ -75,13 +89,14 @@ if __name__ == '__main__':
         xmin = point_bottomleft.param[0]/fig_w
         ymin = point_bottomleft.param[1]/fig_h
 
-        point_topright = box.prims[1]
+        point_topright = box.prims[2]
         xmax = point_topright.param[0]/fig_w
         ymax = point_topright.param[1]/fig_h
 
         return (xmin, ymin, (xmax-xmin), (ymax-ymin))
     
     width, height = wh_from_box(prims['Figure'])
+    print((width, height))
 
     print(rect_from_box(prims['Axes1'], fig_size=(width, height)))
 
