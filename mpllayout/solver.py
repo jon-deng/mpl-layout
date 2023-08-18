@@ -182,11 +182,11 @@ class Layout:
         )
 
         # Modify the constraint function to account for sub-indexing
-        def new_constraint(*args):
+        def new_constraint(new_prims):
             arg_bounds = [0] + np.cumsum(make_prim_arg_lengths).tolist()
             prims = tuple(
-                args[start] if make_prim is None
-                else make_prim(*args[start:end]) 
+                new_prims[start] if make_prim is None
+                else make_prim(new_prims[start:end]) 
                 for make_prim, start, end in zip(make_prims, arg_bounds[:-1], arg_bounds[1:])
             )
             return constraint(prims)
