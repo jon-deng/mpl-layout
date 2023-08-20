@@ -1,5 +1,5 @@
 """
-Geometric primitive and constraints 
+Geometric primitive and constraints
 """
 
 import typing as typ
@@ -45,8 +45,8 @@ class Primitive:
     _CONSTRAINT_GRAPH: 'ConstraintGraph' = ()
 
     def __init__(
-            self, 
-            param: typ.Optional[NDArray]=None, 
+            self,
+            param: typ.Optional[NDArray]=None,
             prims: typ.Optional[Prims]=None
         ):
         # Create default `param` and `prims` if they're undefined
@@ -54,7 +54,7 @@ class Primitive:
             param = np.zeros(self._PARAM_SHAPE, dtype=float)
         elif not isinstance(param, (np.ndarray, jnp.ndarray)):
             param = np.array(param, dtype=float)
-        
+
         if prims is None:
             if isinstance(self._PRIM_TYPES, tuple):
                 prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
@@ -76,7 +76,7 @@ class Primitive:
             assert prim_types == len(prim_types)*(self._PRIM_TYPES,)
         else:
             raise TypeError()
-        
+
         self._param: NDArray = param
         self._prims = prims
 
@@ -86,23 +86,23 @@ class Primitive:
         Return the primitive's parameter vector
         """
         return self._param
-    
+
     @property
     def prims(self):
         return self._prims
-    
+
     @property
     def constraints(self):
         return self._CONSTRAINTS
-    
+
     @property
     def constraint_graph(self):
         return self._CONSTRAINT_GRAPH
-    
+
     def __repr__(self):
         prim_tuple_repr = (
-            '(' 
-            + str.join(', ', [prim.__repr__() for prim in self.prims]) 
+            '('
+            + str.join(', ', [prim.__repr__() for prim in self.prims])
             + ')'
         )
         return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
@@ -128,13 +128,13 @@ class PrimitiveArray(Primitive):
 
     def __len__(self):
         raise NotImplementedError
-    
+
     def __getitem__(self, key):
         make_prim, child_prim_idxs = self.index_spec(key)
         return make_prim(tuple(self.prims[idx] for idx in child_prim_idxs))
-    
+
     def index_spec(self, key) -> typ.Tuple[
-            typ.Callable[[PrimTuple], Primitive], 
+            typ.Callable[[PrimTuple], Primitive],
             typ.Tuple[int, ...]
         ]:
         """
@@ -145,7 +145,7 @@ class PrimitiveArray(Primitive):
         make_prim:
             A function that returns a primitive from input primitives
         child_prim_idxs:
-            Indices of child primitives that are input to `make_prim` to get the 
+            Indices of child primitives that are input to `make_prim` to get the
             indexed primitive
         """
         raise NotImplementedError
@@ -154,7 +154,7 @@ class Constraint:
     """
     Constraint base class
     """
-    
+
     primitive_types: typ.Tuple[typ.Type['Primitive'], ...]
 
     def __call__(self, prims: typ.Tuple['Primitive', ...]):
@@ -164,7 +164,7 @@ class Constraint:
         #     assert issubclass(type(prim), prim_type)
 
         return jnp.atleast_1d(self.assem_res(prims))
-    
+
     def assem_res(self, prims: typ.Tuple['Primitive', ...]) -> NDArray:
         raise NotImplementedError()
 
@@ -194,20 +194,20 @@ class PointToPointAbsDistance(Constraint):
     @property
     def distance(self):
         return self._distance
-    
+
     @property
     def direction(self):
         return self._direction
 
     def assem_res(self, prims):
         return jnp.dot(prims[1].param - prims[0].param, self.direction) - self.distance
-    
+
 class PointLocation(Constraint):
 
     primitive_types = (Point, )
 
     def __init__(
-            self, 
+            self,
             location: NDArray
         ):
         self._location = location
@@ -221,7 +221,7 @@ class CoincidentPoint(Constraint):
 
     def assem_res(self, prims):
         return prims[0].param - prims[1].param
-    
+
 
 class LineSegment(Primitive):
 
@@ -241,21 +241,19 @@ class ClosedPolyline(PrimitiveArray):
     _CONSTRAINT_GRAPH = ()
 
     def __len__(self):
-        return len(self.prims) - 1
+        return len(self.prims)
 
     def index_spec(self, key):
         def make_prim(prims):
             return LineSegment(prims=prims)
-        
+
         if isinstance(key, int):
-            idx1 = key
-            if key == -1 or key == len(self)-1:
-                idx2 = 0
-            else:
-                idx2 = idx1+1
+            idx1 = key % len(self)
+            idx2 = (key+1) % len(self)
+            print(idx1, idx2)
         else:
             raise TypeError("`key`, {key}, must be an integer")
-        
+
         child_prim_idxs = (idx1, idx2)
         return make_prim, child_prim_idxs
 
@@ -275,7 +273,7 @@ class Orthogonal(Constraint):
         dir0 = line0.prims[1].param - line0.prims[0].param
         dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.dot(dir0, dir1)
-    
+
 class Vertical(Constraint):
     primitive_types = (LineSegment,)
 
@@ -283,7 +281,7 @@ class Vertical(Constraint):
         line0, = prims
         dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([1, 0]))
-    
+
 class Horizontal(Constraint):
     primitive_types = (LineSegment,)
 
@@ -296,7 +294,7 @@ class Angle(Constraint):
     primitive_types = (LineSegment, LineSegment)
 
     def __init__(
-            self, 
+            self,
             angle: NDArray
         ):
         self._angle = angle
@@ -319,7 +317,7 @@ class Collinear(Constraint):
         dir1 = line_direction(line1)
         dir_inter = line1.prims[0].param - line0.prims[1].param
         return jnp.array([
-            jnp.dot(dir0, dir1) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir1), 
+            jnp.dot(dir0, dir1) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir1),
             jnp.dot(dir0, dir_inter) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir_inter)
         ])
 
