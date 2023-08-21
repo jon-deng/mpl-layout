@@ -338,18 +338,18 @@ class Collinear(Constraint):
             jnp.dot(dir0, dir_inter) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir_inter)
         ])
 
-class Box(Primitive):
+
+class Box(ClosedPolyline):
 
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (LineSegment, LineSegment, LineSegment, LineSegment)
     _CONSTRAINT_TYPES = (
-        CoincidentLine, CoincidentLine, CoincidentLine, CoincidentLine,
-        # Orthogonal, Orthogonal, Orthogonal, Orthogonal,
         Horizontal, Vertical, Horizontal, Vertical
     )
     _CONSTRAINT_GRAPH = (
-        (0, 1), (1, 2), (2, 3), (3, 0),
-        # (0, 1), (1, 2), (2, 3), (3, 0),
+        ('Root',), ('Root',), ('Root',), ('Root',)
+    )
+    _CONSTRAINT_GRAPH_SUB_IDXS = (
         (0,), (1,), (2,), (3,)
     )
 

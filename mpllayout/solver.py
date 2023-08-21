@@ -221,6 +221,68 @@ def expand_prim_labels(
             labels = labels + expand_prim_labels(sub_prim, prefix)
         return labels
 
+def _expand_prim(
+        prim: geo.Primitive,
+        label: str
+    ):
+    """
+    Expand all child primitives of `prim`
+
+    Parameters
+    ----------
+    prim: geo.Primitive
+        The primitive to be expanded
+    label: str
+        The label for the primitive
+
+    Returns
+    -------
+    """
+    # Expand child primitives, constraints, and constraint graph
+    child_prims = list(prim.prims)
+    child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
+
+    # Recursively expand any child primitives
+    if len(prim.prims) == 0:
+        return child_prims, child_labels
+    else:
+        for child_prim, child_label in zip(child_prims, child_labels):
+            _re_child_prims, _re_child_labels = _expand_prim(child_prim, child_label)
+            child_prims += _re_child_prims
+            child_labels += _re_child_labels
+        return child_prims, child_labels
+    
+def _expand_constraints(
+        prim: geo.Primitive,
+        label: str
+    ):
+    """
+    Expand all internal constraints of `prim`
+
+    Parameters
+    ----------
+    prim: geo.Primitive
+        The primitive to be expanded
+    label: str
+        The label for the primitive
+
+    Returns
+    -------
+    """
+    # Expand child primitives, constraints, and constraint graph
+    child_prims = list(prim.prims)
+    child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
+
+    # Recursively expand any child primitives
+    if len(prim.prims) == 0:
+        return child_prims, child_labels
+    else:
+        for child_prim, child_label in zip(child_prims, child_labels):
+            _re_child_prims, _re_child_labels = _expand_prim(child_prim, child_label)
+            child_prims += _re_child_prims
+            child_labels += _re_child_labels
+        return child_prims, child_labels
+    
 def expand_prim(
         prim: geo.Primitive,
         prim_idx: typ.Optional[int]=0
