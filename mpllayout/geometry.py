@@ -250,7 +250,6 @@ class ClosedPolyline(PrimitiveArray):
         if isinstance(key, int):
             idx1 = key % len(self)
             idx2 = (key+1) % len(self)
-            print(idx1, idx2)
         else:
             raise TypeError("`key`, {key}, must be an integer")
 
