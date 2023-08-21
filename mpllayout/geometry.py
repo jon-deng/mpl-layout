@@ -6,8 +6,9 @@ import typing as typ
 from numpy.typing import NDArray
 
 import numpy as np
-
 import jax.numpy as jnp
+
+from .array import LabelledTuple
 
 Prims = typ.Tuple['Primitive', ...]
 Idxs = typ.Tuple[int]
@@ -34,13 +35,21 @@ class Primitive:
         If non-empty, the primitive contains child geometric primitives in `self.prims`
     constraints: Tuple[Constraint, ...]
         If non-empty, the primitive contains implicit geometric constraints in `self.constraints`
+    constraint_graph: Tuple[Tuple[str, ...], ...]
+        A graph representing which primitives a constraint applies to
     """
 
     _param: NDArray
     _prims: Prims
-
+    
+    ## Specific primitive classes should define these to represent different 
+    ## primitives
     _PARAM_SHAPE: ArrayShape = (0,)
+    # `_PRIM_TYPES` can either be a tuple of types, or a single type.
+    # If it's a single type, then this implies a variable number of child primitives of that type
+    # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
     _PRIM_TYPES: typ.Union[typ.Tuple[typ.Type['Primitive'], ...], typ.Type['Primitive']] = ()
+    _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]] = None
     _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...] = ()
     _CONSTRAINT_GRAPH: 'ConstraintGraph' = ()
 
@@ -61,6 +70,14 @@ class Primitive:
             else:
                 # PrimType = self._PRIM_TYPES
                 prims = ()
+        else:
+            if self._PRIM_LABELS is None:
+                keys = None
+            elif isinstance(self._PRIM_LABELS, tuple):
+                keys = self._PRIM_LABELS
+            else:
+                keys = len(prims)*(self._PRIM_LABELS,)
+            prims = LabelledTuple(prims, keys)
 
         # Create any internal constraints
         self._CONSTRAINTS = tuple(
@@ -173,6 +190,7 @@ class Point(Primitive):
 
     _PARAM_SHAPE = (2,)
     _PRIM_TYPES = ()
+    _PRIM_LABELS = ()
     _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
 

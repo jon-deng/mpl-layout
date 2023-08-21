@@ -9,12 +9,13 @@ from jax import numpy as jnp
 import numpy as np
 
 from . import geometry as geo
+from .array import LabelledList, Counter
 
 PrimList = typ.List[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintList = typ.List[geo.Constraint]
 Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
-SolverInfo = typ.Mapping[str, typ.Any]
+SolverInfo = typ.Mapping[str, typ.Any] 
 
 class Layout:
     """
@@ -44,8 +45,8 @@ class Layout:
         if constraint_graph is None:
             constraint_graph = []
 
-        self._prims = LabelIndexedList(prims)
-        self._constraints = LabelIndexedList(constraints)
+        self._prims = LabelledList(prims)
+        self._constraints = LabelledList(constraints)
         self._constraint_graph = constraint_graph
 
         self._prim_type_count = {}
@@ -194,73 +195,6 @@ class Layout:
         constraint_label = self.constraints.append(new_constraint, label=constraint_label)
         self.constraint_graph.append(new_prim_idxs)
         return constraint_label
-
-
-T = typ.TypeVar('T')
-class LabelIndexedList(typ.Generic[T]):
-    """
-    A list with automatically generated labels for indices
-    """
-    def __init__(
-            self,
-            items: typ.Optional[typ.List[T]]=None,
-            keys: typ.Optional[typ.List[str]]=None
-        ):
-        if items is None:
-            self._items = []
-        else:
-            self._items = items
-        if keys is None:
-            self._label_to_idx = {}
-        else:
-            self._label_to_idx = {key: idx for idx, key in enumerate(keys)}
-
-        # Store the total number of items of each type
-        self._type_to_count = Counter()
-
-    def __repr__(self):
-        return f"LabelIndexedList({list(self.values())}, {list(self.keys())})"
-
-    def __str__(self):
-        return str(self._items)
-
-    ## List/Dict interface
-    def __len__(self):
-        return len(self._items)
-
-    def __getitem__(self, key: typ.Union[str, int]) -> T:
-        key = self.key_to_idx(key)
-        return self._items[key]
-
-    def keys(self):
-        return self._label_to_idx.keys()
-
-    def values(self):
-        return self._items
-
-    def items(self):
-        return [(key, self[key]) for key in self.keys()]
-
-    def append(self, item: T, label: typ.Optional[str]=None) -> str:
-        ItemType = type(item)
-        self._type_to_count.add(ItemType)
-
-        if label is None:
-            n =  self._type_to_count[ItemType] - 1
-            label = f'{ItemType.__name__}{n:d}'
-
-        assert label not in self._label_to_idx
-        self._items.append(item)
-        self._label_to_idx[label] = len(self._items)-1
-        return label
-
-    def key_to_idx(self, key: typ.Union[str, int, slice]):
-        if isinstance(key, (int, slice)):
-            return key
-        elif isinstance(key, str):
-            return self._label_to_idx[key]
-        else:
-            raise TypeError(f"`key` must be `str` or `int`, not `{type(key)}`")
 
 def expand_prim_labels(
         prim: geo.Primitive,
@@ -436,27 +370,6 @@ def solve(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     new_prims = build_prims(prims, new_prim_params)
-    new_prims = LabelIndexedList(new_prims, list(prims.keys()))
+    new_prims = LabelledList(new_prims, list(prims.keys()))
 
     return new_prims, solver_info
-
-class Counter:
-
-    def __init__(self):
-        self._count = {}
-
-    @property
-    def count(self):
-        return self._count
-
-    def __in__(self, key):
-        return key in self.count
-
-    def __getitem__(self, key):
-        return self.count.get(key, 0)
-
-    def add(self, item):
-        if item in self.count:
-            self.count[item] += 1
-        else:
-            self.count[item] = 1
