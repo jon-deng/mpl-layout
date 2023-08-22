@@ -373,8 +373,8 @@ class Collinear(Constraint):
         dir1 = line_direction(line1)
         dir_inter = line1.prims[0].param - line0.prims[1].param
         return jnp.array([
-            jnp.dot(dir0, dir1) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir1),
-            jnp.dot(dir0, dir_inter) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir_inter)
+            jnp.abs(jnp.dot(dir0, dir1)) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir1),
+            jnp.abs(jnp.dot(dir0, dir_inter)) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir_inter)
         ])
 
 
