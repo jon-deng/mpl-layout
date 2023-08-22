@@ -5,7 +5,7 @@ Create a single axes figure
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mpllayout import solver, geometry as geo
+from mpllayout import solver, geometry as geo, matplotlibutils as lplt
 
 PrimIdx = geo.PrimIdx
 
@@ -82,41 +82,7 @@ if __name__ == '__main__':
 
     print('Figure:', prims['Figure'])
     print('Axes1:', prims['Axes1'])
-
-    def wh_from_box(box: geo.Box):
-
-        point_bottomleft = box.prims[0]
-        xmin = point_bottomleft.param[0]
-        ymin = point_bottomleft.param[1]
-
-        point_topright = box.prims[2]
-        xmax = point_topright.param[0]
-        ymax = point_topright.param[1]
-
-        return (xmax-xmin), (ymax-ymin)
-
-    def rect_from_box(box: geo.Box, fig_size=(1, 1)):
-        fig_w, fig_h = fig_size
-
-        point_bottomleft = box.prims[0]
-        xmin = point_bottomleft.param[0]/fig_w
-        ymin = point_bottomleft.param[1]/fig_h
-
-        point_topright = box.prims[2]
-        xmax = point_topright.param[0]/fig_w
-        ymax = point_topright.param[1]/fig_h
-
-        return (xmin, ymin, (xmax-xmin), (ymax-ymin))
     
-    width, height = wh_from_box(prims['Figure'])
-    print((width, height))
-
-    print(rect_from_box(prims['Axes1'], fig_size=(width, height)))
-
-    fig = plt.Figure((width, height))
-    # ax = fig.add_axes((0, 0, 1, 1))
-    ax = fig.add_axes(rect_from_box(prims['Axes1'], (width, height)))
-    # print(ax)
-    ax.plot([0, 1], [0, 1])
+    fig, axs = lplt.subplots(prims)
 
     fig.savefig('out/test.png')
