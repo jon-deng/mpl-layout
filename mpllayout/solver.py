@@ -304,6 +304,57 @@ def build_prims(prims, params):
 def solve(
         prims: typ.List[geo.Primitive],
         constraints: typ.List[geo.Constraint],
+        constraint_graph: Graph,
+        abs_tol = 1e-10,
+        rel_tol = 1e-7,
+        max_iter = 10
+    ) -> typ.Tuple[PrimList, SolverInfo]:
+    """
+    Return a set of primitives that satisfy the given constraints
+
+    Parameters
+    ----------
+    prims: typ.List[geo.Primitive]
+        The list of primitives
+    constraints: typ.List[geo.Constraint]
+        The list of constraints
+    constraint_graph: Graph
+        A mapping from each constraint to the primitives it applies to.
+        For example, `constraint_graph[0] == (0, 5, 8)` means the first constraint
+        applies to primitives `(prims[0], prims[5], prims[8])`.
+    prim_graph: Graph
+        Denotes that the next block of primitives parameterize the current primitive.
+        For example, `subprim_graph[0] == 4` means `prim[0]` is parameterized
+        by primitives `prims[1:5]`. Primitives that have no sub-primitives have
+        `subprim_graph[n] == 0`.
+    """
+
+    nonlinear_solve_info = {}
+    abs_errs = []
+    rel_errs = []
+
+    n = 0
+    abs_err = np.inf
+    rel_err = np.inf
+    prims_n = prims
+    while (abs_err > abs_tol) and (rel_err > rel_tol) and (n < max_iter):
+        prims_n, linear_solve_info = solve_linear(prims_n, constraints, constraint_graph)
+
+        n += 1
+        abs_err = np.linalg.norm(linear_solve_info['res'])
+        abs_errs.append(abs_err)
+        rel_err = abs_errs[-1]/abs_errs[0]
+        rel_errs.append(rel_err)
+
+    nonlinear_solve_info['abs_errs'] = abs_errs
+    nonlinear_solve_info['rel_errs'] = rel_errs
+
+    return prims_n, nonlinear_solve_info
+        
+    
+def solve_linear(
+        prims: typ.List[geo.Primitive],
+        constraints: typ.List[geo.Constraint],
         constraint_graph: Graph
     ) -> typ.Tuple[PrimList, SolverInfo]:
     """
@@ -369,3 +420,4 @@ def solve(
     new_prims = LabelledList(new_prims, list(prims.keys()))
 
     return new_prims, solver_info
+
