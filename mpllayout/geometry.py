@@ -70,7 +70,7 @@ class Primitive:
             else:
                 # PrimType = self._PRIM_TYPES
                 prims = ()
-                
+
         if self._PRIM_LABELS is None:
             keys = None
         elif isinstance(self._PRIM_LABELS, tuple):
@@ -342,17 +342,26 @@ class Collinear(Constraint):
 
 class Box(ClosedPolyline):
 
-    _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (LineSegment, LineSegment, LineSegment, LineSegment)
+    _PRIM_TYPES = (Point, Point, Point, Point)
     _CONSTRAINT_TYPES = (
-        Horizontal, Vertical, Horizontal, Vertical
+        CoincidentPoint, 
     )
     _CONSTRAINT_GRAPH = (
-        ('Root',), ('Root',), ('Root',), ('Root',)
+        ('Point0', 'Point1'),
     )
     _CONSTRAINT_GRAPH_SUB_IDXS = (
-        (0,), (1,), (2,), (3,)
+        (None, None),
     )
+
+    # _CONSTRAINT_TYPES = (
+    #     Horizontal, Vertical, Horizontal, Vertical
+    # )
+    # _CONSTRAINT_GRAPH = (
+    #     ('Root',), ('Root',), ('Root',), ('Root',)
+    # )
+    # _CONSTRAINT_GRAPH_SUB_IDXS = (
+    #     (0,), (1,), (2,), (3,)
+    # )
 
 
 def line_direction(line: LineSegment):

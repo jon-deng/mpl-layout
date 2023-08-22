@@ -98,15 +98,15 @@ class Layout:
         prim_label = self.prims.append(prim, label=prim_label)
 
         # Append all child primitives
-        if len(prim.prims) > 0:
-            subprims, subprim_labels, subconstrs, subconstr_graph = \
-                expand_prim(prim, label=prim_label)
-            
-            for sub_label, sub_prim in zip(subprim_labels, subprims):
-                self.prims.append(sub_prim, label=sub_label)
+        # if len(prim.prims) > 0:
+        subprims, subprim_labels, subconstrs, subconstr_graph = \
+            expand_prim(prim, label=prim_label)
+        
+        for sub_label, sub_prim in zip(subprim_labels, subprims):
+            self.prims.append(sub_prim, label=sub_label)
 
-            for constr, prim_idxs in zip(subconstrs, subconstr_graph):
-                self.add_constraint(constr, prim_idxs)
+        for constr, prim_idxs in zip(subconstrs, subconstr_graph):
+            self.add_constraint(constr, prim_idxs)
 
         return prim_label
 
@@ -241,9 +241,10 @@ def expand_prim(
     child_prims = list(prim.prims)
     child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
     child_constraints = list(prim.constraints)
-    child_constraint_graph = {
-        '.'.join([label]+idxs.split('.')[1:]): idxs for idxs in prim.constraint_graph
-    }
+    child_constraint_graph = [
+        tuple('.'.join([label]+idx.split('.')) for idx in idxs)
+        for idxs in prim.constraint_graph
+    ]
 
     # Recursively expand any child primitives/constraints
     if len(prim.prims) == 0:
@@ -257,7 +258,7 @@ def expand_prim(
             child_prims += _re_child_prims
             child_labels += _re_child_labels
             child_constraints += _re_child_constraints
-            child_constraint_graph.update(_re_child_constraint_graph)
+            child_constraint_graph += _re_child_constraint_graph
         return child_prims, child_labels, child_constraints, child_constraint_graph
 
 def contract_prim(
