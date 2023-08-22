@@ -70,14 +70,15 @@ class Primitive:
             else:
                 # PrimType = self._PRIM_TYPES
                 prims = ()
+                
+        if self._PRIM_LABELS is None:
+            keys = None
+        elif isinstance(self._PRIM_LABELS, tuple):
+            keys = self._PRIM_LABELS
         else:
-            if self._PRIM_LABELS is None:
-                keys = None
-            elif isinstance(self._PRIM_LABELS, tuple):
-                keys = self._PRIM_LABELS
-            else:
-                keys = len(prims)*(self._PRIM_LABELS,)
-            prims = LabelledTuple(prims, keys)
+            keys = len(prims)*(self._PRIM_LABELS,)
+
+        prims = LabelledTuple(prims, keys)
 
         # Create any internal constraints
         self._CONSTRAINTS = tuple(

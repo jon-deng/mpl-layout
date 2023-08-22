@@ -99,11 +99,10 @@ class Layout:
 
         # Append all child primitives
         if len(prim.prims) > 0:
-            subprims, subconstrs, subconstr_graph = \
-                expand_prim(prim, prim_idx=len(self.prims))
-
-            prim_labels = expand_prim_labels(prim, prim_label)
-            for sub_label, sub_prim in zip(prim_labels, subprims):
+            subprims, subprim_labels, subconstrs, subconstr_graph = \
+                expand_prim(prim, label=prim_label)
+            
+            for sub_label, sub_prim in zip(subprim_labels, subprims):
                 self.prims.append(sub_prim, label=sub_label)
 
             for constr, prim_idxs in zip(subconstrs, subconstr_graph):
@@ -221,7 +220,7 @@ def expand_prim_labels(
             labels = labels + expand_prim_labels(sub_prim, prefix)
         return labels
 
-def _expand_prim(
+def expand_prim(
         prim: geo.Primitive,
         label: str
     ):
@@ -241,87 +240,25 @@ def _expand_prim(
     # Expand child primitives, constraints, and constraint graph
     child_prims = list(prim.prims)
     child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
-
-    # Recursively expand any child primitives
-    if len(prim.prims) == 0:
-        return child_prims, child_labels
-    else:
-        for child_prim, child_label in zip(child_prims, child_labels):
-            _re_child_prims, _re_child_labels = _expand_prim(child_prim, child_label)
-            child_prims += _re_child_prims
-            child_labels += _re_child_labels
-        return child_prims, child_labels
-
-def _expand_constraints(
-        prim: geo.Primitive,
-        label: str
-    ):
-    """
-    Expand all internal constraints of `prim`
-
-    Parameters
-    ----------
-    prim: geo.Primitive
-        The primitive to be expanded
-    label: str
-        The label for the primitive
-
-    Returns
-    -------
-    """
-    # Expand child primitives, constraints, and constraint graph
-    child_prims = list(prim.prims)
     child_constraints = list(prim.constraints)
     child_constraint_graph = {
         '.'.join([label]+idxs.split('.')[1:]): idxs for idxs in prim.constraint_graph
     }
 
-    # Recursively expand any child primitives
+    # Recursively expand any child primitives/constraints
     if len(prim.prims) == 0:
-        return child_constraints, child_constraint_graph
+        return child_prims, child_labels, child_constraints, child_constraint_graph
     else:
-        for child_prim, child_label in zip(child_constraints, child_labels):
-            _re_child_constraints, _re_child_constraint_graph = _expand_constraints(child_prim, child_label)
+        for child_prim, child_label in zip(child_prims, child_labels):
+            (_re_child_prims, 
+                _re_child_labels, 
+                _re_child_constraints, 
+                _re_child_constraint_graph) = expand_prim(child_prim, child_label)
+            child_prims += _re_child_prims
+            child_labels += _re_child_labels
             child_constraints += _re_child_constraints
             child_constraint_graph.update(_re_child_constraint_graph)
-        return child_constraints, child_constraint_graph
-
-def expand_prim(
-        prim: geo.Primitive,
-        prim_idx: typ.Optional[int]=0
-    ):
-    """
-    Expand all child primitives and constraints of `prim`
-
-    Parameters
-    ----------
-    prim: geo.Primitive
-        The primitive to be expanded
-    prim_idx: int
-        The index of the primitive in a global list of primitives
-
-    Returns
-    -------
-    """
-
-    # Expand child primitives, constraints, and constraint graph
-    child_prims = list(prim.prims)
-    child_constrs = list(prim.constraints)
-    child_constr_graph = [
-        tuple(idx+prim_idx for idx in idxs)
-        for idxs in prim.constraint_graph
-    ]
-
-    # Recursively expand any child primitives
-    if len(prim.prims) == 0:
-        return child_prims, child_constrs, child_constr_graph
-    else:
-        for sub_prim in prim.prims:
-            _exp_prims, _exp_constrs, _exp_constr_graph = expand_prim(sub_prim)
-            child_prims += _exp_prims
-            child_constrs += _exp_constrs
-            child_constr_graph += _exp_constr_graph
-        return child_prims, child_constrs, child_constr_graph
+        return child_prims, child_labels, child_constraints, child_constraint_graph
 
 def contract_prim(
         prim: geo.Primitive,
@@ -364,7 +301,7 @@ def build_prims(prims, params):
     new_prims = []
     while m < len(_new_prims):
         prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
-        cprims, *_ = expand_prim(prim)
+        cprims, *_ = expand_prim(prim, '')
         new_prims = new_prims + [prim] + cprims
         m += 1+dm
 
