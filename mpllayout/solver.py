@@ -17,6 +17,8 @@ Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
 SolverInfo = typ.Mapping[str, typ.Any]
 
+PrimIdx = geo.PrimIdx
+
 class Layout:
     """
     Represents a collection of primitives and associated constraints
@@ -113,10 +115,7 @@ class Layout:
     def add_constraint(
             self,
             constraint: geo.Constraint,
-            prim_labels: typ.Tuple[typ.Union[str, int], ...],
-            prim_sub_idxs: typ.Optional[
-                typ.Tuple[typ.Union[int, None], ...]
-            ]=None,
+            prim_idxs: typ.Tuple[geo.PrimIdx, ...],
             constraint_label: typ.Optional[str]=None
         ) -> str:
         """
@@ -126,12 +125,8 @@ class Layout:
         ----------
         constraint: geo.Constraint
             The constraint to apply
-        prim_labels: typ.Tuple[typ.Union[str, int], ...]
-            Labels for the primitives the constraint applies to
-        prim_sub_idxs: typ.Optional[
-                typ.Tuple[typ.Union[int, None], ...]
-            ]
-            Indices for any `PrimitiveArray`s
+        prim_idxs: typ.Tuple[geo.PrimIdx, ...]
+            Indices of the primitives the constraint applies on
         constraint_label: typ.Optional[str]
             An optional label for the constraint
 
@@ -140,59 +135,57 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
-        # These are prims/prim indices the constraint applies to
-        prims = tuple(self.prims[label] for label in prim_labels)
-        prim_idxs = tuple(self.prims.key_to_idx(label) for label in prim_labels)
-
-        # If any primitive is a `PrimitiveArray` type and is being indexed, then
-        # we have to modify the constraint and the primitives it applies to
-        # to account for the sub-index
-        if prim_sub_idxs is None:
-            prim_sub_idxs = len(prim_labels)*(None,)
-
-        if len(prim_sub_idxs) != len(prim_labels):
-            raise ValueError("There must be as many sub-indices as primitives")
+        # These are prims/prim integer indices the constraint applies to
+        prims = tuple(self.prims[prim_idx.label] for prim_idx in prim_idxs)
+        prim_int_idxs = tuple(
+            self.prims.key_to_idx(prim_idx.label) 
+            for prim_idx in prim_idxs
+        )
 
         # Depack all the sub-index specs for indexed `PrimitiveArray`s
         # Each element of the `prim_sub_idx_specs` is a tuple consisting of:
         # a function that takes a primitive tuple and returns the primitive being indexed
         # and the indices of child primitives that are input to that function to get the primitive
         prim_sub_idx_specs = tuple(
-            (None, None) if sub_idx is None
-            else prim.index_spec(sub_idx)
-            for prim, sub_idx in zip(prims, prim_sub_idxs)
+            (None, None) if prim_idx.sub_idx is None
+            else prim.index_spec(prim_idx.sub_idx)
+            for prim, prim_idx in zip(prims, prim_idxs)
         )
         make_prims = tuple(spec[0] for spec in prim_sub_idx_specs)
         child_idxs = tuple(spec[1] for spec in prim_sub_idx_specs)
 
-        # Modify the primitive indices to account for sub-indexes
-        # This is done by the offsetting the root primitive index by any child
-        # index offsets from `child_idxs`
-        new_prim_idxs = []
-        for make_prim, child_idx, prim_idx in zip(make_prims, child_idxs, prim_idxs):
-            if make_prim is None:
-                new_prim_idxs = new_prim_idxs + [prim_idx]
-            else:
-                new_prim_idxs = new_prim_idxs + [(prim_idx+1)+ii for ii in child_idx]
-        new_prim_idxs = tuple(new_prim_idxs)
+        if all(_ is None for _ in make_prims):
+            constraint_label = self.constraints.append(constraint, label=constraint_label)
+            self.constraint_graph.append(prim_int_idxs)
+        else:
+            # Modify the primitive indices to account for sub-indexes
+            # This is done by the offsetting the root primitive index by any child
+            # index offsets from `child_idxs`
+            new_prim_int_idxs = []
+            for make_prim, child_idx, root_idx in zip(make_prims, child_idxs, prim_int_idxs):
+                if make_prim is None:
+                    new_prim_int_idxs = new_prim_int_idxs + [root_idx]
+                else:
+                    new_prim_int_idxs = new_prim_int_idxs + [(root_idx+1)+ii for ii in child_idx]
+            new_prim_int_idxs = tuple(new_prim_int_idxs)
 
-        make_prim_arg_lengths = tuple(
-            1 if sub_idx is None else len(sub_idx)
-            for sub_idx in child_idxs
-        )
-
-        # Modify the constraint function to account for sub-indexing
-        def new_constraint(new_prims):
-            arg_bounds = [0] + np.cumsum(make_prim_arg_lengths).tolist()
-            prims = tuple(
-                new_prims[start] if make_prim is None
-                else make_prim(new_prims[start:end])
-                for make_prim, start, end in zip(make_prims, arg_bounds[:-1], arg_bounds[1:])
+            make_prim_arg_lengths = tuple(
+                1 if sub_idx is None else len(sub_idx)
+                for sub_idx in child_idxs
             )
-            return constraint(prims)
 
-        constraint_label = self.constraints.append(new_constraint, label=constraint_label)
-        self.constraint_graph.append(new_prim_idxs)
+            # Modify the constraint function to account for sub-indexing
+            def new_constraint(new_prims):
+                arg_bounds = [0] + np.cumsum(make_prim_arg_lengths).tolist()
+                prims = tuple(
+                    new_prims[start] if make_prim is None
+                    else make_prim(new_prims[start:end])
+                    for make_prim, start, end in zip(make_prims, arg_bounds[:-1], arg_bounds[1:])
+                )
+                return constraint(prims)
+
+            constraint_label = self.constraints.append(new_constraint, label=constraint_label)
+            self.constraint_graph.append(new_prim_int_idxs)
         return constraint_label
 
 def expand_prim_labels(
@@ -242,7 +235,7 @@ def expand_prim(
     child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
     child_constraints = list(prim.constraints)
     child_constraint_graph = [
-        tuple('.'.join([label]+idx.split('.')) for idx in idxs)
+        tuple(PrimIdx('.'.join([label]+idx.label.split('.')), idx.sub_idx) for idx in idxs)
         for idxs in prim.constraint_graph
     ]
 

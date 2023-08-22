@@ -16,6 +16,35 @@ Idxs = typ.Tuple[int]
 ArrayShape = typ.Tuple[int, ...]
 PrimTuple = typ.Tuple['Primitive', ...]
 
+class PrimIdx:
+    """
+    An index to a primitive from a collection 
+
+    Parameters
+    ----------
+    label: str
+        The string identifier for the primitive
+    sub_idx: int
+        An integer representing the indexed primitive for `PrimitiveArray` types
+    """
+
+    def __init__(
+            self, 
+            label: str, 
+            sub_idx: typ.Optional[int]=None
+        ):
+
+        self._label = label
+        self._sub_idx = sub_idx
+
+    @property
+    def sub_idx(self):
+        return self._sub_idx
+    
+    @property
+    def label(self):
+        return self._label
+    
 ## Basic geometric primitives
 
 class Primitive:
@@ -347,10 +376,7 @@ class Box(ClosedPolyline):
         CoincidentPoint, 
     )
     _CONSTRAINT_GRAPH = (
-        ('Point0', 'Point1'),
-    )
-    _CONSTRAINT_GRAPH_SUB_IDXS = (
-        (None, None),
+        (PrimIdx('Point0'), PrimIdx('Point1')),
     )
 
     # _CONSTRAINT_TYPES = (
@@ -366,3 +392,5 @@ class Box(ClosedPolyline):
 
 def line_direction(line: LineSegment):
     return line.prims[1].param - line.prims[0].param
+
+    
