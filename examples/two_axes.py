@@ -2,6 +2,8 @@
 Create a two axes figure
 """
 
+from pprint import pprint
+
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -60,7 +62,7 @@ if __name__ == '__main__':
 
     ## Constrain 'Axes1' margins
     # Constrain left/right margins
-    margin_left = 1.1
+    margin_left = 2.1
     margin_right = 1.1
     layout.add_constraint(
         geo.PointToPointAbsDistance(margin_left, np.array([-1, 0])),
@@ -97,29 +99,31 @@ if __name__ == '__main__':
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 
-    layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
-        (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
-    )
-    layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
-        (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
-    )
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
+    #     (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
+    # )
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
+    #     (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
+    # )
 
     # Make axes line-up along the tops/bottoms
-    # layout.add_constraint(
-    #     geo.Collinear(), 
-    #     (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
-    # )
-    # layout.add_constraint(
-    #     geo.Collinear(), 
-    #     (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
-    # )
+    layout.add_constraint(
+        geo.Collinear(), 
+        (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
+    )
+    layout.add_constraint(
+        geo.Collinear(), 
+        (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
+    )
 
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
-        layout.prims, layout.constraints, layout.constraint_graph
+        layout.prims, layout.constraints, layout.constraint_graph,
+        max_iter=40
     )
+    pprint(info)
 
     print('Figure:', prims['Figure'])
     print('Axes1:', prims['Axes1'])
