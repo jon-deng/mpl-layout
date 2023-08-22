@@ -41,8 +41,8 @@ class Primitive:
 
     _param: NDArray
     _prims: Prims
-    
-    ## Specific primitive classes should define these to represent different 
+
+    ## Specific primitive classes should define these to represent different
     ## primitives
     _PARAM_SHAPE: ArrayShape = (0,)
     # `_PRIM_TYPES` can either be a tuple of types, or a single type.

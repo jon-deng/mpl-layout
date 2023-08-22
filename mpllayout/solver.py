@@ -15,7 +15,7 @@ PrimList = typ.List[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintList = typ.List[geo.Constraint]
 Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
-SolverInfo = typ.Mapping[str, typ.Any] 
+SolverInfo = typ.Mapping[str, typ.Any]
 
 class Layout:
     """
@@ -251,7 +251,7 @@ def _expand_prim(
             child_prims += _re_child_prims
             child_labels += _re_child_labels
         return child_prims, child_labels
-    
+
 def _expand_constraints(
         prim: geo.Primitive,
         label: str
@@ -271,18 +271,21 @@ def _expand_constraints(
     """
     # Expand child primitives, constraints, and constraint graph
     child_prims = list(prim.prims)
-    child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
+    child_constraints = list(prim.constraints)
+    child_constraint_graph = {
+        '.'.join([label]+idxs.split('.')[1:]): idxs for idxs in prim.constraint_graph
+    }
 
     # Recursively expand any child primitives
     if len(prim.prims) == 0:
-        return child_prims, child_labels
+        return child_constraints, child_constraint_graph
     else:
-        for child_prim, child_label in zip(child_prims, child_labels):
-            _re_child_prims, _re_child_labels = _expand_prim(child_prim, child_label)
-            child_prims += _re_child_prims
-            child_labels += _re_child_labels
-        return child_prims, child_labels
-    
+        for child_prim, child_label in zip(child_constraints, child_labels):
+            _re_child_constraints, _re_child_constraint_graph = _expand_constraints(child_prim, child_label)
+            child_constraints += _re_child_constraints
+            child_constraint_graph.update(_re_child_constraint_graph)
+        return child_constraints, child_constraint_graph
+
 def expand_prim(
         prim: geo.Primitive,
         prim_idx: typ.Optional[int]=0
