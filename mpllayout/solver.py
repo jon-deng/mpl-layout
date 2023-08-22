@@ -106,7 +106,7 @@ class Layout:
         
         for sub_label, sub_prim in zip(subprim_labels, subprims):
             self.prims.append(sub_prim, label=sub_label)
-
+            
         for constr, prim_idxs in zip(subconstrs, subconstr_graph):
             self.add_constraint(constr, prim_idxs)
 
@@ -235,7 +235,7 @@ def expand_prim(
     child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
     child_constraints = list(prim.constraints)
     child_constraint_graph = [
-        tuple(PrimIdx('.'.join([label]+idx.label.split('.')), idx.sub_idx) for idx in idxs)
+        tuple(PrimIdx('.'.join([label]+idx.label.split('.')[1:]), idx.sub_idx) for idx in idxs)
         for idxs in prim.constraint_graph
     ]
 

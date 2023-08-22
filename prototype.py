@@ -24,7 +24,7 @@ layout.add_prim(box, 'MyBox')
 layout.add_constraint(geo.Horizontal(), (PrimIdx('MyBox', 0),))
 layout.add_constraint(geo.Vertical(), (PrimIdx('MyBox', 1),))
 layout.add_constraint(geo.Horizontal(), (PrimIdx('MyBox', 2),))
-# layout.add_constraint(geo.Vertical(), ('MyBox',), (3,))
+layout.add_constraint(geo.Vertical(), (PrimIdx('MyBox', 3),))
 
 vertices = np.array([
     [0, 0], [1, -0.25], [1, 1], [0, 1]

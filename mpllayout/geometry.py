@@ -18,12 +18,15 @@ PrimTuple = typ.Tuple['Primitive', ...]
 
 class PrimIdx:
     """
-    An index to a primitive from a collection 
+    An index to a child primitive
 
     Parameters
     ----------
     label: str
-        The string identifier for the primitive
+        The string identifier for the primitive.
+        If `label` has no periods (e.g. '') this refers to the root primitive itself.
+        If `label` is a period-prefixed string (e.g. '.Point0'), this refers to the named child 
+        primitive.
     sub_idx: int
         An integer representing the indexed primitive for `PrimitiveArray` types
     """
@@ -44,6 +47,12 @@ class PrimIdx:
     @property
     def label(self):
         return self._label
+    
+    def __repr__(self):
+        return f'PrimIdx({self.label}, {self.sub_idx})'
+    
+    def __str__(self):
+        return self.__repr__()
     
 ## Basic geometric primitives
 
@@ -372,22 +381,19 @@ class Collinear(Constraint):
 class Box(ClosedPolyline):
 
     _PRIM_TYPES = (Point, Point, Point, Point)
+
     _CONSTRAINT_TYPES = (
-        CoincidentPoint, 
+        Horizontal, 
+        Vertical, 
+        Horizontal, 
+        Vertical
     )
     _CONSTRAINT_GRAPH = (
-        (PrimIdx('Point0'), PrimIdx('Point1')),
+        (PrimIdx('', 0),), 
+        (PrimIdx('', 1),), 
+        (PrimIdx('', 2),), 
+        (PrimIdx('', 3),)
     )
-
-    # _CONSTRAINT_TYPES = (
-    #     Horizontal, Vertical, Horizontal, Vertical
-    # )
-    # _CONSTRAINT_GRAPH = (
-    #     ('Root',), ('Root',), ('Root',), ('Root',)
-    # )
-    # _CONSTRAINT_GRAPH_SUB_IDXS = (
-    #     (0,), (1,), (2,), (3,)
-    # )
 
 
 def line_direction(line: LineSegment):
