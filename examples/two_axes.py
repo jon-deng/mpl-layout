@@ -1,5 +1,5 @@
 """
-Create a one axes figure
+Create a two axes figure
 """
 
 import numpy as np
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     )
     layout.add_prim(box, 'Figure')
 
-    ## Create the axes box
+    ## Create the two axes box
     verts = [
         [0, 0], [5, 0], [5, 5], [0, 5]
     ]
@@ -33,6 +33,14 @@ if __name__ == '__main__':
         prims=[geo.Point(vert_coords) for vert_coords in verts]
     )
     layout.add_prim(box, 'Axes1')
+
+    verts = [
+        [0, 0], [5, 0], [5, 5], [0, 5]
+    ]
+    box = geo.Box(
+        prims=[geo.Point(vert_coords) for vert_coords in verts]
+    )
+    layout.add_prim(box, 'Axes2')
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
@@ -60,7 +68,21 @@ if __name__ == '__main__':
     )
     layout.add_constraint(
         geo.PointToPointAbsDistance(margin_right, np.array([1, 0])),
-        (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
+        (PrimIdx('Axes2.Point1'), PrimIdx('Figure.Point2'))
+    )
+
+    # Constrain the 'Axes1' width
+    width = 0.5
+    layout.add_constraint(
+        geo.PointToPointAbsDistance(width, np.array([1, 0])),
+        (PrimIdx('Axes1.Point0'), PrimIdx('Axes1.Point1'))
+    )
+
+    # Constrain the inter-axis margin
+    margin_inter = 0.5
+    layout.add_constraint(
+        geo.PointToPointAbsDistance(margin_inter, np.array([1, 0])),
+        (PrimIdx('Axes1.Point1'), PrimIdx('Axes2.Point0'))
     )
 
     # Constrain top/bottom margins
@@ -75,6 +97,25 @@ if __name__ == '__main__':
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 
+    layout.add_constraint(
+        geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
+        (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
+    )
+    layout.add_constraint(
+        geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
+        (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
+    )
+
+    # Make axes line-up along the tops/bottoms
+    # layout.add_constraint(
+    #     geo.Collinear(), 
+    #     (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
+    # )
+    # layout.add_constraint(
+    #     geo.Collinear(), 
+    #     (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
+    # )
+
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
         layout.prims, layout.constraints, layout.constraint_graph
@@ -82,10 +123,14 @@ if __name__ == '__main__':
 
     print('Figure:', prims['Figure'])
     print('Axes1:', prims['Axes1'])
+    print('Axes2:', prims['Axes2'])
     
     fig, axs = lplt.subplots(prims)
+    print(axs)
+    # breakpoint()
 
     x = np.linspace(0, 1)
-    axs['Axes1'].plot(x, x**2)
+    axs['Axes1'].plot(x, 4*x)
+    axs['Axes2'].plot(x, x**2)
 
-    fig.savefig('out/one_axes.png')
+    fig.savefig('out/two_axes.png')
