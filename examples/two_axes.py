@@ -46,13 +46,21 @@ if __name__ == '__main__':
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(fig_width, np.array([1, 0])),
+    #     (PrimIdx('Figure.Point0'), PrimIdx('Figure.Point1'))
+    # )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(fig_width, np.array([1, 0])),
-        (PrimIdx('Figure.Point0'), PrimIdx('Figure.Point1'))
+        geo.LineLength(fig_width),
+        (PrimIdx('Figure', 0),)
     )
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(fig_height, np.array([0, 1])),
+    #     (PrimIdx('Figure.Point0'), PrimIdx('Figure.Point3'))
+    # )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(fig_height, np.array([0, 1])),
-        (PrimIdx('Figure.Point0'), PrimIdx('Figure.Point3'))
+        geo.LineLength(fig_height),
+        (PrimIdx('Axes1', 1),)
     )
 
     layout.add_constraint(
@@ -75,9 +83,13 @@ if __name__ == '__main__':
 
     # Constrain the 'Axes1' width
     width = 0.5
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(width, np.array([1, 0])),
+    #     (PrimIdx('Axes1.Point0'), PrimIdx('Axes1.Point1'))
+    # )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(width, np.array([1, 0])),
-        (PrimIdx('Axes1.Point0'), PrimIdx('Axes1.Point1'))
+        geo.LineLength(width),
+        (PrimIdx('Axes1', 0),)
     )
 
     # Constrain the inter-axis margin
@@ -99,24 +111,24 @@ if __name__ == '__main__':
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 
-    # layout.add_constraint(
-    #     geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
-    #     (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
-    # )
-    # layout.add_constraint(
-    #     geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
-    #     (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
-    # )
+    layout.add_constraint(
+        geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
+        (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
+    )
+    layout.add_constraint(
+        geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
+        (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
+    )
 
     # Make axes line-up along the tops/bottoms
-    layout.add_constraint(
-        geo.Collinear(), 
-        (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
-    )
-    layout.add_constraint(
-        geo.Collinear(), 
-        (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
-    )
+    # layout.add_constraint(
+    #     geo.Collinear(),
+    #     (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
+    # )
+    # layout.add_constraint(
+    #     geo.Collinear(),
+    #     (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
+    # )
 
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
@@ -128,7 +140,7 @@ if __name__ == '__main__':
     print('Figure:', prims['Figure'])
     print('Axes1:', prims['Axes1'])
     print('Axes2:', prims['Axes2'])
-    
+
     fig, axs = lplt.subplots(prims)
     print(axs)
     # breakpoint()
