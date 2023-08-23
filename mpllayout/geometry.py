@@ -25,15 +25,15 @@ class PrimIdx:
     label: str
         The string identifier for the primitive.
         If `label` has no periods (e.g. '') this refers to the root primitive itself.
-        If `label` is a period-prefixed string (e.g. '.Point0'), this refers to the named child 
+        If `label` is a period-prefixed string (e.g. '.Point0'), this refers to the named child
         primitive.
     sub_idx: int
         An integer representing the indexed primitive for `PrimitiveArray` types
     """
 
     def __init__(
-            self, 
-            label: str, 
+            self,
+            label: str,
             sub_idx: typ.Optional[int]=None
         ):
 
@@ -43,17 +43,17 @@ class PrimIdx:
     @property
     def sub_idx(self):
         return self._sub_idx
-    
+
     @property
     def label(self):
         return self._label
-    
+
     def __repr__(self):
         return f'PrimIdx({self.label}, {self.sub_idx})'
-    
+
     def __str__(self):
         return self.__repr__()
-    
+
 ## Basic geometric primitives
 
 class Primitive:
@@ -313,13 +313,20 @@ class ClosedPolyline(PrimitiveArray):
         child_prim_idxs = (idx1, idx2)
         return make_prim, child_prim_idxs
 
-class CoincidentLine(Constraint):
+class LineLength(Constraint):
 
-    primitive_types = (LineSegment, LineSegment)
+    primitive_types = (LineSegment,)
+
+    def __init__(
+            self,
+            length: float
+        ):
+        self._length = length
 
     def assem_res(self, prims):
-        # This joins the start of the second line with the end of the first line
-        return prims[1].prims[0].param - prims[0].prims[1].param
+        # This sets the length of a line
+        vec = line_direction(prims[0])
+        return jnp.linalg.norm(vec) - self._length
 
 class Orthogonal(Constraint):
     primitive_types = (LineSegment, LineSegment)
@@ -383,15 +390,15 @@ class Box(ClosedPolyline):
     _PRIM_TYPES = (Point, Point, Point, Point)
 
     _CONSTRAINT_TYPES = (
-        Horizontal, 
-        Vertical, 
-        Horizontal, 
+        Horizontal,
+        Vertical,
+        Horizontal,
         Vertical
     )
     _CONSTRAINT_GRAPH = (
-        (PrimIdx('', 0),), 
-        (PrimIdx('', 1),), 
-        (PrimIdx('', 2),), 
+        (PrimIdx('', 0),),
+        (PrimIdx('', 1),),
+        (PrimIdx('', 2),),
         (PrimIdx('', 3),)
     )
 
@@ -399,4 +406,3 @@ class Box(ClosedPolyline):
 def line_direction(line: LineSegment):
     return line.prims[1].param - line.prims[0].param
 
-    
