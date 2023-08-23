@@ -351,7 +351,6 @@ def solve(
 
     return prims_n, nonlinear_solve_info
         
-    
 def solve_linear(
         prims: typ.List[geo.Primitive],
         constraints: typ.List[geo.Constraint],
@@ -420,4 +419,3 @@ def solve_linear(
     new_prims = LabelledList(new_prims, list(prims.keys()))
 
     return new_prims, solver_info
-

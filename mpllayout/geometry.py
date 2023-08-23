@@ -370,7 +370,7 @@ class Angle(Constraint):
         dir0 = dir0/jnp.linalg.norm(dir0)
         dir1 = dir1/jnp.linalg.norm(dir1)
         return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
-
+    
 class Collinear(Constraint):
     primitive_types = (LineSegment, LineSegment)
 
@@ -378,10 +378,13 @@ class Collinear(Constraint):
         line0, line1 = prims
         dir0 = line_direction(line0)
         dir1 = line_direction(line1)
-        dir_inter = line1.prims[0].param - line0.prims[1].param
+        dir2 = line1.prims[1].param - line0.prims[0].param
+        dir2 = line1.prims[0].param - line0.prims[1].param
+
+        norm = jnp.linalg.norm
         return jnp.array([
-            jnp.abs(jnp.dot(dir0, dir1)) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir1),
-            jnp.abs(jnp.dot(dir0, dir_inter)) - jnp.linalg.norm(dir0)*jnp.linalg.norm(dir_inter)
+            jnp.abs(jnp.dot(dir0, dir1)) - norm(dir0)*norm(dir1),
+            jnp.abs(jnp.dot(dir0, dir2)) - norm(dir0)*norm(dir2)
         ])
 
 
