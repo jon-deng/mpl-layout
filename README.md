@@ -5,13 +5,13 @@ MPLLayout is a Python package meant to make arrangement of plot elements in Matp
 
 It consists of:
  * geometric primitives to represent plot elements (for example, a `Box` primitive can represent a `Bbox` or `Axes` in Matplotlib)
- * constraints on primitives used to specify the arrangement of plot elements (for example, the size of an axes, spacing between axes, margins, collinearity of lines, etc.)
+ * constraints on primitives used to specify the arrangement of plot elements (for example, constraints on the length of lines, collinearity between lines, locations of points, etc.)
  * a constraint solver to solve for the arrangement of primitives that satisfy given constraints
  * utilities to generate Matplotlib figures and axes from geometric primitives
 
 ## How to use
 
-Basic usage of the project is shown in the `examples` folder bu there is no detailed documentation currently available.
+Basic usage of the project is shown in the `examples` folder, but there isn't detailed documentation currently available.
 
 ## Contributing
 
