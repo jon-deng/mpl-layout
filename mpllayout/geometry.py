@@ -58,12 +58,20 @@ class PrimIdx:
 
 class Primitive:
     """
-    A basic geometric primitive
+    A representation of a geometric primitive
+
+    Primitive can be parameterized by a parameter vector as well as
+    other geometric primitives. 
+    For example, a point in 2D is parameterized by a vector representing x and y coordinates.
+    Primitives can also contain implicit constraints to represent common use-cases.
+    For example, an origin point may be explicitly constraint to have (0, 0) coordinates.
 
     Parameters
     ----------
     param: ArrayLike with shape (n,)
         A parameter vector for the primitive
+    prims: Tuple[Primitive, ...]
+        A tuple of primitives parameterizing the primitive
 
     Attributes
     ----------
@@ -80,8 +88,7 @@ class Primitive:
     _param: NDArray
     _prims: Prims
 
-    ## Specific primitive classes should define these to represent different
-    ## primitives
+    ## Specific primitive classes should define these to represent different primitives
     _PARAM_SHAPE: ArrayShape = (0,)
     # `_PRIM_TYPES` can either be a tuple of types, or a single type.
     # If it's a single type, then this implies a variable number of child primitives of that type
@@ -145,14 +152,23 @@ class Primitive:
 
     @property
     def prims(self):
+        """
+        Return the primitive's child primitives
+        """
         return self._prims
 
     @property
     def constraints(self):
+        """
+        Return the primitive's implicit constraints
+        """
         return self._CONSTRAINTS
 
     @property
     def constraint_graph(self):
+        """
+        Return the primitive's implicit constraint graph
+        """
         return self._CONSTRAINT_GRAPH
 
     def __repr__(self):
@@ -162,6 +178,9 @@ class Primitive:
             + ')'
         )
         return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
+    
+    def __str__(self):
+        return self.__repr__()
 
 class PrimitiveArray(Primitive):
     """
