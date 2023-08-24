@@ -7,7 +7,7 @@ from pprint import pprint
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mpllayout import solver, geometry as geo, matplotlibutils as lplt
+from mpllayout import solver, geometry as geo, matplotlibutils as lplt, ui, array
 
 PrimIdx = geo.PrimIdx
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # )
     layout.add_constraint(
         geo.LineLength(fig_height),
-        (PrimIdx('Axes1', 1),)
+        (PrimIdx('Figure', 1),)
     )
 
     layout.add_constraint(
@@ -141,6 +141,7 @@ if __name__ == '__main__':
     print('Axes1:', prims['Axes1'])
     print('Axes2:', prims['Axes2'])
 
+
     fig, axs = lplt.subplots(prims)
     print(axs)
     # breakpoint()
@@ -150,3 +151,15 @@ if __name__ == '__main__':
     axs['Axes2'].plot(x, x**2)
 
     fig.savefig('out/two_axes.png')
+
+    ## Plot the layout
+    root_prim_labels = [label for label in prims.keys() if '.' not in label]
+    root_prims = [prims[label] for label in root_prim_labels]
+    print(root_prim_labels)
+
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xlim(0, fig_width+1)
+    ax.set_ylim(0, fig_height+1)
+    ax.set_aspect(1)
+    ui.plot_prims(ax, array.LabelledList(root_prims, root_prim_labels))
+    fig.savefig('out/two_axes_layout.png')
