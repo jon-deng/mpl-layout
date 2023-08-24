@@ -227,7 +227,24 @@ class PrimitiveArray(Primitive):
 
 class Constraint:
     """
-    Constraint base class
+    A representation of a constraint on primitives
+
+    A constraint represents a condition on the parameters of geometric primitive(s). 
+    The condition is specified through a residual function `assem_res`.
+
+    Parameters
+    ----------
+    param: ArrayLike with shape (n,)
+        A parameter vector for the primitive
+    prims: Tuple[Primitive, ...]
+        A tuple of primitives parameterizing the primitive
+
+    Attributes
+    ----------
+    primitive_types: Tuple[typ.Type[Primitive], ...]
+        Specifies the types of primitives that the constraint applies to.
+        For example, if `primitive_types = (geo.Point, geo.LineSegment)`, then
+        the constraint applies to a point and a line segment.
     """
 
     primitive_types: typ.Tuple[typ.Type['Primitive'], ...]
@@ -241,6 +258,20 @@ class Constraint:
         return jnp.atleast_1d(self.assem_res(prims))
 
     def assem_res(self, prims: typ.Tuple['Primitive', ...]) -> NDArray:
+        """
+        Return a residual vector representing the constraint satisfaction
+
+        Parameters
+        ----------
+        prims: Tuple[Primitive, ...]
+            A tuple of primitives the constraint applies to
+        
+        Returns
+        -------
+        NDArray
+            The residual representing whether the constraint is satisfied.
+            The constraint is satisfied when the residual is 0.
+        """
         raise NotImplementedError()
 
 
