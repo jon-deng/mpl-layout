@@ -327,6 +327,25 @@ class LineLength(Constraint):
         # This sets the length of a line
         vec = line_direction(prims[0])
         return jnp.linalg.norm(vec) - self._length
+    
+class RelativeLineLength(Constraint):
+    """
+    Constrain a line's length relative to another line length
+    """
+
+    primitive_types = (LineSegment, LineSegment)
+
+    def __init__(
+            self,
+            length: float
+        ):
+        self._length = length
+
+    def assem_res(self, prims):
+        # This sets the length of a line
+        vec_a = line_direction(prims[0])
+        vec_b = line_direction(prims[1])
+        return jnp.linalg.norm(vec_a) - self._length*jnp.linalg.norm(vec_b)
 
 class Orthogonal(Constraint):
     primitive_types = (LineSegment, LineSegment)
