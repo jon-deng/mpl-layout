@@ -111,29 +111,29 @@ if __name__ == '__main__':
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 
-    layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
-        (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
-    )
-    layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
-        (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
-    )
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
+    #     (PrimIdx('Axes2.Point0'), PrimIdx('Figure.Point0'))
+    # )
+    # layout.add_constraint(
+    #     geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
+    #     (PrimIdx('Axes2.Point2'), PrimIdx('Figure.Point2'))
+    # )
 
     # Make axes line-up along the tops/bottoms
-    # layout.add_constraint(
-    #     geo.Collinear(),
-    #     (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
-    # )
-    # layout.add_constraint(
-    #     geo.Collinear(),
-    #     (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
-    # )
+    layout.add_constraint(
+        geo.Collinear(),
+        (PrimIdx('Axes1', 0), PrimIdx('Axes2', 0))
+    )
+    layout.add_constraint(
+        geo.Collinear(),
+        (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
+    )
 
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
         layout.prims, layout.constraints, layout.constraint_graph,
-        max_iter=40
+        max_iter=40, rel_tol=1e-9
     )
     pprint(info)
 
