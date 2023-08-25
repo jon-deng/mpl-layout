@@ -1,5 +1,5 @@
-"""Primitive
-Routines for solving and managing collections of primitives and constraints
+"""
+Routines for handling collections of primitives and constraints
 """
 
 import typing as typ
@@ -21,7 +21,10 @@ PrimIdx = geo.PrimIdx
 
 class Layout:
     """
-    Represents a collection of primitives and associated constraints
+    This class handles a collection of primitives and associated constraints
+
+    The class contains functions to add primitives to the collection, add
+    constraints on those primitives,
 
     Parameters
     ----------
