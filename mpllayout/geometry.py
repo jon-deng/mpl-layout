@@ -525,16 +525,15 @@ class Collinear(Constraint):
         """
         Return the collinearity error
         """
+        res_parallel = Parallel()
         line0, line1 = prims
-        dir0 = line_direction(line0)
-        dir1 = line_direction(line1)
-        dir2 = line1.prims[1].param - line0.prims[0].param
-        dir2 = line1.prims[0].param - line0.prims[1].param
+        line2 = LineSegment(prims=(line1.prims[1], line0.prims[0]))
+        line3 = LineSegment(prims=(line1.prims[0], line0.prims[1]))
 
         norm = jnp.linalg.norm
         return jnp.array([
-            jnp.abs(jnp.dot(dir0, dir1)) - norm(dir0)*norm(dir1),
-            jnp.abs(jnp.dot(dir0, dir2)) - norm(dir0)*norm(dir2)
+            res_parallel.assem_res((line0, line1)),
+            res_parallel.assem_res((line0, line2))
         ])
 
 
