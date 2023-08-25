@@ -276,6 +276,9 @@ class Constraint:
 
 
 class Point(Primitive):
+    """
+    A point
+    """
 
     _PARAM_SHAPE = (2,)
     _PRIM_TYPES = ()
@@ -284,6 +287,9 @@ class Point(Primitive):
     _CONSTRAINT_GRAPH = ()
 
 class PointToPointAbsDistance(Constraint):
+    """
+    Constrain the distance between two points along a given direction
+    """
 
     primitive_types = (Point, Point)
 
@@ -307,9 +313,18 @@ class PointToPointAbsDistance(Constraint):
         return self._direction
 
     def assem_res(self, prims):
+        """
+        Return the distance error between two points along a given direction
+
+        The distance is measured from the first to the second point along a
+        specified direction.
+        """
         return jnp.dot(prims[1].param - prims[0].param, self.direction) - self.distance
 
 class PointLocation(Constraint):
+    """
+    Constrain the location of a point
+    """
 
     primitive_types = (Point, )
 
@@ -320,17 +335,29 @@ class PointLocation(Constraint):
         self._location = location
 
     def assem_res(self, prims):
+        """
+        Return the location error for a point
+        """
         return prims[0].param - self._location
 
 class CoincidentPoint(Constraint):
+    """
+    Constrain two points to coincide
+    """
 
     primitive_types = (Point, Point)
 
     def assem_res(self, prims):
+        """
+        Return the coincident error between two points
+        """
         return prims[0].param - prims[1].param
 
 
 class LineSegment(Primitive):
+    """
+    A straight line segment between two points
+    """
 
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (Point, Point)
@@ -339,7 +366,7 @@ class LineSegment(Primitive):
 
 class ClosedPolyline(PrimitiveArray):
     """
-    A closed polyline passing through a given set of points
+    A closed polygon through a given set of points
     """
 
     _PARAM_SHAPE = (0,)
@@ -364,6 +391,9 @@ class ClosedPolyline(PrimitiveArray):
         return make_prim, child_prim_idxs
 
 class LineLength(Constraint):
+    """
+    Constrain the length of a line
+    """
 
     primitive_types = (LineSegment,)
 
@@ -374,13 +404,16 @@ class LineLength(Constraint):
         self._length = length
 
     def assem_res(self, prims):
+        """
+        Return the error in the length of the line
+        """
         # This sets the length of a line
         vec = line_direction(prims[0])
         return jnp.linalg.norm(vec) - self._length
     
 class RelativeLineLength(Constraint):
     """
-    Constrain a line's length relative to another line length
+    Constrain a line's length relative to another line's length
     """
 
     primitive_types = (LineSegment, LineSegment)
@@ -392,37 +425,76 @@ class RelativeLineLength(Constraint):
         self._length = length
 
     def assem_res(self, prims):
+        """
+        Return the error in the length of the line
+        """
         # This sets the length of a line
         vec_a = line_direction(prims[0])
         vec_b = line_direction(prims[1])
         return jnp.linalg.norm(vec_a) - self._length*jnp.linalg.norm(vec_b)
 
 class Orthogonal(Constraint):
+    """
+    Constrain two lines to be orthogonal
+    """
     primitive_types = (LineSegment, LineSegment)
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
+        """
+        Return the orthogonal error
+        """
         line0, line1 = prims
         dir0 = line0.prims[1].param - line0.prims[0].param
         dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.dot(dir0, dir1)
+    
+class Parallel(Constraint):
+    """
+    Constrain two lines to be parallel
+    """
+    primitive_types = (LineSegment, LineSegment)
+
+    def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
+        """
+        Return the parallel error
+        """
+        line0, line1 = prims
+        dir0 = line0.prims[1].param - line0.prims[0].param
+        dir1 = line1.prims[1].param - line1.prims[0].param
+        return jnp.cross(dir0, dir1)
 
 class Vertical(Constraint):
+    """
+    Constrain a line to be vertical
+    """
     primitive_types = (LineSegment,)
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
+        """
+        Return the vertical error
+        """
         line0, = prims
         dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([1, 0]))
 
 class Horizontal(Constraint):
+    """
+    Constrain a line to be horizontal
+    """
     primitive_types = (LineSegment,)
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
+        """
+        Return the horizontal error
+        """
         line0, = prims
         dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([0, 1]))
 
 class Angle(Constraint):
+    """
+    Constrain the angle between two lines
+    """
     primitive_types = (LineSegment, LineSegment)
 
     def __init__(
@@ -432,6 +504,9 @@ class Angle(Constraint):
         self._angle = angle
 
     def assem_res(self, prims):
+        """
+        Return the angle error
+        """
         line0, line1 = prims
         dir0 = line_direction(line0)
         dir1 = line_direction(line1)
@@ -441,9 +516,15 @@ class Angle(Constraint):
         return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
     
 class Collinear(Constraint):
+    """
+    Constrain two lines to be collinear
+    """
     primitive_types = (LineSegment, LineSegment)
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
+        """
+        Return the collinearity error
+        """
         line0, line1 = prims
         dir0 = line_direction(line0)
         dir1 = line_direction(line1)
@@ -458,6 +539,9 @@ class Collinear(Constraint):
 
 
 class Box(ClosedPolyline):
+    """
+    A box primitive with vertical walls and horizontal top and bottom
+    """
 
     _PRIM_TYPES = (Point, Point, Point, Point)
 
