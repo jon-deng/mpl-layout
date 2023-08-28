@@ -2,14 +2,29 @@
 Create a two axes figure
 """
 
-from pprint import pprint
-
 import numpy as np
 from matplotlib import pyplot as plt
 
 from mpllayout import solver, geometry as geo, matplotlibutils as lplt, ui, array
 
 PrimIdx = geo.PrimitiveIndex
+
+def plot_layout(layout: solver.Layout, fig_path: str):
+    prims, info = solver.solve(
+        layout.prims, layout.constraints, layout.constraint_graph,
+        max_iter=40, rel_tol=1e-9
+    )
+    root_prim_labels = [label for label in prims.keys() if '.' not in label]
+    root_prims = [prims[label] for label in root_prim_labels]
+
+    fig, ax = plt.subplots(1, 1)
+
+    ax.set_xlim(-1, 7)
+    ax.set_ylim(-1, 4)
+    ax.set_aspect(1)
+    ui.plot_prims(ax, array.LabelledList(root_prims, root_prim_labels))
+
+    fig.savefig(fig_path)
 
 if __name__ == '__main__':
     # Create a layout object to handle the collection of primitives, and linking
@@ -25,6 +40,8 @@ if __name__ == '__main__':
         (PrimIdx('Origin'),)
     )
 
+    plot_layout(layout, 'out/2Axes--0.png')
+
     ## Create a box to represent the figure
 
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
@@ -33,6 +50,8 @@ if __name__ == '__main__':
         geo.Box(prims=[geo.Point(vert) for vert in verts]), 
         'Figure'
     )
+
+    plot_layout(layout, 'out/2Axes--1.png')
 
     ## Create another box to represent the left axes
 
@@ -43,6 +62,8 @@ if __name__ == '__main__':
         'Axes1'
     )
 
+    plot_layout(layout, 'out/2Axes--2.png')
+
     ## Create another box to represent the right axes
 
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
@@ -51,6 +72,8 @@ if __name__ == '__main__':
         geo.Box(prims=[geo.Point(vert) for vert in verts]), 
         'Axes2'
     )
+
+    plot_layout(layout, 'out/2Axes--3.png')
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
@@ -75,6 +98,8 @@ if __name__ == '__main__':
         geo.CoincidentPoint(),
         (PrimIdx('Figure.Point0'), PrimIdx('Origin'))
     )
+
+    plot_layout(layout, 'out/2Axes--4.png')
 
     ## Constrain the position and size of the left and right axes
     
@@ -119,7 +144,9 @@ if __name__ == '__main__':
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 
-    # Make the top/bottom edges of the right axes ('Axes2') line up with the
+    plot_layout(layout, 'out/2Axes--5.png')
+
+    ## Make the top/bottom edges of the right axes ('Axes2') line up with the
     # top/bottom edges of the left axes ('Axes1')
     layout.add_constraint(
         geo.Collinear(),
@@ -129,6 +156,8 @@ if __name__ == '__main__':
         geo.Collinear(),
         (PrimIdx('Axes1', 2), PrimIdx('Axes2', 2))
     )
+
+    plot_layout(layout, 'out/2Axes--6.png')
 
     ## Solve for the constrained positions of the primitives
     prims, info = solver.solve(
