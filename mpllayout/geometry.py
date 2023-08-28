@@ -18,17 +18,40 @@ PrimTuple = typ.Tuple['Primitive', ...]
 
 class PrimIdx:
     """
-    An index to a child primitive
+    An index to a collection of `Primitive`s
+
+    A `PrimIdx` represents an index to a primitive within a collection where
+    primitives are labelled by unique string labels.
+    There are two main use cases: 
+        an index to a specific primitive within a collection
+        or an index to a child primitive from a parent primitive.
+
+    In either case the first argument represents the label of the desired 
+    primitive while the second argument is an integer index if the desired 
+    primitive is a `PrimitiveArray` type.
+    Periods in the label denote a child primitive.
+    For example, `PrimIdx('MyBox.Point0')`, denotes the first point, `'Point0'`,
+    of the primitive called `'MyBox'`.
+    As another example, `PrimIdx('MyBox', 0)`, denotes the first line segment
+    of the primitive called `'MyBox'`, in the case the primitive is a 
+    `Polyline`.
+
+    When indexing from a collection of primitives, the string label has the form:
+    `'parent_prim_label.child_prim_label.etc'`.
+    When indexing a child primitive, the string label has the form:
+    `'.child_prim_label.etc'`.
 
     Parameters
     ----------
     label: str
         The string identifier for the primitive.
-        If `label` has no periods (e.g. '') this refers to the root primitive itself.
-        If `label` is a period-prefixed string (e.g. '.Point0'), this refers to the named child
-        primitive.
+        When indexing from a collection of primitives, the string label has the form:
+        `'parent_prim_label.child_prim_label.etc'`.
+        When indexing a child primitive, the string label has the form:
+        `'.child_prim_label.etc'`.
     sub_idx: int
-        An integer representing the indexed primitive for `PrimitiveArray` types
+        An integer representing an indexed primitive when `label` points to a
+        `PrimitiveArray` type primitive.  
     """
 
     def __init__(
