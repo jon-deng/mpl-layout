@@ -197,9 +197,14 @@ class Layout:
 def expand_prim(
         prim: geo.Primitive,
         label: str
-    ):
+    ) -> typ.Tuple[PrimList, typ.List[str], ConstraintList, Graph]:
     """
-    Expand all child primitives of `prim`
+    Expand all child primitives of `prim` into a flat list
+
+    This also recursively flattens any implicit constraints and constraint 
+    graphs.
+    The flattening is done so that if a parent primitive has `n` child 
+    primitives, these are placed immediately after the parent.
 
     Parameters
     ----------
@@ -210,6 +215,14 @@ def expand_prim(
 
     Returns
     -------
+    child_prims
+        The list of child primitives
+    child_labels
+        The list of child primitive labels
+    child_constraints
+        A list of implicit constraints
+    child_constraint_graph
+        A list of the implicit constraint graph
     """
     # Expand child primitives, constraints, and constraint graph
     child_prims = list(prim.prims)
@@ -238,40 +251,73 @@ def expand_prim(
 def contract_prim(
         prim: geo.Primitive,
         prims: PrimList
-    ):
+    ) -> typ.Tuple[geo.Primitive, int]:
     """
-    Collapse all child primitives into `prim`
+    Collapse a flat collection of child primitives into a parent
+
+    This function builds a parent primitive from child primitives. 
+    This is needed because primitives are parameterized by child primitives and 
+    are immutable.
+    This function should undo the result of `expand_prim`.
 
     Parameters
     ----------
     prim: geo.Primitive
-        The primitive to be expanded
-    prim_idx: int
-        The index of the primitive in a global list of primitives
+        The parent primitive
+    prims: PrimList
+        The child primitives to collapse into the parent
 
     Returns
     -------
+    geo.Primitive
+        The parent primitive with updated child primitives
+    int
+        The total number of child primitives used in the list
     """
     num_child = len(prim.prims)
 
     child_prims = []
     m = num_child
-    for subprim in prims[:num_child]:
-        cprim, n = contract_prim(subprim, prims[m:])
+    for child_prim in prims[:num_child]:
+        cprim, n = contract_prim(child_prim, prims[m:])
 
         child_prims.append(cprim)
         m += n
 
     return type(prim)(param=prim.param, prims=tuple(child_prims)), m
 
-def build_prims(prims, params):
+def build_prims(
+        prims: PrimList, 
+        params: typ.List[np.typing.NDArray]
+    ) -> PrimList:
+    """
+    Create an updated list of `Primitive`s from new parameters
 
+    This function rebuilds a list of primitives with new parameters in 
+    a corresponding list of parameters.
+
+    Parameters
+    ----------
+    prims: PrimList
+        The old list of primitives
+    params: typ.List[np.typing.NDArray]
+        The new list of parameters for the primitives
+
+    Returns
+    -------
+    PrimList
+        The new list of primitives
+    """
+    
+    # First create primitives where the new parameters have been applied
     _new_prims = [
         type(prim)(param=param, prims=prim.prims)
         for prim, param in zip(prims, params)
     ]
 
-    # Contract all child primitives into parents
+    # Contract all child primitives into parents. 
+    # This is needed because primitive are parameterized both by parameter and
+    # other primitives.
     m = 0
     new_prims = []
     while m < len(_new_prims):
