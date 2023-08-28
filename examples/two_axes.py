@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 from mpllayout import solver, geometry as geo, matplotlibutils as lplt, ui, array
 
-PrimIdx = geo.PrimIdx
+PrimIdx = geo.PrimitiveIndex
 
 if __name__ == '__main__':
     # Create a layout object to handle the collection of primitives, and linking
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # Call the box 'Axes2'
     layout.add_prim(
         geo.Box(prims=[geo.Point(vert) for vert in verts]), 
-        'Axes1'
+        'Axes2'
     )
 
     ## Constrain the figure size

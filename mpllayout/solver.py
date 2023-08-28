@@ -17,7 +17,7 @@ Idxs = typ.Tuple[int]
 Graph = typ.List[Idxs]
 SolverInfo = typ.Mapping[str, typ.Any]
 
-PrimIdx = geo.PrimIdx
+PrimIdx = geo.PrimitiveIndex
 
 class Layout:
     """
@@ -118,7 +118,7 @@ class Layout:
     def add_constraint(
             self,
             constraint: geo.Constraint,
-            prim_idxs: typ.Tuple[geo.PrimIdx, ...],
+            prim_idxs: typ.Tuple[geo.PrimitiveIndex, ...],
             constraint_label: typ.Optional[str]=None
         ) -> str:
         """

@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 from mpllayout import solver, geometry as geo, matplotlibutils as lplt
 
-PrimIdx = geo.PrimIdx
+PrimIdx = geo.PrimitiveIndex
 
 if __name__ == '__main__':
     layout = solver.Layout()

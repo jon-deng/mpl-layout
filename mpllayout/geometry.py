@@ -16,7 +16,7 @@ Idxs = typ.Tuple[int]
 ArrayShape = typ.Tuple[int, ...]
 PrimTuple = typ.Tuple['Primitive', ...]
 
-class PrimIdx:
+class PrimitiveIndex:
     """
     An index to a collection of `Primitive`s
 
@@ -30,13 +30,14 @@ class PrimIdx:
     primitive while the second argument is an integer index if the desired 
     primitive is a `PrimitiveArray` type.
     Periods in the label denote a child primitive.
-    For example, `PrimIdx('MyBox.Point0')`, denotes the first point, `'Point0'`,
-    of the primitive called `'MyBox'`.
-    As another example, `PrimIdx('MyBox', 0)`, denotes the first line segment
-    of the primitive called `'MyBox'`, in the case the primitive is a 
+    For example, `PrimitiveIndex('MyBox.Point0')`, denotes the first point
+    , `'Point0'`, of the primitive called `'MyBox'`.
+    As another example, `PrimitiveIndex('MyBox', 0)`, denotes the first line 
+    segment of the primitive called `'MyBox'`, in the case the primitive is a 
     `Polyline`.
 
-    When indexing from a collection of primitives, the string label has the form:
+    When indexing from a collection of primitives, the string label has the 
+    form:
     `'parent_prim_label.child_prim_label.etc'`.
     When indexing a child primitive, the string label has the form:
     `'.child_prim_label.etc'`.
@@ -45,7 +46,8 @@ class PrimIdx:
     ----------
     label: str
         The string identifier for the primitive.
-        When indexing from a collection of primitives, the string label has the form:
+        When indexing from a collection of primitives, the string label has the 
+        form:
         `'parent_prim_label.child_prim_label.etc'`.
         When indexing a child primitive, the string label has the form:
         `'.child_prim_label.etc'`.
@@ -574,10 +576,10 @@ class Box(ClosedPolyline):
         Vertical
     )
     _CONSTRAINT_GRAPH = (
-        (PrimIdx('', 0),),
-        (PrimIdx('', 1),),
-        (PrimIdx('', 2),),
-        (PrimIdx('', 3),)
+        (PrimitiveIndex('', 0),),
+        (PrimitiveIndex('', 1),),
+        (PrimitiveIndex('', 2),),
+        (PrimitiveIndex('', 3),)
     )
 
 
