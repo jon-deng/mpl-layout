@@ -337,7 +337,10 @@ def solve(
         max_iter = 10
     ) -> typ.Tuple[PrimList, SolverInfo]:
     """
-    Return a set of primitives that satisfy the given constraints
+    Return a set of primitives that satisfy the constraints
+
+    This solves a set of, potentially non-linear constraints, with an
+    iterative Newton method.
 
     Parameters
     ----------
@@ -347,13 +350,23 @@ def solve(
         The list of constraints
     constraint_graph: Graph
         A mapping from each constraint to the primitives it applies to.
-        For example, `constraint_graph[0] == (0, 5, 8)` means the first constraint
-        applies to primitives `(prims[0], prims[5], prims[8])`.
-    prim_graph: Graph
-        Denotes that the next block of primitives parameterize the current primitive.
-        For example, `subprim_graph[0] == 4` means `prim[0]` is parameterized
-        by primitives `prims[1:5]`. Primitives that have no sub-primitives have
-        `subprim_graph[n] == 0`.
+        For example, `constraint_graph[0] == (0, 5, 8)` means the first 
+        constraint applies to primitives `(prims[0], prims[5], prims[8])`.
+
+    Returns
+    -------
+    PrimList
+        The list of primitives satisfying the constraints
+    SolverInfo
+        Information about the solve.
+        Keys are:
+            'abs_errs': 
+                A list of absolute errors for each solver iteration.
+                This is the 2-norm of the constraint residual vector.
+            'rel_errs':
+                A list of relative errors for each solver iteration.
+                This is the absolute error at each iteration, relative to the 
+                initial absolute error.
     """
 
     nonlinear_solve_info = {}
@@ -384,7 +397,7 @@ def solve_linear(
         constraint_graph: Graph
     ) -> typ.Tuple[PrimList, SolverInfo]:
     """
-    Return a set of primitives that satisfy the given constraints
+    Return a set of primitives that satisfy the (linearized) constraints
 
     Parameters
     ----------
@@ -394,13 +407,21 @@ def solve_linear(
         The list of constraints
     constraint_graph: Graph
         A mapping from each constraint to the primitives it applies to.
-        For example, `constraint_graph[0] == (0, 5, 8)` means the first constraint
-        applies to primitives `(prims[0], prims[5], prims[8])`.
-    prim_graph: Graph
-        Denotes that the next block of primitives parameterize the current primitive.
-        For example, `subprim_graph[0] == 4` means `prim[0]` is parameterized
-        by primitives `prims[1:5]`. Primitives that have no sub-primitives have
-        `subprim_graph[n] == 0`.
+        For example, `constraint_graph[0] == (0, 5, 8)` means the first 
+        constraint applies to primitives `(prims[0], prims[5], prims[8])`.
+
+    Returns
+    -------
+    PrimList
+        The list of primitives satisfying the (linearized) constraints
+    SolverInfo
+        Information about the solve.
+        Keys are:
+            'err': the least squares solver error
+            'rank': the rank of the linearized constraint problem 
+            's': a matrix of singular values for the problem
+            'num_dof': the number of degrees of freedom in the problem
+            'res': The global constraint residual vector
     """
 
     # `prim_idx_bounds` stores the right/left indices for each primitive's
