@@ -19,7 +19,7 @@ def plot_point(
     Plot a `Point` primitive to an axes
     """
     x, y = point.param
-    ax.plot([x], [y], **kwargs)
+    ax.plot([x], [y], marker='.', **kwargs)
 
 def plot_line_segment(
         ax: mpl.axes.Axes, line_segment: geo.LineSegment, **kwargs
