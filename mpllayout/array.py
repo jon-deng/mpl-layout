@@ -4,7 +4,7 @@ T = typ.TypeVar('T')
 
 class LabelledContainer(typ.Generic[T]):
     """
-    A container object with both string and integer indices
+    A generic container object with both string and integer indices
     """
     def __init__(
             self,
@@ -68,7 +68,7 @@ class LabelledContainer(typ.Generic[T]):
 
 class LabelledList(LabelledContainer[T]):
     """
-    A list with labelled indices
+    A list with both string and integer indices
     """
 
     def __init__(
@@ -87,7 +87,7 @@ class LabelledList(LabelledContainer[T]):
     
 class LabelledTuple(LabelledContainer[T]):
     """
-    A tuple with labelled indices
+    A tuple with both string and integer indices
     """
 
     def __init__(
@@ -101,6 +101,12 @@ class LabelledTuple(LabelledContainer[T]):
         self._items = tuple(self._items)
         
 class Counter:
+    """
+    A class used to count the nunber of added objects by class
+
+    This is used to create unique names for added items in `LabelledContainer`
+    type objects.
+    """
 
     def __init__(self):
         self._count = {}
