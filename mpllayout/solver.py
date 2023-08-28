@@ -9,7 +9,7 @@ from jax import numpy as jnp
 import numpy as np
 
 from . import geometry as geo
-from .array import LabelledList, Counter
+from .array import LabelledList
 
 PrimList = typ.List[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintList = typ.List[geo.Constraint]
