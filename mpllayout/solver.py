@@ -3,6 +3,7 @@ Routines for handling collections of primitives and constraints
 """
 
 import typing as typ
+import warnings
 
 import jax
 from jax import numpy as jnp
@@ -383,7 +384,9 @@ def solve(
         n += 1
         abs_err = np.linalg.norm(linear_solve_info['res'])
         abs_errs.append(abs_err)
-        rel_err = abs_errs[-1]/abs_errs[0]
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', RuntimeWarning)
+            rel_err = abs_errs[-1]/abs_errs[0]
         rel_errs.append(rel_err)
 
     nonlinear_solve_info['abs_errs'] = abs_errs
