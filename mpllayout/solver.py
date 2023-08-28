@@ -21,10 +21,11 @@ PrimIdx = geo.PrimitiveIndex
 
 class Layout:
     """
-    This class handles a collection of primitives and associated constraints
+    Class used to handle a collection of primitives and associated constraints
 
     The class contains functions to add primitives to the collection, add
-    constraints on those primitives,
+    constraints on those primitives, and create the associated graph between
+    constraints and primitives.
 
     Parameters
     ----------
