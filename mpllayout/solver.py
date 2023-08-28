@@ -81,18 +81,18 @@ class Layout:
         """
         Add a `geo.Primitive` to the `Layout`
 
+        The primitive will be added with the label 'prim_label'. 
+        In addition, all child primitives will be recursively added with 
+        label 'prim_label.child_label'.
+
         Parameters
         ----------
-        constraint: geo.Constraint
-            The constraint to apply
-        prim_labels: typ.Tuple[typ.Union[str, int], ...]
-            Labels for the primitives to apply the constraints on
-        prim_idxs: typ.Optional[
-                typ.Tuple[typ.Union[int, None], ...]
-            ]
-            Indices for each primitive if the primitive is a `PrimitiveList` type
-        constraint_label: typ.Optional[str]
-            An optional label for the constraint
+        prim: geo.Primitive
+            The primitive to add
+        prim_label: typ.Optional[str]
+            An optional label for the primitive. 
+            If not provided, an automatic name based on the primitive class will
+            be used.
 
         Returns
         -------
@@ -130,9 +130,11 @@ class Layout:
         constraint: geo.Constraint
             The constraint to apply
         prim_idxs: typ.Tuple[geo.PrimIdx, ...]
-            Indices of the primitives the constraint applies on
+            Indices of the primitives the constraint applies to
         constraint_label: typ.Optional[str]
-            An optional label for the constraint
+            An optional label for the constraint.
+            If not provided, an automatic name based on the constraint class 
+            will be used.
 
         Returns
         -------
