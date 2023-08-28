@@ -192,31 +192,6 @@ class Layout:
             self.constraint_graph.append(new_prim_int_idxs)
         return constraint_label
 
-def expand_prim_labels(
-        prim: geo.Primitive,
-        prim_label: str,
-        # prims: typ.List[geo.Primitive],
-        # prim_graph: typ.List[int]
-    ):
-    num_child = len(prim.prims)
-
-    labels = []
-    type_to_count = Counter()
-    for subprim in prim.prims:
-        PrimType = type(subprim)
-        type_to_count.add(PrimType)
-        n = type_to_count[PrimType] - 1
-
-        labels.append(f'{prim_label}.{PrimType.__name__}{n:d}')
-
-    # Recursively expand any child primitives
-    if num_child == 0:
-        return []
-    else:
-        for sub_prim, prefix in zip(prim.prims, labels):
-            labels = labels + expand_prim_labels(sub_prim, prefix)
-        return labels
-
 def expand_prim(
         prim: geo.Primitive,
         label: str
