@@ -11,11 +11,12 @@ It consists of:
 
 ## How to use
 
-Basic usage of the project is shown in the `examples` folder, but there isn't detailed documentation currently available.
+Basic usage of the project is shown in the `examples` folder.
+In particular, the notebook in 'examples/two_axes.ipynb' illustrates the basic usage of the package.
 
 ## Contributing
 
-This project is a work in progress so there are likely bugs and missing features. 
+This project is a work in progress so there are likely bugs and missing features.
 If you would like to contribute a bug fix, a feature, refactor etc. thank you!
 All contributions are welcome.
 
