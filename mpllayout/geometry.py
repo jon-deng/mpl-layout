@@ -22,21 +22,21 @@ class PrimitiveIndex:
 
     A `PrimIdx` represents an index to a primitive within a collection where
     primitives are labelled by unique string labels.
-    There are two main use cases: 
+    There are two main use cases:
         an index to a specific primitive within a collection
         or an index to a child primitive from a parent primitive.
 
-    In either case the first argument represents the label of the desired 
-    primitive while the second argument is an integer index if the desired 
+    In either case the first argument represents the label of the desired
+    primitive while the second argument is an integer index if the desired
     primitive is a `PrimitiveArray` type.
     Periods in the label denote a child primitive.
     For example, `PrimitiveIndex('MyBox.Point0')`, denotes the first point
     , `'Point0'`, of the primitive called `'MyBox'`.
-    As another example, `PrimitiveIndex('MyBox', 0)`, denotes the first line 
-    segment of the primitive called `'MyBox'`, in the case the primitive is a 
+    As another example, `PrimitiveIndex('MyBox', 0)`, denotes the first line
+    segment of the primitive called `'MyBox'`, in the case the primitive is a
     `Polyline`.
 
-    When indexing from a collection of primitives, the string label has the 
+    When indexing from a collection of primitives, the string label has the
     form:
     `'parent_prim_label.child_prim_label.etc'`.
     When indexing a child primitive, the string label has the form:
@@ -46,14 +46,14 @@ class PrimitiveIndex:
     ----------
     label: str
         The string identifier for the primitive.
-        When indexing from a collection of primitives, the string label has the 
+        When indexing from a collection of primitives, the string label has the
         form:
         `'parent_prim_label.child_prim_label.etc'`.
         When indexing a child primitive, the string label has the form:
         `'.child_prim_label.etc'`.
     sub_idx: int
         An integer representing an indexed primitive when `label` points to a
-        `PrimitiveArray` type primitive.  
+        `PrimitiveArray` type primitive.
     """
 
     def __init__(
@@ -86,7 +86,7 @@ class Primitive:
     A representation of a geometric primitive
 
     Primitive can be parameterized by a parameter vector as well as
-    other geometric primitives. 
+    other geometric primitives.
     For example, a point in 2D is parameterized by a vector representing x and y coordinates.
     Primitives can also contain implicit constraints to represent common use-cases.
     For example, an origin point may be explicitly constraint to have (0, 0) coordinates.
@@ -203,7 +203,7 @@ class Primitive:
             + ')'
         )
         return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
-    
+
     def __str__(self):
         return self.__repr__()
 
@@ -254,8 +254,12 @@ class Constraint:
     """
     A representation of a constraint on primitives
 
-    A constraint represents a condition on the parameters of geometric primitive(s). 
-    The condition is specified through a residual function `assem_res`.
+    A constraint represents a condition on the parameters of geometric
+    primitive(s).
+    The condition is specified through a residual function `assem_res`,
+    specified with the `jax` library.
+    Usage of `jax` in specifying the constraints allows automatic
+    differentiation of constraint conditions which is used for solving them.
 
     Parameters
     ----------
@@ -290,7 +294,7 @@ class Constraint:
         ----------
         prims: Tuple[Primitive, ...]
             A tuple of primitives the constraint applies to
-        
+
         Returns
         -------
         NDArray
@@ -435,7 +439,7 @@ class LineLength(Constraint):
         # This sets the length of a line
         vec = line_direction(prims[0])
         return jnp.linalg.norm(vec) - self._length
-    
+
 class RelativeLineLength(Constraint):
     """
     Constrain a line's length relative to another line's length
@@ -472,7 +476,7 @@ class Orthogonal(Constraint):
         dir0 = line0.prims[1].param - line0.prims[0].param
         dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.dot(dir0, dir1)
-    
+
 class Parallel(Constraint):
     """
     Constrain two lines to be parallel
@@ -539,7 +543,7 @@ class Angle(Constraint):
         dir0 = dir0/jnp.linalg.norm(dir0)
         dir1 = dir1/jnp.linalg.norm(dir1)
         return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
-    
+
 class Collinear(Constraint):
     """
     Constrain two lines to be collinear
