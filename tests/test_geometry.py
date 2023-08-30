@@ -7,109 +7,108 @@ from pprint import pprint
 
 import numpy as np
 
-from mpllayout import solver, geometry as geo
+from mpllayout import geometry as geo
 
 class TestConstraints:
 
-    def test_point_collection(self):
-        layout = solver.Layout()
+    ## Constraints on points
+    @pytest.fixture()
+    def vertices(self):
+        return np.array([
+            [0, 0], [2, 2], [4, 4]
+        ])
 
-        layout.add_prim(geo.Point([0, 0]), 'Origin')
-        layout.add_prim(geo.Point([1, 1]))
-        layout.add_prim(geo.Point([2, 2]))
+    @pytest.fixture()
+    def points(self, vertices):
+        return [geo.Point(vert) for vert in vertices]
+    
+    @pytest.fixture()
+    def direction(self):
+        return np.array([0, 1], dtype=float)
+    
+    @pytest.fixture()
+    def location(self):
+        return np.array([5, 5], dtype=float)
+    
+    def test_PointToPointAbsDistance(self, points, direction):
+        ans_ref = np.dot(points[1].param - points[0].param, direction)
 
-        print(layout.prims.keys())
+        dist = geo.PointToPointAbsDistance(0)
+        ans_com = dist(points[:2])
+        assert np.isclose(ans_ref, ans_com)
 
-        layout.add_constraint(
-            geo.PointLocation(np.array([0, 0])), 
-            ('Origin',)
-        )
+    def test_PointLocation(self, points, location):
+        ans_ref = points[0].param - location
 
-        layout.add_constraint(
-            geo.PointToPointAbsDistance(5.0, np.array([1, 0])), 
-            ('Origin', 'Point1')
-        )
-        layout.add_constraint(
-            geo.PointToPointAbsDistance(4.0, np.array([0, 1])), 
-            ('Origin', 'Point1')
-        )
+        constraint = geo.PointLocation(location)
+        ans_com = constraint(points[:2])
+        assert np.all(np.isclose(ans_ref, ans_com))
 
-        layout.add_constraint(
-            geo.PointToPointAbsDistance(-1.0, np.array([1, 0])), 
-            ('Point1', 'Point2')
-        )
-        layout.add_constraint(
-            geo.PointToPointAbsDistance(2.0, np.array([0, 1])), 
-            ('Point1', 'Point2')
-        )
+    # def test_CoincidentPoint(self, points):
+    #     ans_ref = points[0].param
 
-        new_prims, info = solver.solve(
-            layout.prims, layout.constraints, layout.constraint_graph
-        )
-        pprint(new_prims)
-        pprint(info)
+    #     dist = geo.PointToPointAbsDistance(0)
+    #     ans_com = dist(points[:2])
+    #     assert np.isclose(ans_ref, ans_com)
 
-    def test_box(self):
+    ## Constraints on line segments
 
-        layout = solver.Layout()
-
-        # layout.add_prim(geo.Point([0, 0]), 'Origin')
-
-        xmin, xmax = 1, 4
-        ymin, ymax = 1, 2
-        box_points = [
-            geo.Point([xmin+0.1, ymin+0.5]),
-            geo.Point([xmax+0.6, ymin]),
-            geo.Point([xmax, ymax]),
-            geo.Point([xmin-0.1, ymax])
+    @pytest.fixture()
+    def lines(self, points):
+        return [
+            geo.LineSegment(prims=(pa, pb)) 
+            for pa, pb in zip(points[:-1], points[1:])
         ]
-        box_lines = [
-            geo.LineSegment(prims=(pointa, pointb))
-            for pointa, pointb in zip(box_points, box_points[1:]+box_points[:1])
-        ]
-        layout.add_prim(geo.Box(prims=box_lines))
-        print(layout.constraints)
-        print(layout.constraint_graph)
-        # assert False
+    
+    @pytest.fixture()
+    def orthogonal_lines(self):
+        vec_a = np.random.rand(2)-0.5
+        vec_b = np.array([-vec_a[1], vec_a[0]])
 
-        layout.add_constraint(
-            geo.PointLocation(np.array([0, 0])), 
-            ('Box0.LineSegment0.Point0',)
+        # Make the line starting point somewhere in a 10x10 box around the origin
+        vert1_a = 10*2*(np.random.rand(2)-0.5)
+        vert1_b = 10*2*(np.random.rand(2)-0.5)
+        lines = tuple(
+            geo.LineSegment(prims=(geo.Point(vert1), geo.Point(vert1+vec)))
+            for vert1, vec in zip([vert1_a, vert1_b], [vec_a, vec_b])
         )
-
-        # layout.add_constraint(
-        #     geo.PointToPointAbsDistance(1.2, np.array([1, 0])), 
-        #     ('Origin', 'Box0.LineSegment0.Point0')
-        # )
-        # layout.add_constraint(
-        #     geo.PointToPointAbsDistance(1.2, np.array([0, 1])), 
-        #     ('Origin', 'Box0.LineSegment0.Point0')
-        # )
-
-        layout.add_constraint(
-            geo.PointToPointAbsDistance(5.2, np.array([1, 0])), 
-            ('Box0.LineSegment0.Point0', 'Box0.LineSegment1.Point1')
+        return lines
+    
+    @pytest.fixture()
+    def parallel_lines(self, points):
+        return (
+            geo.LineSegment(prims=(pa, pb)) 
+            for pa, pb in zip(points[:-1], points[1:])
         )
-        layout.add_constraint(
-            geo.PointToPointAbsDistance(2.4, np.array([0, 1])), 
-            ('Box0.LineSegment0.Point0', 'Box0.LineSegment1.Point1')
-        )
+    
+    def test_LineLength(self, lines):
+        line = lines[0]
+        points = line.prims
+        vec = points[1].param - points[0].param
+        ans_ref = np.linalg.norm(vec)
 
-        # layout.add_constraint(
-        #     geo.Horizontal(), 
-        #     ('Box0.LineSegment0',)
-        # )
+        constraint = geo.LineLength(0)
+        ans_com = constraint((line,))
 
-        # layout.add_constraint(
-        #     geo.Vertical(), 
-        #     ('Box0.LineSegment1',)
-        # )
+        assert np.all(np.isclose(ans_ref, ans_com))
 
-        pprint("Constraints")
-        pprint(layout.constraints.keys())
+    def test_RelativeLineLength(self, lines):
+        lines = tuple(lines[:2])
+        vecs = tuple(line.prims[1].param - line.prims[0].param for line in lines)
+        line_lengths = tuple(np.linalg.norm(vec) for vec in vecs)
 
-        new_prims, info = solver.solve(
-            layout.prims, layout.constraints, layout.constraint_graph
-        )
-        pprint(new_prims)
-        pprint(info) 
+        rel_length = 0.25
+        ans_ref = line_lengths[0] - rel_length*line_lengths[1]
+
+        constraint = geo.RelativeLineLength(rel_length)
+        ans_com = constraint((lines))
+
+        assert np.all(np.isclose(ans_ref, ans_com))
+
+    def test_Orthogonal(self, orthogonal_lines):
+        lines = orthogonal_lines
+
+        constraint = geo.Orthogonal()
+        ans_com = constraint(lines)
+
+        assert np.all(np.isclose([0, 0], ans_com))
