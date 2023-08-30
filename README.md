@@ -10,6 +10,16 @@ It consists of:
 * a constraint solver to solve for the arrangement of primitives that satisfy given constraints
 * utilities to generate Matplotlib figures and axes from geometric primitives
 
+## Installation
+
+To install this package, clone the repository into a local drive.
+Navigate to the project directory and use
+```
+pip install .
+```
+
+You will also need to have the packages `numpy`, `matplotlib`, and `jax`.
+
 ## How to use
 
 Basic usage of the project is shown in the `examples` folder.
