@@ -1,4 +1,6 @@
 
+![Project logo](logo.svg)
+
 ## Overview
 
 MPLLayout is a Python package meant to make arrangement of plot elements in Matplotlib easy.
@@ -11,8 +13,8 @@ For example, you might want:
 * to fix the size of certain axes
 * or any combination of these
 
-While `matplotlib` contains facilities for specifying the location of plot elements (for example, `GridSpec` for grid-based layouts of axes) these can be constrained to a specific type of layout (such as a grid of elements) or require additional code to satisfy more complicated arrangements of elements. 
-MPLLayout provides a set of tools for arranging visual elements in `matplotlib` using geometric constraints to handle flexible arrangements. 
+While `matplotlib` contains facilities for specifying the location of plot elements (for example, `GridSpec` for grid-based layouts of axes) these can be constrained to a specific type of layout (such as a grid of elements) or require additional code to satisfy more complicated arrangements of elements.
+MPLLayout provides a set of tools for arranging visual elements in `matplotlib` using geometric constraints to handle flexible arrangements.
 It consists of:
 
 * geometric primitives to represent plot elements (for example, a `Box` primitive can represent a `Bbox` or `Axes` in Matplotlib)
