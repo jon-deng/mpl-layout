@@ -17,6 +17,12 @@ def subplots(
     """
     Create `Figure` and `Axes` objects from geometric primitives
 
+    The `Figure` and `Axes` objects are extracted based on labels in `prims`.
+    A `geo.Box` primitive named 'Figure' is used to create the `Figure` with 
+    corresponding dimensions.
+    Any `geo.Box` primitives prefixed with 'Axes' are used to create `Axes`
+    objects in the output dictionary `axs`.
+
     Parameters
     ----------
     prims: LabelledList[geo.Primitive]
