@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     margin_left = 0.5
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_left, np.array([-1, 0])),
+        geo.PointToPointDirectedDistance(margin_left, np.array([-1, 0])),
         (PrimIdx('Axes1.Point0'), PrimIdx('Figure.Point0'))
     )
 
@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     margin_right = 0.5
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_right, np.array([1, 0])),
+        geo.PointToPointDirectedDistance(margin_right, np.array([1, 0])),
         (PrimIdx('Axes2.Point1'), PrimIdx('Figure.Point2'))
     )
 
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     ## Constrain the gap between the left and right axes ('Axes1' and `Axes2`)
     margin_inter = 0.5
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_inter, np.array([1, 0])),
+        geo.PointToPointDirectedDistance(margin_inter, np.array([1, 0])),
         (PrimIdx('Axes1.Point1'), PrimIdx('Axes2.Point0'))
     )
 
@@ -148,11 +148,11 @@ if __name__ == '__main__':
     margin_top = 1.0
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
+        geo.PointToPointDirectedDistance(margin_bottom, np.array([0, -1])),
         (PrimIdx('Axes1.Point0'), PrimIdx('Figure.Point0'))
     )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
+        geo.PointToPointDirectedDistance(margin_top, np.array([0, 1])),
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 

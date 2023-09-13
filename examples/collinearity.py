@@ -41,7 +41,7 @@ if __name__ == '__main__':
         (PrimIdx('LineA'),)
     )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(5, [1, 0]), 
+        geo.PointToPointDirectedDistance(5, [1, 0]), 
         (PrimIdx('LineA.Point0'), PrimIdx('LineA.Point1'))
     )
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         (PrimIdx('LineA'), PrimIdx('LineB'))
     )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(5, [1, 0]), 
+        geo.PointToPointDirectedDistance(5, [1, 0]), 
         (PrimIdx('LineB.Point0'), PrimIdx('LineB.Point1'))
     )
 

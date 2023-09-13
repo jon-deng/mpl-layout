@@ -37,11 +37,11 @@ if __name__ == '__main__':
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
     layout.add_constraint(
-        geo.PointToPointAbsDistance(fig_width, np.array([1, 0])),
+        geo.PointToPointDirectedDistance(fig_width, np.array([1, 0])),
         (PrimIdx('Figure.Point0'), PrimIdx('Figure.Point1'))
     )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(fig_height, np.array([0, 1])),
+        geo.PointToPointDirectedDistance(fig_height, np.array([0, 1])),
         (PrimIdx('Figure.Point0'), PrimIdx('Figure.Point3'))
     )
 
@@ -55,11 +55,11 @@ if __name__ == '__main__':
     margin_left = 1.1
     margin_right = 1.1
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_left, np.array([-1, 0])),
+        geo.PointToPointDirectedDistance(margin_left, np.array([-1, 0])),
         (PrimIdx('Axes1.Point0'), PrimIdx('Figure.Point0'))
     )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_right, np.array([1, 0])),
+        geo.PointToPointDirectedDistance(margin_right, np.array([1, 0])),
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 
@@ -67,11 +67,11 @@ if __name__ == '__main__':
     margin_top = 1.1
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_bottom, np.array([0, -1])),
+        geo.PointToPointDirectedDistance(margin_bottom, np.array([0, -1])),
         (PrimIdx('Axes1.Point0'), PrimIdx('Figure.Point0'))
     )
     layout.add_constraint(
-        geo.PointToPointAbsDistance(margin_top, np.array([0, 1])),
+        geo.PointToPointDirectedDistance(margin_top, np.array([0, 1])),
         (PrimIdx('Axes1.Point2'), PrimIdx('Figure.Point2'))
     )
 

@@ -315,7 +315,7 @@ class Point(Primitive):
     _CONSTRAINT_TYPES = ()
     _CONSTRAINT_GRAPH = ()
 
-class PointToPointAbsDistance(Constraint):
+class PointToPointDirectedDistance(Constraint):
     """
     Constrain the distance between two points along a given direction
     """
