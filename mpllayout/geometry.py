@@ -462,7 +462,7 @@ class RelativeLineLength(Constraint):
         vec_b = line_direction(prims[1])
         return jnp.linalg.norm(vec_a) - self._length*jnp.linalg.norm(vec_b)
 
-class Orthogonal(Constraint):
+class OrthogonalLines(Constraint):
     """
     Constrain two lines to be orthogonal
     """
@@ -477,7 +477,7 @@ class Orthogonal(Constraint):
         dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.dot(dir0, dir1)
 
-class Parallel(Constraint):
+class ParallelLines(Constraint):
     """
     Constrain two lines to be parallel
     """
@@ -492,7 +492,7 @@ class Parallel(Constraint):
         dir1 = line1.prims[1].param - line1.prims[0].param
         return jnp.cross(dir0, dir1)
 
-class Vertical(Constraint):
+class VerticalLine(Constraint):
     """
     Constrain a line to be vertical
     """
@@ -506,7 +506,7 @@ class Vertical(Constraint):
         dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([1, 0]))
 
-class Horizontal(Constraint):
+class HorizontalLine(Constraint):
     """
     Constrain a line to be horizontal
     """
@@ -544,7 +544,7 @@ class Angle(Constraint):
         dir1 = dir1/jnp.linalg.norm(dir1)
         return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
 
-class Collinear(Constraint):
+class CollinearLines(Constraint):
     """
     Constrain two lines to be collinear
     """
@@ -554,7 +554,7 @@ class Collinear(Constraint):
         """
         Return the collinearity error
         """
-        res_parallel = Parallel()
+        res_parallel = ParallelLines()
         line0, line1 = prims
         line2 = LineSegment(prims=(line1.prims[1], line0.prims[0]))
         line3 = LineSegment(prims=(line1.prims[0], line0.prims[1]))
@@ -574,10 +574,10 @@ class Box(ClosedPolyline):
     _PRIM_TYPES = (Point, Point, Point, Point)
 
     _CONSTRAINT_TYPES = (
-        Horizontal,
-        Vertical,
-        Horizontal,
-        Vertical
+        HorizontalLine,
+        VerticalLine,
+        HorizontalLine,
+        VerticalLine
     )
     _CONSTRAINT_GRAPH = (
         (PrimitiveIndex('', 0),),
