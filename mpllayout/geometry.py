@@ -369,7 +369,7 @@ class PointLocation(Constraint):
         """
         return prims[0].param - self._location
 
-class CoincidentPoint(Constraint):
+class CoincidentPoints(Constraint):
     """
     Constrain two points to coincide
     """

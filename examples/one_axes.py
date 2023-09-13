@@ -46,7 +46,7 @@ if __name__ == '__main__':
     )
 
     layout.add_constraint(
-        geo.CoincidentPoint(),
+        geo.CoincidentPoints(),
         (PrimIdx('Figure.Point0'), PrimIdx('Origin'))
     )
 

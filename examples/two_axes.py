@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # Constrain the bottom corner point of the figure box (`PrimIdx('Figure.Point0')`)
     # to be coincident with the origin (`PrimIdx('Origin')`)
     layout.add_constraint(
-        geo.CoincidentPoint(),
+        geo.CoincidentPoints(),
         (PrimIdx('Figure.Point0'), PrimIdx('Origin'))
     )
 

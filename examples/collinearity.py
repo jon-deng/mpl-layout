@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     # Fix LineA
     layout.add_constraint(
-        geo.CoincidentPoint(), 
+        geo.CoincidentPoints(), 
         (PrimIdx('LineA.Point0'), PrimIdx('Origin'))
     )
     layout.add_constraint(
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     # Fix LineB
     layout.add_constraint(
-        geo.CoincidentPoint(), 
+        geo.CoincidentPoints(), 
         (PrimIdx('LineA.Point1'), PrimIdx('LineB.Point0'))
     )
     layout.add_constraint(
