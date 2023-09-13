@@ -37,7 +37,7 @@ def subplots(
         using the `Axes` object names.
     """
 
-    width, height = wh_from_box(prims['Figure'])
+    width, height = width_and_height_from_box(prims['Figure'])
 
     fig = plt.Figure((width, height))
     axs = {
@@ -47,7 +47,7 @@ def subplots(
     }
     return fig, axs
 
-def wh_from_box(box: geo.Box) -> typ.Tuple[float, float]:
+def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
     """
     Return the width and height of a `Box`
 
@@ -76,7 +76,7 @@ def rect_from_box(
         fig_size: typ.Optional[typ.Tuple[float, float]]=(1, 1)
     ) -> typ.Tuple[float, float, float, float]:
     """
-    Return the lower left corner coordinate and width and height of a `Box`
+    Return a `rect` tuple, `(left, bottom, width, height)`, of a `Box`
 
     This tuple of box information can be used to create a `Bbox` object from
     `matplotlib` or an `Axes`.
