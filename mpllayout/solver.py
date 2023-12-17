@@ -142,6 +142,10 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
+        # TODO: Refactor this function so that the `constraint_graph`
+        # links constraints by `PrimIdx` objects rather than through integers
+        # Solving the `Layout` should then do a conversion to integer indices,
+        # rather than the conversion happening here
         # These are prims/prim integer indices the constraint applies to
         prims = tuple(self.prims[prim_idx.label] for prim_idx in prim_idxs)
         prim_int_idxs = tuple(
