@@ -12,13 +12,13 @@ import numpy as np
 from . import geometry as geo
 from .array import LabelledList
 
+PrimIdx = geo.PrimitiveIndex
+PrimIdxs = typ.Tuple[PrimIdx, ...]
 PrimList = typ.List[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintList = typ.List[geo.Constraint]
-Idxs = typ.Tuple[int]
-Graph = typ.List[Idxs]
+Graph = typ.List[PrimIdxs]
 SolverInfo = typ.Mapping[str, typ.Any]
 
-PrimIdx = geo.PrimitiveIndex
 
 class Layout:
     """
@@ -91,7 +91,8 @@ class Layout:
         prim: geo.Primitive
             The primitive to add
         prim_label: typ.Optional[str]
-            An optional label for the primitive.
+            An optional label for the primitive
+
             If not provided, an automatic name based on the primitive class will
             be used.
 
@@ -105,7 +106,6 @@ class Layout:
         prim_label = self.prims.append(prim, label=prim_label)
 
         # Append all child primitives
-        # if len(prim.prims) > 0:
         subprims, subprim_labels, subconstrs, subconstr_graph = \
             expand_prim(prim, label=prim_label)
 
@@ -120,7 +120,7 @@ class Layout:
     def add_constraint(
             self,
             constraint: geo.Constraint,
-            prim_idxs: typ.Tuple[geo.PrimitiveIndex, ...],
+            prim_idxs: PrimIdxs,
             constraint_label: typ.Optional[str]=None
         ) -> str:
         """
@@ -130,7 +130,7 @@ class Layout:
         ----------
         constraint: geo.Constraint
             The constraint to apply
-        prim_idxs: typ.Tuple[geo.PrimIdx, ...]
+        prim_idxs: PrimIdxs
             Indices of the primitives the constraint applies to
         constraint_label: typ.Optional[str]
             An optional label for the constraint.
@@ -227,11 +227,22 @@ def expand_prim(
     """
     # Expand child primitives, constraints, and constraint graph
     child_prims = list(prim.prims)
-    child_labels = [f'{label}.{child_label}' for child_label in prim.prims.keys()]
     child_constraints = list(prim.constraints)
+
+    # To unpack the child constraint graph, we need to prepend all
+    # child primitives with the root primitive label, `label`
+    child_labels = [
+        f'{label}.{child_label}' for child_label in prim.prims.keys()
+    ]
     child_constraint_graph = [
-        tuple(PrimIdx('.'.join([label]+idx.label.split('.')[1:]), idx.sub_idx) for idx in idxs)
-        for idxs in prim.constraint_graph
+        tuple(
+            PrimIdx(
+                '.'.join([label] + prim_idx.label.split('.')[1:]),
+                prim_idx.sub_idx
+            )
+            for prim_idx in prim_idxs
+        )
+        for prim_idxs in prim.constraint_graph
     ]
 
     # Recursively expand any child primitives/constraints
