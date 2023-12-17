@@ -18,7 +18,7 @@ def subplots(
     Create `Figure` and `Axes` objects from geometric primitives
 
     The `Figure` and `Axes` objects are extracted based on labels in `prims`.
-    A `geo.Box` primitive named 'Figure' is used to create the `Figure` with 
+    A `geo.Box` primitive named 'Figure' is used to create the `Figure` with
     corresponding dimensions.
     Any `geo.Box` primitives prefixed with 'Axes' are used to create `Axes`
     objects in the output dictionary `axs`.
@@ -72,7 +72,7 @@ def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
     return (xmax-xmin), (ymax-ymin)
 
 def rect_from_box(
-        box: geo.Box, 
+        box: geo.Box,
         fig_size: typ.Optional[typ.Tuple[float, float]]=(1, 1)
     ) -> typ.Tuple[float, float, float, float]:
     """
@@ -83,7 +83,7 @@ def rect_from_box(
 
     Parameters
     ----------
-    box: geo.Box    
+    box: geo.Box
         The box
     fig_size: typ.Optional[typ.Tuple[float, float]]
         The width and height of the figure

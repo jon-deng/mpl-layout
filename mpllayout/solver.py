@@ -82,8 +82,8 @@ class Layout:
         """
         Add a `geo.Primitive` to the `Layout`
 
-        The primitive will be added with the label 'prim_label'. 
-        In addition, all child primitives will be recursively added with 
+        The primitive will be added with the label 'prim_label'.
+        In addition, all child primitives will be recursively added with
         label 'prim_label.child_label'.
 
         Parameters
@@ -91,7 +91,7 @@ class Layout:
         prim: geo.Primitive
             The primitive to add
         prim_label: typ.Optional[str]
-            An optional label for the primitive. 
+            An optional label for the primitive.
             If not provided, an automatic name based on the primitive class will
             be used.
 
@@ -108,10 +108,10 @@ class Layout:
         # if len(prim.prims) > 0:
         subprims, subprim_labels, subconstrs, subconstr_graph = \
             expand_prim(prim, label=prim_label)
-        
+
         for sub_label, sub_prim in zip(subprim_labels, subprims):
             self.prims.append(sub_prim, label=sub_label)
-            
+
         for constr, prim_idxs in zip(subconstrs, subconstr_graph):
             self.add_constraint(constr, prim_idxs)
 
@@ -134,7 +134,7 @@ class Layout:
             Indices of the primitives the constraint applies to
         constraint_label: typ.Optional[str]
             An optional label for the constraint.
-            If not provided, an automatic name based on the constraint class 
+            If not provided, an automatic name based on the constraint class
             will be used.
 
         Returns
@@ -145,7 +145,7 @@ class Layout:
         # These are prims/prim integer indices the constraint applies to
         prims = tuple(self.prims[prim_idx.label] for prim_idx in prim_idxs)
         prim_int_idxs = tuple(
-            self.prims.key_to_idx(prim_idx.label) 
+            self.prims.key_to_idx(prim_idx.label)
             for prim_idx in prim_idxs
         )
 
@@ -202,9 +202,9 @@ def expand_prim(
     """
     Expand all child primitives of `prim` into a flat list
 
-    This also recursively flattens any implicit constraints and constraint 
+    This also recursively flattens any implicit constraints and constraint
     graphs.
-    The flattening is done so that if a parent primitive has `n` child 
+    The flattening is done so that if a parent primitive has `n` child
     primitives, these are placed immediately after the parent.
 
     Parameters
@@ -239,9 +239,9 @@ def expand_prim(
         return child_prims, child_labels, child_constraints, child_constraint_graph
     else:
         for child_prim, child_label in zip(child_prims, child_labels):
-            (_re_child_prims, 
-                _re_child_labels, 
-                _re_child_constraints, 
+            (_re_child_prims,
+                _re_child_labels,
+                _re_child_constraints,
                 _re_child_constraint_graph) = expand_prim(child_prim, child_label)
             child_prims += _re_child_prims
             child_labels += _re_child_labels
@@ -256,8 +256,8 @@ def contract_prim(
     """
     Collapse a flat collection of child primitives into a parent
 
-    This function builds a parent primitive from child primitives. 
-    This is needed because primitives are parameterized by child primitives and 
+    This function builds a parent primitive from child primitives.
+    This is needed because primitives are parameterized by child primitives and
     are immutable.
     This function should undo the result of `expand_prim`.
 
@@ -288,13 +288,13 @@ def contract_prim(
     return type(prim)(param=prim.param, prims=tuple(child_prims)), m
 
 def build_prims(
-        prims: PrimList, 
+        prims: PrimList,
         params: typ.List[np.typing.NDArray]
     ) -> PrimList:
     """
     Create an updated list of `Primitive`s from new parameters
 
-    This function rebuilds a list of primitives with new parameters in 
+    This function rebuilds a list of primitives with new parameters in
     a corresponding list of parameters.
 
     Parameters
@@ -309,14 +309,14 @@ def build_prims(
     PrimList
         The new list of primitives
     """
-    
+
     # First create primitives where the new parameters have been applied
     _new_prims = [
         type(prim)(param=param, prims=prim.prims)
         for prim, param in zip(prims, params)
     ]
 
-    # Contract all child primitives into parents. 
+    # Contract all child primitives into parents.
     # This is needed because primitive are parameterized both by parameter and
     # other primitives.
     m = 0
@@ -351,7 +351,7 @@ def solve(
         The list of constraints
     constraint_graph: Graph
         A mapping from each constraint to the primitives it applies to.
-        For example, `constraint_graph[0] == (0, 5, 8)` means the first 
+        For example, `constraint_graph[0] == (0, 5, 8)` means the first
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.
 
     Returns
@@ -361,12 +361,12 @@ def solve(
     SolverInfo
         Information about the solve.
         Keys are:
-            'abs_errs': 
+            'abs_errs':
                 A list of absolute errors for each solver iteration.
                 This is the 2-norm of the constraint residual vector.
             'rel_errs':
                 A list of relative errors for each solver iteration.
-                This is the absolute error at each iteration, relative to the 
+                This is the absolute error at each iteration, relative to the
                 initial absolute error.
     """
 
@@ -393,7 +393,7 @@ def solve(
     nonlinear_solve_info['rel_errs'] = rel_errs
 
     return prims_n, nonlinear_solve_info
-        
+
 def solve_linear(
         prims: typ.List[geo.Primitive],
         constraints: typ.List[geo.Constraint],
@@ -410,7 +410,7 @@ def solve_linear(
         The list of constraints
     constraint_graph: Graph
         A mapping from each constraint to the primitives it applies to.
-        For example, `constraint_graph[0] == (0, 5, 8)` means the first 
+        For example, `constraint_graph[0] == (0, 5, 8)` means the first
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.
 
     Returns
@@ -421,7 +421,7 @@ def solve_linear(
         Information about the solve.
         Keys are:
             'err': the least squares solver error
-            'rank': the rank of the linearized constraint problem 
+            'rank': the rank of the linearized constraint problem
             's': a matrix of singular values for the problem
             'num_dof': the number of degrees of freedom in the problem
             'res': The global constraint residual vector

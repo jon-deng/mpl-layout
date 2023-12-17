@@ -16,7 +16,7 @@ class LabelledContainer(typ.Generic[T]):
         self._type_to_count = Counter()
 
         # Add the `self._items` and `self._label_to_idx` attributes.
-        # These 
+        # These
         if items is None and keys is None:
             self._items = []
             self._label_to_idx = {}
@@ -78,13 +78,13 @@ class LabelledList(LabelledContainer[T]):
         ):
 
         super().__init__(items, keys)
-        
+
         self._items = list(self._items)
 
     def append(self, item: T, label: typ.Optional[str]=None) -> str:
         label, *_ = append(self._items, self._label_to_idx, item, self._type_to_count, label)
         return label
-    
+
 class LabelledTuple(LabelledContainer[T]):
     """
     A tuple with both string and integer indices
@@ -99,7 +99,7 @@ class LabelledTuple(LabelledContainer[T]):
         super().__init__(items, keys)
 
         self._items = tuple(self._items)
-        
+
 class Counter:
     """
     A class used to count the nunber of added objects by class
@@ -129,8 +129,8 @@ class Counter:
 
 def append(
         items: typ.List[T], label_to_idx: typ.Mapping[str, int],
-        item: T, 
-        counter: Counter, 
+        item: T,
+        counter: Counter,
         label: typ.Optional[str]=None
     ) -> typ.Tuple[typ.List[T], str]:
     """
