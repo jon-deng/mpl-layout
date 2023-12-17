@@ -411,8 +411,8 @@ class ClosedPolyline(PrimitiveArray):
             return LineSegment(prims=prims)
 
         if isinstance(key, int):
-            idx1 = key % len(self)
-            idx2 = (key+1) % len(self)
+            idx1 = f'Point{key % len(self)}'
+            idx2 = f'Point{(key+1) % len(self)}'
         else:
             raise TypeError("`key`, {key}, must be an integer")
 
