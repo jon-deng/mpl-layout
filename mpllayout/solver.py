@@ -260,7 +260,7 @@ def expand_prim(
         tuple(
             PrimIdx(
                 '.'.join([label] + prim_idx.label.split('.')[1:]),
-                prim_idx.sub_idx
+                prim_idx.array_idx
             )
             for prim_idx in prim_idxs
         )
