@@ -18,13 +18,13 @@ PrimTuple = typ.Tuple['Primitive', ...]
 
 class PrimitiveIndex:
     """
-    An index to a collection of `Primitive`s
+    An index to a `Primitive` instance and, potentially, primitive array element(s)
 
-    A `PrimIdx` represents an index to a primitive within a collection where
-    primitives are labelled by unique string labels.
+    A `PrimitiveIndex` represents an index to a primitive within a collection
+    where primitives are labelled by unique strings.
     There are two main use cases:
-        an index to a specific primitive within a collection
-        or an index to a child primitive from a parent primitive.
+        - an index to a specific primitive within a collection
+        - an index to a child primitive from a parent primitive
 
     In either case the first argument represents the label of the desired
     primitive while the second argument is an integer index if the desired
@@ -51,7 +51,7 @@ class PrimitiveIndex:
         `'parent_prim_label.child_prim_label.etc'`.
         When indexing a child primitive, the string label has the form:
         `'.child_prim_label.etc'`.
-    sub_idx: int
+    array_idx: int
         An integer representing an indexed primitive when `label` points to a
         `PrimitiveArray` type primitive.
     """
@@ -59,22 +59,22 @@ class PrimitiveIndex:
     def __init__(
             self,
             label: str,
-            sub_idx: typ.Optional[int]=None
+            array_idx: typ.Optional[int]=None
         ):
 
         self._label = label
-        self._sub_idx = sub_idx
+        self._array_idx = array_idx
 
     @property
-    def sub_idx(self):
-        return self._sub_idx
+    def array_idx(self):
+        return self._array_idx
 
     @property
     def label(self):
         return self._label
 
     def __repr__(self):
-        return f'PrimIdx({self.label}, {self.sub_idx})'
+        return f'PrimitiveIndex({self.label}, {self.array_idx})'
 
     def __str__(self):
         return self.__repr__()
@@ -87,25 +87,28 @@ class Primitive:
 
     Primitive can be parameterized by a parameter vector as well as
     other geometric primitives.
-    For example, a point in 2D is parameterized by a vector representing x and y coordinates.
-    Primitives can also contain implicit constraints to represent common use-cases.
-    For example, an origin point may be explicitly constraint to have (0, 0) coordinates.
+    For example, a point in 2D is parameterized by a vector representing (x, y)
+    coordinates. Primitives can also contain implicit constraints to represent
+    common use-cases. For example, an origin point may be explicitly constraint
+    to have (0, 0) coordinates.
 
     Parameters
     ----------
-    param: ArrayLike with shape (n,)
+    param: NDArray with shape (n,)
         A parameter vector for the primitive
     prims: Tuple[Primitive, ...]
         A tuple of primitives parameterizing the primitive
 
     Attributes
     ----------
-    param: ArrayLike with shape (n,)
+    param: NDArray with shape (n,)
         A parameter vector for the primitive
     prims: Tuple[Primitive, ...]
-        If non-empty, the primitive contains child geometric primitives in `self.prims`
+        If non-empty, the primitive contains child geometric primitives in
+        `self.prims`
     constraints: Tuple[Constraint, ...]
-        If non-empty, the primitive contains implicit geometric constraints in `self.constraints`
+        If non-empty, the primitive contains implicit geometric constraints in
+        `self.constraints`
     constraint_graph: Tuple[Tuple[str, ...], ...]
         A graph representing which primitives a constraint applies to
     """
@@ -213,17 +216,19 @@ class PrimitiveArray(Primitive):
 
     Parameters
     ----------
-    param: ArrayLike with shape (n,)
+    param: NDArray with shape (n,)
         A parameter vector for the primitive
 
     Attributes
     ----------
-    param: ArrayLike with shape (n,)
+    param: NDArray with shape (n,)
         A parameter vector for the primitive
     prims: Tuple[Primitive, ...]
-        If non-empty, the primitive contains other geometric primitives in `self.prims`
+        If non-empty, the primitive contains other geometric primitives in
+        `self.prims`
     constraints: Tuple[Constraint, ...]
-        If non-empty, the primitive contains implicit geometric constraints in `self.constraints`
+        If non-empty, the primitive contains implicit geometric constraints in
+        `self.constraints`
     """
 
     def __len__(self):
@@ -263,7 +268,7 @@ class Constraint:
 
     Parameters
     ----------
-    param: ArrayLike with shape (n,)
+    param: NDArray with shape (n,)
         A parameter vector for the primitive
     prims: Tuple[Primitive, ...]
         A tuple of primitives parameterizing the primitive

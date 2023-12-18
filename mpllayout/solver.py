@@ -166,8 +166,8 @@ class Layout:
         # the index spec is just an identity type mapping (`ident_prim`) on the
         # root primitive (indexed by `(None,)`)
         idx_specs = tuple(
-            (ident_prim, (None,)) if prim_idx.sub_idx is None
-            else prim.index_spec(prim_idx.sub_idx)
+            (ident_prim, (None,)) if prim_idx.array_idx is None
+            else prim.index_spec(prim_idx.array_idx)
             for prim, prim_idx in zip(prims, prim_idxs)
         )
         # `make_prims` makes the primitives that input into `Constraint`s
