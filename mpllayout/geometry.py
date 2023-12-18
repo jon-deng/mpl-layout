@@ -28,19 +28,12 @@ class PrimitiveIndex:
 
     In either case the first argument represents the label of the desired
     primitive while the second argument is an integer index if the desired
-    primitive is a `PrimitiveArray` type.
-    Periods in the label denote a child primitive.
-    For example, `PrimitiveIndex('MyBox.Point0')`, denotes the first point
-    , `'Point0'`, of the primitive called `'MyBox'`.
-    As another example, `PrimitiveIndex('MyBox', 0)`, denotes the first line
-    segment of the primitive called `'MyBox'`, in the case the primitive is a
+    primitive is a `PrimitiveArray` type. Periods in the label denote a child
+    primitive. For example, `PrimitiveIndex('MyBox.Point0')`, denotes the first
+    point, `'Point0'`, of the primitive called `'MyBox'`. As another example,
+    `PrimitiveIndex('MyBox', 0)`, denotes the first line segment of the
+    primitive called `'MyBox'`, in the case the primitive is a
     `Polyline`.
-
-    When indexing from a collection of primitives, the string label has the
-    form:
-    `'parent_prim_label.child_prim_label.etc'`.
-    When indexing a child primitive, the string label has the form:
-    `'.child_prim_label.etc'`.
 
     Parameters
     ----------
@@ -49,11 +42,18 @@ class PrimitiveIndex:
         When indexing from a collection of primitives, the string label has the
         form:
         `'parent_prim_label.child_prim_label.etc'`.
-        When indexing a child primitive, the string label has the form:
+        When indexing a child primitive, however, the string label has the form:
         `'.child_prim_label.etc'`.
     array_idx: int
         An integer representing an indexed primitive when `label` points to a
         `PrimitiveArray` type primitive.
+
+    Attributes
+    ----------
+    label: str
+        See 'Parameters'
+    array_idx: int
+        See 'Parameters'
     """
 
     def __init__(
@@ -81,16 +81,20 @@ class PrimitiveIndex:
 
 ## Basic geometric primitives
 
+PrimIdxConstraintGraph = typ.List[typ.Tuple[PrimitiveIndex, ...]]
 class Primitive:
     """
     A representation of a geometric primitive
 
-    Primitive can be parameterized by a parameter vector as well as
-    other geometric primitives.
-    For example, a point in 2D is parameterized by a vector representing (x, y)
-    coordinates. Primitives can also contain implicit constraints to represent
-    common use-cases. For example, an origin point may be explicitly constraint
-    to have (0, 0) coordinates.
+    A `Primitive` can be parameterized by a parameter vector as well as
+    other geometric primitives. For example, a point in 2D is parameterized by a
+    vector representing (x, y) coordinates. Primitives can also contain implicit
+    constraints to represent common use-cases. For example, an origin point may
+    be explicitly constrained to have (0, 0) coordinates.
+
+    To create a `Primitive` class, you should subclass `Primitive` and define
+    the class attributes `_PARAM_SHAPE`, `_PRIM_TYPES`, `_PRIM_LABELS`,
+    `_CONSTRAINT_TYPES`, and `_CONSTRAINT_GRAPH`.
 
     Parameters
     ----------
@@ -106,11 +110,25 @@ class Primitive:
     prims: Tuple[Primitive, ...]
         If non-empty, the primitive contains child geometric primitives in
         `self.prims`
-    constraints: Tuple[Constraint, ...]
+    constraints: Constraints
         If non-empty, the primitive contains implicit geometric constraints in
         `self.constraints`
-    constraint_graph: Tuple[Tuple[str, ...], ...]
+    constraint_graph: StrConstraintGraph
         A graph representing which primitives a constraint applies to
+
+    _PARAM_SHAPE: ArrayShape
+        The shape of the parameter vector parameterizing the `Primitive`
+    _PRIM_TYPES: typ.Union[
+            typ.Tuple[typ.Type['Primitive'], ...],
+            typ.Type['Primitive']
+        ]
+        The types of child primitives parameterizing the `Primitive`
+    _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]]
+        Optional labels for the child primitives
+    _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...]
+        The types of any internal constraints on the `Primitive`
+    _CONSTRAINT_GRAPH: 'PrimIdxConstraintGraph'
+        The constraint graph for the internal constraints
     """
 
     _param: NDArray
@@ -121,10 +139,13 @@ class Primitive:
     # `_PRIM_TYPES` can either be a tuple of types, or a single type.
     # If it's a single type, then this implies a variable number of child primitives of that type
     # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
-    _PRIM_TYPES: typ.Union[typ.Tuple[typ.Type['Primitive'], ...], typ.Type['Primitive']] = ()
+    _PRIM_TYPES: typ.Union[
+        typ.Tuple[typ.Type['Primitive'], ...],
+        typ.Type['Primitive']
+    ] = ()
     _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]] = None
     _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...] = ()
-    _CONSTRAINT_GRAPH: 'ConstraintGraph' = ()
+    _CONSTRAINT_GRAPH: PrimIdxConstraintGraph = ()
 
     def __init__(
             self,
@@ -193,7 +214,7 @@ class Primitive:
         return self._CONSTRAINTS
 
     @property
-    def constraint_graph(self):
+    def constraint_graph(self) -> PrimIdxConstraintGraph:
         """
         Return the primitive's implicit constraint graph
         """
