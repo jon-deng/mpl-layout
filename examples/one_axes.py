@@ -77,12 +77,12 @@ if __name__ == '__main__':
 
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
-        layout.prims, layout.constraints, layout.constraint_graph
+        layout.prims, layout.constraints, layout.constraint_graph_int
     )
 
     print('Figure:', prims['Figure'])
     print('Axes1:', prims['Axes1'])
-    
+
     fig, axs = lplt.subplots(prims)
 
     x = np.linspace(0, 1)

@@ -11,7 +11,7 @@ PrimIdx = geo.PrimitiveIndex
 
 def plot_layout(layout: solver.Layout, fig_path: str):
     prims, info = solver.solve(
-        layout.prims, layout.constraints, layout.constraint_graph,
+        layout.prims, layout.constraints, layout.constraint_graph_int,
         max_iter=40, rel_tol=1e-9
     )
     root_prim_labels = [label for label in prims.keys() if '.' not in label]
@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     ## Solve for the constrained positions of the primitives
     prims, info = solver.solve(
-        layout.prims, layout.constraints, layout.constraint_graph,
+        layout.prims, layout.constraints, layout.constraint_graph_int,
         max_iter=40, rel_tol=1e-9
     )
     print('Figure:', prims['Figure'])

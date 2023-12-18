@@ -33,35 +33,35 @@ if __name__ == '__main__':
 
     # Fix LineA
     layout.add_constraint(
-        geo.CoincidentPoints(), 
+        geo.CoincidentPoints(),
         (PrimIdx('LineA.Point0'), PrimIdx('Origin'))
     )
     layout.add_constraint(
-        geo.HorizontalLine(), 
+        geo.HorizontalLine(),
         (PrimIdx('LineA'),)
     )
     layout.add_constraint(
-        geo.PointToPointDirectedDistance(5, [1, 0]), 
+        geo.PointToPointDirectedDistance(5, [1, 0]),
         (PrimIdx('LineA.Point0'), PrimIdx('LineA.Point1'))
     )
 
     # Fix LineB
     layout.add_constraint(
-        geo.CoincidentPoints(), 
+        geo.CoincidentPoints(),
         (PrimIdx('LineA.Point1'), PrimIdx('LineB.Point0'))
     )
     layout.add_constraint(
-        geo.CollinearLines(), 
+        geo.CollinearLines(),
         (PrimIdx('LineA'), PrimIdx('LineB'))
     )
     layout.add_constraint(
-        geo.PointToPointDirectedDistance(5, [1, 0]), 
+        geo.PointToPointDirectedDistance(5, [1, 0]),
         (PrimIdx('LineB.Point0'), PrimIdx('LineB.Point1'))
     )
 
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
-        layout.prims, layout.constraints, layout.constraint_graph,
+        layout.prims, layout.constraints, layout.constraint_graph_int,
         max_iter=40
     )
     pprint(info)
