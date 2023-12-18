@@ -235,16 +235,16 @@ class PrimitiveArray(Primitive):
 
     def index_spec(self, key) -> typ.Tuple[
             typ.Callable[[PrimTuple], Primitive],
-            typ.Tuple[int, ...]
+            typ.Tuple[str, ...]
         ]:
         """
-        Return a specification for forming an indexed primitive from the array
+        Return a tuple to facilitate making an indexed primitive from the array
 
         Returns
         -------
-        make_prim:
-            A function that returns a primitive from input primitives
-        child_prim_idxs:
+        make_prim: typ.Callable[[PrimTuple], Primitive]
+            A function that returns the indexed primitive from input primitives
+        child_prim_idxs: typ.Tuple[str, ...]
             Indices of child primitives that are input to `make_prim` to get the
             indexed primitive
         """

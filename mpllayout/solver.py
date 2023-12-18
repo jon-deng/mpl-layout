@@ -16,7 +16,11 @@ PrimIdx = geo.PrimitiveIndex
 PrimIdxs = typ.Tuple[PrimIdx, ...]
 PrimList = typ.List[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintList = typ.List[geo.Constraint]
-Graph = typ.List[PrimIdxs]
+
+# PrimIdxGraph = typ.List[PrimIdxs]
+IntGraph = typ.List[typ.Tuple[int, ...]]
+StrGraph = typ.List[typ.Tuple[str, ...]]
+
 SolverInfo = typ.Mapping[str, typ.Any]
 
 
@@ -34,7 +38,7 @@ class Layout:
         A list of primitives
     constraints: typ.Optional[ConstraintList]
         A list of constraints
-    constraint_graph: typ.Optional[Graph]
+    constraint_graph: typ.Optional[StrGraph]
         A constraint graph
     """
 
@@ -42,7 +46,7 @@ class Layout:
             self,
             prims: typ.Optional[PrimList]=None,
             constraints: typ.Optional[ConstraintList]=None,
-            constraint_graph: typ.Optional[Graph]=None
+            constraint_graph: typ.Optional[StrGraph]=None
         ):
 
         if prims is None:
@@ -71,11 +75,11 @@ class Layout:
         return self._constraints
 
     @property
-    def constraint_graph(self):
+    def constraint_graph(self) -> StrGraph:
         return self._constraint_graph
 
     @property
-    def constraint_graph_int(self):
+    def constraint_graph_int(self) -> IntGraph:
         return [
             tuple(self.prims.key_to_idx(prim_idx) for prim_idx in prim_idxs)
             for prim_idxs in self.constraint_graph
@@ -84,20 +88,20 @@ class Layout:
     def add_prim(
             self,
             prim: geo.Primitive,
-            prim_label: typ.Optional[str]=None
+            label: typ.Optional[str]=None
         ) -> str:
         """
         Add a `geo.Primitive` to the `Layout`
 
-        The primitive will be added with the label 'prim_label'.
+        The primitive will be added with the label 'label'.
         In addition, all child primitives will be recursively added with
-        label 'prim_label.child_label'.
+        label 'label.child_prim_label'.
 
         Parameters
         ----------
         prim: geo.Primitive
             The primitive to add
-        prim_label: typ.Optional[str]
+        label: typ.Optional[str]
             An optional label for the primitive
 
             If not provided, an automatic name based on the primitive class will
@@ -105,24 +109,24 @@ class Layout:
 
         Returns
         -------
-        prim_label: str
+        label: str
             The label for the added primitive
         """
 
         # Append the root primitive
-        prim_label = self.prims.append(prim, label=prim_label)
+        label = self.prims.append(prim, label=label)
 
         # Append all child primitives
-        subprims, subprim_labels, subconstrs, subconstr_graph = \
-            expand_prim(prim, label=prim_label)
+        child_prims, child_labels, child_constraints, child_constraint_graph = \
+            expand_prim(prim, label=label)
 
-        for sub_label, sub_prim in zip(subprim_labels, subprims):
-            self.prims.append(sub_prim, label=sub_label)
+        for clabel, cprim in zip(child_labels, child_prims):
+            self.prims.append(cprim, label=clabel)
 
-        for constr, prim_idxs in zip(subconstrs, subconstr_graph):
+        for constr, prim_idxs in zip(child_constraints, child_constraint_graph):
             self.add_constraint(constr, prim_idxs)
 
-        return prim_label
+        return label
 
     def add_constraint(
             self,
@@ -149,62 +153,74 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
-        # These are prims/prim integer indices the constraint applies to
+        # These are prims the constraint applies to
         prims = tuple(self.prims[prim_idx.label] for prim_idx in prim_idxs)
 
-        # Depack all the sub-index specs for indexed `PrimitiveArray`s
-        # Each element of the `prim_sub_idx_specs` is a tuple consisting of:
-        # a function that takes a primitive tuple and returns the primitive being indexed
-        # and the indices of child primitives that are input to that function to get the primitive
-        prim_sub_idx_specs = tuple(
-            (None, None) if prim_idx.sub_idx is None
+        # Get index specifications for each `PrimitiveIndex`
+        # These specify how to get a primitive object from indexes into
+        # `PrimitiveArray` objects
+        def ident_prim(prims: geo.Primitive):
+            return prims[0]
+
+        # If the `PrimitiveIndex` doesn't index into a `PrimitiveArray`, then
+        # the index spec is just an identity type mapping (`ident_prim`) on the
+        # root primitive (indexed by `(None,)`)
+        idx_specs = tuple(
+            (ident_prim, (None,)) if prim_idx.sub_idx is None
             else prim.index_spec(prim_idx.sub_idx)
             for prim, prim_idx in zip(prims, prim_idxs)
         )
-        make_prims = tuple(spec[0] for spec in prim_sub_idx_specs)
-        child_idxs_coll = tuple(spec[1] for spec in prim_sub_idx_specs)
+        # `make_prims` makes the primitives that input into `Constraint`s
+        # using the primitives indexed by `arg_idxs`
+        make_prims = tuple(spec[0] for spec in idx_specs)
+        make_prims_arg_idxs = tuple(spec[1] for spec in idx_specs)
 
-        if all(_ is None for _ in make_prims):
-            constraint_label = self.constraints.append(constraint, label=constraint_label)
-            self.constraint_graph.append([prim_idx.label for prim_idx in prim_idxs])
-        else:
-            # Modify the primitive indices to account for sub-indexes
-            # This is done by the offsetting the root primitive index by any child
-            # index offsets from `child_idxs`
-            new_prim_idxs = []
-            for make_prim, child_idxs, prim_idx in zip(make_prims, child_idxs_coll, prim_idxs):
-                if make_prim is None:
-                    new_prim_idxs = new_prim_idxs + [prim_idx.label]
-                else:
-                    new_prim_idxs = (
-                        new_prim_idxs
-                        + [f'{prim_idx.label}.{child_idx}' for child_idx in child_idxs]
-                    )
-            new_prim_idxs = tuple(new_prim_idxs)
+        # Modify the primitive indices to account for the `idx_specs` as an
+        # intermediate step in applying the constraint
+        new_prim_idxs = tuple(
+            (
+                f'{prim_idx.label}.{child_idx}' if child_idx is not None
+                else prim_idx.label
+            )
+            for _, arg_idxs, prim_idx in zip(
+                make_prims, make_prims_arg_idxs, prim_idxs
+            )
+            for child_idx in arg_idxs
+        )
 
-            # Modify the constraint function to account for sub-indexing
-            def new_constraint(new_prims):
+        # Modify the constraint function to account for sub-indexing
+        class ModifiedConstraint(geo.Constraint):
+
+            def __call__(self, new_prims):
                 make_prim_arg_lengths = tuple(
                     1 if sub_idx is None else len(sub_idx)
-                    for sub_idx in child_idxs_coll
+                    for sub_idx in make_prims_arg_idxs
                 )
 
                 arg_bounds = [0] + np.cumsum(make_prim_arg_lengths).tolist()
                 prims = tuple(
-                    new_prims[start] if make_prim is None
-                    else make_prim(new_prims[start:end])
+                    make_prim(new_prims[start:end])
                     for make_prim, start, end in zip(make_prims, arg_bounds[:-1], arg_bounds[1:])
                 )
                 return constraint(prims)
 
-            constraint_label = self.constraints.append(new_constraint, label=constraint_label)
-            self.constraint_graph.append(new_prim_idxs)
+        if all(make_prim == ident_prim for make_prim in make_prims):
+            ModifiedConstraint.__name__ = constraint.__class__.__name__
+        else:
+            ModifiedConstraint.__name__ = f'_{constraint.__class__.__name__}'
+
+        new_constraint = ModifiedConstraint()
+
+        constraint_label = self.constraints.append(
+            new_constraint, label=constraint_label
+        )
+        self.constraint_graph.append(new_prim_idxs)
         return constraint_label
 
 def expand_prim(
         prim: geo.Primitive,
         label: str
-    ) -> typ.Tuple[PrimList, typ.List[str], ConstraintList, Graph]:
+    ) -> typ.Tuple[PrimList, typ.List[str], ConstraintList, StrGraph]:
     """
     Expand all child primitives of `prim` into a flat list
 
@@ -349,7 +365,7 @@ def build_prims(
 def solve(
         prims: typ.List[geo.Primitive],
         constraints: typ.List[geo.Constraint],
-        constraint_graph: Graph,
+        constraint_graph: IntGraph,
         abs_tol = 1e-10,
         rel_tol = 1e-7,
         max_iter = 10
@@ -366,7 +382,7 @@ def solve(
         The list of primitives
     constraints: typ.List[geo.Constraint]
         The list of constraints
-    constraint_graph: Graph
+    constraint_graph: IntGraph
         A mapping from each constraint to the primitives it applies to.
         For example, `constraint_graph[0] == (0, 5, 8)` means the first
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.
@@ -414,7 +430,7 @@ def solve(
 def solve_linear(
         prims: typ.List[geo.Primitive],
         constraints: typ.List[geo.Constraint],
-        constraint_graph: Graph
+        constraint_graph: IntGraph
     ) -> typ.Tuple[PrimList, SolverInfo]:
     """
     Return a set of primitives that satisfy the (linearized) constraints
@@ -425,7 +441,7 @@ def solve_linear(
         The list of primitives
     constraints: typ.List[geo.Constraint]
         The list of constraints
-    constraint_graph: Graph
+    constraint_graph: IntGraph
         A mapping from each constraint to the primitives it applies to.
         For example, `constraint_graph[0] == (0, 5, 8)` means the first
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.

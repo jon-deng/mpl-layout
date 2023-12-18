@@ -136,12 +136,12 @@ def append(
     """
     Add an item to a list with labelled indices
     """
-    ItemType = type(item)
-    counter.add(ItemType)
+    item_class_name = item.__class__.__name__
+    counter.add(item_class_name)
 
     if label is None:
-        n =  counter[ItemType] - 1
-        label = f'{ItemType.__name__}{n:d}'
+        n =  counter[item_class_name] - 1
+        label = f'{item_class_name}{n:d}'
 
     assert label not in label_to_idx
     items.append(item)
