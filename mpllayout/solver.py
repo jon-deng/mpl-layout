@@ -249,13 +249,13 @@ def expand_prim(
     """
     # Expand child primitives, constraints, and constraint graph
     child_prims = list(prim.prims)
-    child_constraints = list(prim.constraints)
-
-    # To unpack the child constraint graph, we need to prepend all
-    # child primitives with the root primitive label, `label`
     child_labels = [
         f'{label}.{child_label}' for child_label in prim.prims.keys()
     ]
+
+    # To unpack the child constraint graph, we need to prepend all
+    # child primitives with the root primitive label, `label`
+    child_constraints = list(prim.constraints)
     child_constraint_graph = [
         tuple(
             PrimIdx(
