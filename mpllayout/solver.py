@@ -1,5 +1,26 @@
 """
-Routines for handling collections of primitives and constraints
+Routines for solving collections of primitives and constraints
+
+The strategy to solve a collection of constraints is to use three labelled
+lists representing a system of non-linear equations:
+    `primitives: PrimList`
+        A list of `geo.Primitive` instances representing the unknowns of the
+        non-linear equations
+
+        Each `geo.Primitive.param' attribute represents the unknown(s) that must
+        be solved for to satisfy the constraints.
+    `constraints: ConstraintList`
+        A list of `geo.Constraint` instances representing the non-linear
+        equations
+
+        Each `geo.Constraint.assem_res' represents the non-linear equation(s)
+        that must be satisfied for the constraint.
+    `constraint_graph: StrGraph`
+        A graph linking each constraint to the primitives in `primitives`
+        (through string labels) the constraint applies to
+
+The class `Layout` handles construction of these three lists while functions
+`solve` and `solve_linear` use these lists to solve the system of constraints.
 """
 
 import typing as typ
@@ -14,8 +35,8 @@ from .array import LabelledList
 
 PrimIdx = geo.PrimitiveIndex
 PrimIdxs = typ.Tuple[PrimIdx, ...]
-PrimList = typ.List[typ.Union[geo.Primitive, geo.PrimitiveArray]]
-ConstraintList = typ.List[geo.Constraint]
+PrimList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
+ConstraintList = LabelledList[geo.Constraint]
 
 # PrimIdxGraph = typ.List[PrimIdxs]
 IntGraph = typ.List[typ.Tuple[int, ...]]
