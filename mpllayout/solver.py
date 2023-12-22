@@ -153,69 +153,110 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
-        # These are prims the constraint applies to
-        prims = tuple(self.prims[prim_idx.label] for prim_idx in prim_idxs)
-
-        # Get index specifications for each `PrimitiveIndex`
-        # These specify how to get a primitive object from indexes into
-        # `PrimitiveArray` objects
-        def ident_prim(prims: geo.Primitive):
-            return prims[0]
-
-        # If the `PrimitiveIndex` doesn't index into a `PrimitiveArray`, then
-        # the index spec is just an identity type mapping (`ident_prim`) on the
-        # root primitive (indexed by `(None,)`)
-        idx_specs = tuple(
-            (ident_prim, (None,)) if prim_idx.array_idx is None
-            else prim.index_spec(prim_idx.array_idx)
-            for prim, prim_idx in zip(prims, prim_idxs)
+        new_constraint, new_prim_idxs = make_str_constraint_graph(
+            constraint, prim_idxs, self.prims
         )
-        # `make_prims` makes the primitives that input into `Constraint`s
-        # using the primitives indexed by `arg_idxs`
-        make_prims = tuple(spec[0] for spec in idx_specs)
-        make_prims_arg_idxs = tuple(spec[1] for spec in idx_specs)
-
-        # Modify the primitive indices to account for the `idx_specs` as an
-        # intermediate step in applying the constraint
-        new_prim_idxs = tuple(
-            (
-                f'{prim_idx.label}.{child_idx}' if child_idx is not None
-                else prim_idx.label
-            )
-            for _, arg_idxs, prim_idx in zip(
-                make_prims, make_prims_arg_idxs, prim_idxs
-            )
-            for child_idx in arg_idxs
-        )
-
-        # Modify the constraint function to account for sub-indexing
-        class ModifiedConstraint(geo.Constraint):
-
-            def __call__(self, new_prims):
-                make_prim_arg_lengths = tuple(
-                    1 if sub_idx is None else len(sub_idx)
-                    for sub_idx in make_prims_arg_idxs
-                )
-
-                arg_bounds = [0] + np.cumsum(make_prim_arg_lengths).tolist()
-                prims = tuple(
-                    make_prim(new_prims[start:end])
-                    for make_prim, start, end in zip(make_prims, arg_bounds[:-1], arg_bounds[1:])
-                )
-                return constraint(prims)
-
-        if all(make_prim == ident_prim for make_prim in make_prims):
-            ModifiedConstraint.__name__ = constraint.__class__.__name__
-        else:
-            ModifiedConstraint.__name__ = f'_{constraint.__class__.__name__}'
-
-        new_constraint = ModifiedConstraint()
 
         constraint_label = self.constraints.append(
             new_constraint, label=constraint_label
         )
         self.constraint_graph.append(new_prim_idxs)
         return constraint_label
+
+def make_str_constraint_graph(
+        constraint: geo.Constraint,
+        prim_idxs: PrimIdxs,
+        prims: PrimList
+    ):
+    """
+    Return a new `Constraint` that doesn't apply on `PrimitiveArray` elements
+
+    `Constraint`s that don't apply to `PrimitiveArray` elements are needed
+    because these involve `PrimitiveIndex` objects, which do not directly
+    point to a `Primitive`. The constraint graph entry implied by this function
+    (i.e. `constraint` applies to the primitives pointed to by `prim_idxs`)
+    can't be easily used due to the `PrimitiveIndex` objects.
+
+    This function creates a modified `Constraint` which applies directly to
+    `PrimitiveArray` instances instead of indexes into these instances. A new
+    constraint graph entry is returned which can be simply turned into a list of
+    equations.
+
+    Parameters
+    ----------
+    constraint: geo.Constraint
+        The constraint to apply
+    prim_idxs: PrimIdxs
+        Indices of the primitives the constraint applies to
+
+    Returns
+    -------
+    geo.Constraint
+        The new constraint which doesn't apply to any `PrimitiveArray` elements
+
+        This new constraint shouldn't have any array indices, so should apply
+        to purely string labelled primitives.
+    typ.Tuple[str, ...]
+        The string labels for primitives the new `geo.Constraint` applies to
+    """
+    # These are prims the constraint applies to
+    prims = tuple(prims[prim_idx.label] for prim_idx in prim_idxs)
+
+    # Get index specifications for each `PrimitiveIndex`
+    # These specify how to get a primitive object from indexes into
+    # `PrimitiveArray` objects
+    def ident_prim(prims: geo.Primitive):
+        return prims[0]
+
+    # If the `PrimitiveIndex` doesn't index into a `PrimitiveArray`, then
+    # the index spec is just an identity type mapping (`ident_prim`) on the
+    # root primitive (indexed by `(None,)`)
+    idx_specs = tuple(
+        (ident_prim, (None,)) if prim_idx.array_idx is None
+        else prim.index_spec(prim_idx.array_idx)
+        for prim, prim_idx in zip(prims, prim_idxs)
+    )
+    # `make_prims` makes the primitives that input into `Constraint`s
+    # using the primitives indexed by `arg_idxs`
+    make_prims = tuple(spec[0] for spec in idx_specs)
+    make_prims_arg_idxs = tuple(spec[1] for spec in idx_specs)
+
+    # Modify the primitive indices to account for the `idx_specs` as an
+    # intermediate step in applying the constraint
+    new_prim_idxs = tuple(
+        (
+            f'{prim_idx.label}.{child_idx}' if child_idx is not None
+            else prim_idx.label
+        )
+        for _, arg_idxs, prim_idx in zip(
+            make_prims, make_prims_arg_idxs, prim_idxs
+        )
+        for child_idx in arg_idxs
+    )
+
+    # Modify the constraint function to account for sub-indexing
+    class ModifiedConstraint(geo.Constraint):
+
+        def __call__(self, new_prims):
+            make_prim_arg_lengths = tuple(
+                1 if sub_idx is None else len(sub_idx)
+                for sub_idx in make_prims_arg_idxs
+            )
+
+            arg_bounds = [0] + np.cumsum(make_prim_arg_lengths).tolist()
+            prims = tuple(
+                make_prim(new_prims[start:end])
+                for make_prim, start, end in zip(make_prims, arg_bounds[:-1], arg_bounds[1:])
+            )
+            return constraint(prims)
+
+    if all(make_prim == ident_prim for make_prim in make_prims):
+        ModifiedConstraint.__name__ = constraint.__class__.__name__
+    else:
+        ModifiedConstraint.__name__ = f'_{constraint.__class__.__name__}'
+
+    new_constraint = ModifiedConstraint()
+    return new_constraint, new_prim_idxs
 
 def expand_prim(
         prim: geo.Primitive,
