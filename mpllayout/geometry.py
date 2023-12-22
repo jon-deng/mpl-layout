@@ -18,7 +18,7 @@ PrimTuple = typ.Tuple['Primitive', ...]
 
 class PrimitiveIndex:
     """
-    An index to a `Primitive` instance and, potentially, primitive array element(s)
+    An index to a `Primitive` instance and, potentially, `PrimitiveArray` element(s)
 
     A `PrimitiveIndex` represents an index to a primitive within a collection
     where primitives are labelled by unique strings.
@@ -113,7 +113,7 @@ class Primitive:
     constraints: Constraints
         If non-empty, the primitive contains implicit geometric constraints in
         `self.constraints`
-    constraint_graph: StrConstraintGraph
+    constraint_graph: PrimIdxConstraintGraph
         A graph representing which primitives a constraint applies to
 
     _PARAM_SHAPE: ArrayShape
@@ -233,23 +233,41 @@ class Primitive:
 
 class PrimitiveArray(Primitive):
     """
-    A geometric primitive representing an array of primitives
+    A representation of an array of geometric primitives
 
     Parameters
     ----------
     param: NDArray with shape (n,)
         A parameter vector for the primitive
+    prims: Tuple[Primitive, ...]
+        A tuple of primitives parameterizing the primitive
 
     Attributes
     ----------
     param: NDArray with shape (n,)
         A parameter vector for the primitive
     prims: Tuple[Primitive, ...]
-        If non-empty, the primitive contains other geometric primitives in
+        If non-empty, the primitive contains child geometric primitives in
         `self.prims`
-    constraints: Tuple[Constraint, ...]
+    constraints: Constraints
         If non-empty, the primitive contains implicit geometric constraints in
         `self.constraints`
+    constraint_graph: PrimIdxConstraintGraph
+        A graph representing which primitives a constraint applies to
+
+    _PARAM_SHAPE: ArrayShape
+        The shape of the parameter vector parameterizing the `Primitive`
+    _PRIM_TYPES: typ.Union[
+            typ.Tuple[typ.Type['Primitive'], ...],
+            typ.Type['Primitive']
+        ]
+        The types of child primitives parameterizing the `Primitive`
+    _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]]
+        Optional labels for the child primitives
+    _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...]
+        The types of any internal constraints on the `Primitive`
+    _CONSTRAINT_GRAPH: PrimIdxConstraintGraph
+        The constraint graph for the internal constraints
     """
 
     def __len__(self):
@@ -264,7 +282,7 @@ class PrimitiveArray(Primitive):
             typ.Tuple[str, ...]
         ]:
         """
-        Return a tuple to facilitate making an indexed primitive from the array
+        Return a function and argument indices that form an indexed primitive
 
         Returns
         -------
@@ -281,33 +299,31 @@ class Constraint:
     A representation of a constraint on primitives
 
     A constraint represents a condition on the parameters of geometric
-    primitive(s).
-    The condition is specified through a residual function `assem_res`,
-    specified with the `jax` library.
-    Usage of `jax` in specifying the constraints allows automatic
-    differentiation of constraint conditions which is used for solving them.
+    primitive(s). The condition is specified through a residual function
+    `assem_res`, specified with the `jax` library. Usage of `jax` in specifying
+    the constraints allows automatic differentiation of constraint conditions,
+    which is used for solving constraints.
 
     Parameters
     ----------
-    param: NDArray with shape (n,)
-        A parameter vector for the primitive
-    prims: Tuple[Primitive, ...]
-        A tuple of primitives parameterizing the primitive
+    *args, **kwargs :
+        Each constraint may have specific parameters that control the constraint
+        , for example, an angle or distance parameter.
 
     Attributes
     ----------
-    primitive_types: Tuple[typ.Type[Primitive], ...]
-        Specifies the types of primitives that the constraint applies to.
-        For example, if `primitive_types = (geo.Point, geo.LineSegment)`, then
-        the constraint applies to a point and a line segment.
+    _PRIMITIVE_TYPES: typ.Tuple[typ.Type['Primitive'], ...]
+        The types of primitives accepted by `assem_res`
+
+        This is used for type checking.
     """
 
-    primitive_types: typ.Tuple[typ.Type['Primitive'], ...]
+    _PRIMITIVE_TYPES: typ.Tuple[typ.Type['Primitive'], ...]
 
     def __call__(self, prims: typ.Tuple['Primitive', ...]):
         # Check the input primitives are valid
-        # assert len(prims) == len(self.primitive_types)
-        # for prim, prim_type in zip(prims, self.primitive_types):
+        # assert len(prims) == len(self._PRIMITIVE_TYPES)
+        # for prim, prim_type in zip(prims, self._PRIMITIVE_TYPES):
         #     assert issubclass(type(prim), prim_type)
 
         return jnp.atleast_1d(self.assem_res(prims))
@@ -346,7 +362,7 @@ class PointToPointDirectedDistance(Constraint):
     Constrain the distance between two points along a given direction
     """
 
-    primitive_types = (Point, Point)
+    _PRIMITIVE_TYPES = (Point, Point)
 
     def __init__(
             self, distance: float, direction: typ.Optional[NDArray]=None
@@ -381,7 +397,7 @@ class PointLocation(Constraint):
     Constrain the location of a point
     """
 
-    primitive_types = (Point, )
+    _PRIMITIVE_TYPES = (Point, )
 
     def __init__(
             self,
@@ -400,7 +416,7 @@ class CoincidentPoints(Constraint):
     Constrain two points to coincide
     """
 
-    primitive_types = (Point, Point)
+    _PRIMITIVE_TYPES = (Point, Point)
 
     def assem_res(self, prims):
         """
@@ -450,7 +466,7 @@ class LineLength(Constraint):
     Constrain the length of a line
     """
 
-    primitive_types = (LineSegment,)
+    _PRIMITIVE_TYPES = (LineSegment,)
 
     def __init__(
             self,
@@ -471,7 +487,7 @@ class RelativeLineLength(Constraint):
     Constrain a line's length relative to another line's length
     """
 
-    primitive_types = (LineSegment, LineSegment)
+    _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
     def __init__(
             self,
@@ -492,7 +508,7 @@ class OrthogonalLines(Constraint):
     """
     Constrain two lines to be orthogonal
     """
-    primitive_types = (LineSegment, LineSegment)
+    _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
         """
@@ -507,7 +523,7 @@ class ParallelLines(Constraint):
     """
     Constrain two lines to be parallel
     """
-    primitive_types = (LineSegment, LineSegment)
+    _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
         """
@@ -522,7 +538,7 @@ class VerticalLine(Constraint):
     """
     Constrain a line to be vertical
     """
-    primitive_types = (LineSegment,)
+    _PRIMITIVE_TYPES = (LineSegment,)
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         """
@@ -536,7 +552,7 @@ class HorizontalLine(Constraint):
     """
     Constrain a line to be horizontal
     """
-    primitive_types = (LineSegment,)
+    _PRIMITIVE_TYPES = (LineSegment,)
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         """
@@ -550,7 +566,7 @@ class Angle(Constraint):
     """
     Constrain the angle between two lines
     """
-    primitive_types = (LineSegment, LineSegment)
+    _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
     def __init__(
             self,
@@ -574,7 +590,7 @@ class CollinearLines(Constraint):
     """
     Constrain two lines to be collinear
     """
-    primitive_types = (LineSegment, LineSegment)
+    _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
         """
@@ -594,7 +610,7 @@ class CollinearLines(Constraint):
 
 class Box(ClosedPolyline):
     """
-    A box primitive with vertical walls and horizontal top and bottom
+    A box primitive with vertical sides and horizontal top and bottom
     """
 
     _PRIM_TYPES = (Point, Point, Point, Point)
