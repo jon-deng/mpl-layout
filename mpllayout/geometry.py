@@ -10,7 +10,8 @@ import jax.numpy as jnp
 
 from .array import LabelledTuple
 
-Prims = typ.Tuple['Primitive', ...]
+PrimList = typ.Tuple['Primitive', ...]
+ConstraintList = typ.List['Constraint']
 Idxs = typ.Tuple[int]
 
 ArrayShape = typ.Tuple[int, ...]
@@ -92,25 +93,25 @@ class Primitive:
     constraints to represent common use-cases. For example, an origin point may
     be explicitly constrained to have (0, 0) coordinates.
 
-    To create a `Primitive` class, you should subclass `Primitive` and define
-    the class attributes `_PARAM_SHAPE`, `_PRIM_TYPES`, `_PRIM_LABELS`,
+    To create a `Primitive` class, subclass `Primitive` and define the class
+    attributes `_PARAM_SHAPE`, `_PRIM_TYPES`, `_PRIM_LABELS`,
     `_CONSTRAINT_TYPES`, and `_CONSTRAINT_GRAPH`.
 
     Parameters
     ----------
     param: NDArray with shape (n,)
         A parameter vector for the primitive
-    prims: Tuple[Primitive, ...]
+    prims: PrimList
         A tuple of primitives parameterizing the primitive
 
     Attributes
     ----------
-    param: NDArray with shape (n,)
+    param: NDArray[float] with shape (n,)
         A parameter vector for the primitive
-    prims: Tuple[Primitive, ...]
+    prims: LabelledTuple['Primitive']
         If non-empty, the primitive contains child geometric primitives in
         `self.prims`
-    constraints: Constraints
+    constraints: LabelledTuple['Constraint']
         If non-empty, the primitive contains implicit geometric constraints in
         `self.constraints`
     constraint_graph: PrimIdxConstraintGraph
@@ -131,9 +132,6 @@ class Primitive:
         The constraint graph for the internal constraints
     """
 
-    _param: NDArray
-    _prims: Prims
-
     ## Specific primitive classes should define these to represent different primitives
     _PARAM_SHAPE: ArrayShape = (0,)
     # `_PRIM_TYPES` can either be a tuple of types, or a single type.
@@ -150,14 +148,17 @@ class Primitive:
     def __init__(
             self,
             param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[Prims]=None
+            prims: typ.Optional[PrimList]=None
         ):
-        # Create default `param` and `prims` if they're undefined
+        # Create default `param` if it's undefined
         if param is None:
             param = np.zeros(self._PARAM_SHAPE, dtype=float)
         elif not isinstance(param, (np.ndarray, jnp.ndarray)):
             param = np.array(param, dtype=float)
 
+        self._param: NDArray[float] = param
+
+        # Create default `prims` if it's undefined
         if prims is None:
             if isinstance(self._PRIM_TYPES, tuple):
                 prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
@@ -172,11 +173,11 @@ class Primitive:
         else:
             keys = len(prims)*(self._PRIM_LABELS,)
 
-        prims = LabelledTuple(prims, keys)
+        self._prims: LabelledTuple['Primitive'] = LabelledTuple(prims, keys)
 
         # Create any internal constraints
-        self._CONSTRAINTS = tuple(
-            Constraint() for Constraint in self._CONSTRAINT_TYPES
+        self._constraints: LabelledTuple['Constraint', ...] = LabelledTuple(
+            [Constraint() for Constraint in self._CONSTRAINT_TYPES]
         )
 
         # Check types and shapes are correct
@@ -189,8 +190,6 @@ class Primitive:
         else:
             raise TypeError()
 
-        self._param: NDArray = param
-        self._prims = prims
 
     @property
     def param(self):
@@ -211,7 +210,7 @@ class Primitive:
         """
         Return the primitive's implicit constraints
         """
-        return self._CONSTRAINTS
+        return self._constraints
 
     @property
     def constraint_graph(self) -> PrimIdxConstraintGraph:
@@ -239,17 +238,17 @@ class PrimitiveArray(Primitive):
     ----------
     param: NDArray with shape (n,)
         A parameter vector for the primitive
-    prims: Tuple[Primitive, ...]
+    prims: PrimList
         A tuple of primitives parameterizing the primitive
 
     Attributes
     ----------
-    param: NDArray with shape (n,)
+    param: NDArray[float] with shape (n,)
         A parameter vector for the primitive
-    prims: Tuple[Primitive, ...]
+    prims: LabelledTuple['Primitive']
         If non-empty, the primitive contains child geometric primitives in
         `self.prims`
-    constraints: Constraints
+    constraints: LabelledTuple['Constraint']
         If non-empty, the primitive contains implicit geometric constraints in
         `self.constraints`
     constraint_graph: PrimIdxConstraintGraph
@@ -266,7 +265,7 @@ class PrimitiveArray(Primitive):
         Optional labels for the child primitives
     _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...]
         The types of any internal constraints on the `Primitive`
-    _CONSTRAINT_GRAPH: PrimIdxConstraintGraph
+    _CONSTRAINT_GRAPH: 'PrimIdxConstraintGraph'
         The constraint graph for the internal constraints
     """
 
@@ -359,7 +358,7 @@ class Point(Primitive):
 
 class PointToPointDirectedDistance(Constraint):
     """
-    Constrain the distance between two points along a given direction
+    A constraint on distance between two point along a direction
     """
 
     _PRIMITIVE_TYPES = (Point, Point)
@@ -394,7 +393,7 @@ class PointToPointDirectedDistance(Constraint):
 
 class PointLocation(Constraint):
     """
-    Constrain the location of a point
+    A constraint on the location of a point
     """
 
     _PRIMITIVE_TYPES = (Point, )
@@ -413,7 +412,7 @@ class PointLocation(Constraint):
 
 class CoincidentPoints(Constraint):
     """
-    Constrain two points to coincide
+    A constraint on coincide of two points
     """
 
     _PRIMITIVE_TYPES = (Point, Point)
@@ -463,7 +462,7 @@ class ClosedPolyline(PrimitiveArray):
 
 class LineLength(Constraint):
     """
-    Constrain the length of a line
+    A constraint on the length of a line
     """
 
     _PRIMITIVE_TYPES = (LineSegment,)
@@ -484,7 +483,7 @@ class LineLength(Constraint):
 
 class RelativeLineLength(Constraint):
     """
-    Constrain a line's length relative to another line's length
+    A constraint on relative length between two lines
     """
 
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
@@ -506,7 +505,7 @@ class RelativeLineLength(Constraint):
 
 class OrthogonalLines(Constraint):
     """
-    Constrain two lines to be orthogonal
+    A constraint on orthogonality of two lines
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
@@ -521,7 +520,7 @@ class OrthogonalLines(Constraint):
 
 class ParallelLines(Constraint):
     """
-    Constrain two lines to be parallel
+    A constraint on parallelism of two lines
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
@@ -536,7 +535,7 @@ class ParallelLines(Constraint):
 
 class VerticalLine(Constraint):
     """
-    Constrain a line to be vertical
+    A constraint that a line must be vertical
     """
     _PRIMITIVE_TYPES = (LineSegment,)
 
@@ -550,7 +549,7 @@ class VerticalLine(Constraint):
 
 class HorizontalLine(Constraint):
     """
-    Constrain a line to be horizontal
+    A constraint that a line must be horizontal
     """
     _PRIMITIVE_TYPES = (LineSegment,)
 
@@ -564,7 +563,7 @@ class HorizontalLine(Constraint):
 
 class Angle(Constraint):
     """
-    Constrain the angle between two lines
+    A constraint on the angle between two lines
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
@@ -588,7 +587,7 @@ class Angle(Constraint):
 
 class CollinearLines(Constraint):
     """
-    Constrain two lines to be collinear
+    A constraint on the collinearity of two lines
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
@@ -610,7 +609,7 @@ class CollinearLines(Constraint):
 
 class Box(ClosedPolyline):
     """
-    A box primitive with vertical sides and horizontal top and bottom
+    A box with vertical sides and horizontal top and bottom
     """
 
     _PRIM_TYPES = (Point, Point, Point, Point)
