@@ -3,13 +3,13 @@ Routines for solving collections of primitives and constraints
 
 The strategy to solve a collection of constraints is to use three labelled
 lists representing a system of non-linear equations:
-    `primitives: PrimList`
+    `primitives: PrimLabelledList`
         A list of `geo.Primitive` instances representing the unknowns of the
         non-linear equations
 
         Each `geo.Primitive.param' attribute represents the unknown(s) that must
         be solved for to satisfy the constraints.
-    `constraints: ConstraintList`
+    `constraints: ConstraintLabelledList`
         A list of `geo.Constraint` instances representing the non-linear
         equations
 
@@ -35,10 +35,10 @@ from .array import LabelledList
 
 PrimIdx = geo.PrimitiveIndex
 PrimIdxs = typ.Tuple[PrimIdx, ...]
-PrimList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
-ConstraintList = LabelledList[geo.Constraint]
+PrimLabelledList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
+ConstraintLabelledList = LabelledList[geo.Constraint]
 
-# PrimIdxGraph = typ.List[PrimIdxs]
+PrimIdxGraph = typ.List[PrimIdxs]
 IntGraph = typ.List[typ.Tuple[int, ...]]
 StrGraph = typ.List[typ.Tuple[str, ...]]
 
@@ -55,9 +55,9 @@ class Layout:
 
     Parameters
     ----------
-    prims: typ.Optional[PrimList]
+    prims: typ.Optional[PrimLabelledList]
         A list of primitives
-    constraints: typ.Optional[ConstraintList]
+    constraints: typ.Optional[ConstraintLabelledList]
         A list of constraints
     constraint_graph: typ.Optional[StrGraph]
         A constraint graph
@@ -65,8 +65,8 @@ class Layout:
 
     def __init__(
             self,
-            prims: typ.Optional[PrimList]=None,
-            constraints: typ.Optional[ConstraintList]=None,
+            prims: typ.Optional[PrimLabelledList]=None,
+            constraints: typ.Optional[ConstraintLabelledList]=None,
             constraint_graph: typ.Optional[StrGraph]=None
         ):
 
@@ -114,9 +114,9 @@ class Layout:
         """
         Add a `geo.Primitive` to the `Layout`
 
-        The primitive will be added with the label 'label'.
-        In addition, all child primitives will be recursively added with
-        label 'label.child_prim_label'.
+        The primitive will be added with the label 'label'. In addition, all
+        child primitives will be recursively added with label
+        'label.child_prim_label'.
 
         Parameters
         ----------
@@ -187,7 +187,7 @@ class Layout:
 def make_str_constraint_graph(
         constraint: geo.Constraint,
         prim_idxs: PrimIdxs,
-        prims: PrimList
+        prims: PrimLabelledList
     ):
     """
     Return a new `Constraint` that doesn't apply on `PrimitiveArray` elements
@@ -209,6 +209,8 @@ def make_str_constraint_graph(
         The constraint to apply
     prim_idxs: PrimIdxs
         Indices of the primitives the constraint applies to
+    prims: PrimLabelledList
+        The list of primitives the constraint applies to
 
     Returns
     -------
@@ -279,159 +281,14 @@ def make_str_constraint_graph(
     new_constraint = ModifiedConstraint()
     return new_constraint, new_prim_idxs
 
-def expand_prim(
-        prim: geo.Primitive,
-        label: str
-    ) -> typ.Tuple[PrimList, typ.List[str], ConstraintList, StrGraph]:
-    """
-    Expand all child primitives of `prim` into a flat list
-
-    This also recursively flattens any implicit constraints and constraint
-    graphs.
-    The flattening is done so that if a parent primitive has `n` child
-    primitives, these are placed immediately after the parent.
-
-    Parameters
-    ----------
-    prim: geo.Primitive
-        The primitive to be expanded
-    label: str
-        The label for the primitive
-
-    Returns
-    -------
-    child_prims
-        The list of child primitives
-    child_labels
-        The list of child primitive labels
-    child_constraints
-        A list of implicit constraints
-    child_constraint_graph
-        A list of the implicit constraint graph
-    """
-    # Expand child primitives, constraints, and constraint graph
-    child_prims = list(prim.prims)
-    child_labels = [
-        f'{label}.{child_label}' for child_label in prim.prims.keys()
-    ]
-
-    # To unpack the child constraint graph, we need to prepend all
-    # child primitives with the root primitive label, `label`
-    child_constraints = list(prim.constraints)
-    child_constraint_graph = [
-        tuple(
-            PrimIdx(
-                '.'.join([label] + prim_idx.label.split('.')[1:]),
-                prim_idx.array_idx
-            )
-            for prim_idx in prim_idxs
-        )
-        for prim_idxs in prim.constraint_graph
-    ]
-
-    # Recursively expand any child primitives/constraints
-    if len(prim.prims) == 0:
-        return child_prims, child_labels, child_constraints, child_constraint_graph
-    else:
-        for child_prim, child_label in zip(child_prims, child_labels):
-            (_re_child_prims,
-                _re_child_labels,
-                _re_child_constraints,
-                _re_child_constraint_graph) = expand_prim(child_prim, child_label)
-            child_prims += _re_child_prims
-            child_labels += _re_child_labels
-            child_constraints += _re_child_constraints
-            child_constraint_graph += _re_child_constraint_graph
-        return child_prims, child_labels, child_constraints, child_constraint_graph
-
-def contract_prim(
-        prim: geo.Primitive,
-        prims: PrimList
-    ) -> typ.Tuple[geo.Primitive, int]:
-    """
-    Collapse a flat collection of child primitives into a parent
-
-    This function builds a parent primitive from child primitives.
-    This is needed because primitives are parameterized by child primitives and
-    are immutable.
-    This function should undo the result of `expand_prim`.
-
-    Parameters
-    ----------
-    prim: geo.Primitive
-        The parent primitive
-    prims: PrimList
-        The child primitives to collapse into the parent
-
-    Returns
-    -------
-    geo.Primitive
-        The parent primitive with updated child primitives
-    int
-        The total number of child primitives used in the list
-    """
-    num_child = len(prim.prims)
-
-    child_prims = []
-    m = num_child
-    for child_prim in prims[:num_child]:
-        cprim, n = contract_prim(child_prim, prims[m:])
-
-        child_prims.append(cprim)
-        m += n
-
-    return type(prim)(param=prim.param, prims=tuple(child_prims)), m
-
-def build_prims(
-        prims: PrimList,
-        params: typ.List[np.typing.NDArray]
-    ) -> PrimList:
-    """
-    Create an updated list of `Primitive`s from new parameters
-
-    This function rebuilds a list of primitives with new parameters in
-    a corresponding list of parameters.
-
-    Parameters
-    ----------
-    prims: PrimList
-        The old list of primitives
-    params: typ.List[np.typing.NDArray]
-        The new list of parameters for the primitives
-
-    Returns
-    -------
-    PrimList
-        The new list of primitives
-    """
-
-    # First create primitives where the new parameters have been applied
-    _new_prims = [
-        type(prim)(param=param, prims=prim.prims)
-        for prim, param in zip(prims, params)
-    ]
-
-    # Contract all child primitives into parents.
-    # This is needed because primitive are parameterized both by parameter and
-    # other primitives.
-    m = 0
-    new_prims = []
-    while m < len(_new_prims):
-        prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
-        cprims, *_ = expand_prim(prim, '')
-        new_prims = new_prims + [prim] + cprims
-        m += 1+dm
-
-    return new_prims
-
 def solve(
-        prims: typ.List[geo.Primitive],
-        constraints: typ.List[geo.Constraint],
+        prims: PrimLabelledList,
+        constraints: ConstraintLabelledList,
         constraint_graph: IntGraph,
-        abs_tol = 1e-10,
-        rel_tol = 1e-7,
-        max_iter = 10
-    ) -> typ.Tuple[PrimList, SolverInfo]:
+        abs_tol: float = 1e-10,
+        rel_tol: float = 1e-7,
+        max_iter: int = 10
+    ) -> typ.Tuple[PrimLabelledList, SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -440,21 +297,27 @@ def solve(
 
     Parameters
     ----------
-    prims: typ.List[geo.Primitive]
+    prims: PrimLabelledList
         The list of primitives
-    constraints: typ.List[geo.Constraint]
+    constraints: ConstraintLabelledList
         The list of constraints
     constraint_graph: IntGraph
-        A mapping from each constraint to the primitives it applies to.
+        A mapping from each constraint to the primitives it applies to
+
         For example, `constraint_graph[0] == (0, 5, 8)` means the first
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.
+    abs_tol, rel_tol: float
+        The absolute and relative tolerance for the iterative solution
+    max_iter: int = 10
+        The maximum number of iterations for the iterative solution
 
     Returns
     -------
-    PrimList
+    PrimLabelledList
         The list of primitives satisfying the constraints
     SolverInfo
-        Information about the solve.
+        Information about the solve
+
         Keys are:
             'abs_errs':
                 A list of absolute errors for each solver iteration.
@@ -490,30 +353,32 @@ def solve(
     return prims_n, nonlinear_solve_info
 
 def solve_linear(
-        prims: typ.List[geo.Primitive],
-        constraints: typ.List[geo.Constraint],
+        prims: PrimLabelledList,
+        constraints: ConstraintLabelledList,
         constraint_graph: IntGraph
-    ) -> typ.Tuple[PrimList, SolverInfo]:
+    ) -> typ.Tuple[PrimLabelledList, SolverInfo]:
     """
     Return a set of primitives that satisfy the (linearized) constraints
 
     Parameters
     ----------
-    prims: typ.List[geo.Primitive]
+    prims: PrimLabelledList
         The list of primitives
-    constraints: typ.List[geo.Constraint]
+    constraints: ConstraintLabelledList
         The list of constraints
     constraint_graph: IntGraph
-        A mapping from each constraint to the primitives it applies to.
+        A mapping from each constraint to the primitives it applies to
+
         For example, `constraint_graph[0] == (0, 5, 8)` means the first
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.
 
     Returns
     -------
-    PrimList
+    PrimLabelledList
         The list of primitives satisfying the (linearized) constraints
     SolverInfo
-        Information about the solve.
+        Information about the solve
+
         Keys are:
             'err': the least squares solver error
             'rank': the rank of the linearized constraint problem
@@ -565,3 +430,154 @@ def solve_linear(
     new_prims = LabelledList(new_prims, list(prims.keys()))
 
     return new_prims, solver_info
+
+# Basic primitive routines
+def expand_prim(
+        prim: geo.Primitive,
+        label: str
+    ) -> typ.Tuple[
+        typ.List[geo.Primitive],
+        typ.List[str],
+        typ.List[geo.Constraint],
+        PrimIdxGraph
+    ]:
+    """
+    Expand all child primitives of `prim` into a flat list
+
+    This also recursively flattens any implicit constraints and constraint
+    graphs.
+    The flattening is done so that if a parent primitive has `n` child
+    primitives, these are placed immediately after the parent.
+
+    Parameters
+    ----------
+    prim: geo.Primitive
+        The primitive to be expanded
+    label: str
+        The label for the primitive
+
+    Returns
+    -------
+    child_prims: typ.List[geo.Primitive]
+        The list of child primitives
+    child_labels: typ.List[str]
+        The list of child primitive labels
+    child_constraints: typ.List[geo.Constraint]
+        A list of implicit constraints
+    child_constraint_graph: PrimIdxGraph
+        A list of the implicit constraint graph
+    """
+    # Expand child primitives, constraints, and constraint graph
+    child_prims = list(prim.prims)
+    child_labels = [
+        f'{label}.{child_label}' for child_label in prim.prims.keys()
+    ]
+
+    # To unpack the child constraint graph, we need to prepend all
+    # child primitives with the root primitive label, `label`
+    child_constraints = list(prim.constraints)
+    child_constraint_graph = [
+        tuple(
+            PrimIdx(
+                '.'.join([label] + prim_idx.label.split('.')[1:]),
+                prim_idx.array_idx
+            )
+            for prim_idx in prim_idxs
+        )
+        for prim_idxs in prim.constraint_graph
+    ]
+
+    # Recursively expand any child primitives/constraints
+    if len(prim.prims) == 0:
+        return child_prims, child_labels, child_constraints, child_constraint_graph
+    else:
+        for child_prim, child_label in zip(child_prims, child_labels):
+            (_re_child_prims,
+                _re_child_labels,
+                _re_child_constraints,
+                _re_child_constraint_graph) = expand_prim(child_prim, child_label)
+            child_prims += _re_child_prims
+            child_labels += _re_child_labels
+            child_constraints += _re_child_constraints
+            child_constraint_graph += _re_child_constraint_graph
+        return child_prims, child_labels, child_constraints, child_constraint_graph
+
+def contract_prim(
+        prim: geo.Primitive,
+        prims: typ.List[geo.Primitive]
+    ) -> typ.Tuple[geo.Primitive, int]:
+    """
+    Collapse a flat collection of child primitives into a parent
+
+    This function builds a parent primitive from child primitives.
+    This is needed because primitives are parameterized by child primitives and
+    are immutable.
+    This function should undo the result of `expand_prim`.
+
+    Parameters
+    ----------
+    prim: geo.Primitive
+        The parent primitive
+    prims: typ.List[geo.Primitive]
+        The child primitives to collapse into the parent
+
+    Returns
+    -------
+    geo.Primitive
+        The parent primitive with updated child primitives
+    int
+        The total number of child primitives used in the list
+    """
+    num_child = len(prim.prims)
+
+    child_prims = []
+    m = num_child
+    for child_prim in prims[:num_child]:
+        cprim, n = contract_prim(child_prim, prims[m:])
+
+        child_prims.append(cprim)
+        m += n
+
+    return type(prim)(param=prim.param, prims=tuple(child_prims)), m
+
+def build_prims(
+        prims: typ.List[geo.Primitive],
+        params: typ.List[np.typing.NDArray]
+    ) -> typ.List[geo.Primitive]:
+    """
+    Create an updated list of `Primitive`s from new parameters
+
+    This function rebuilds a list of primitives with new parameters in
+    a corresponding list of parameters.
+
+    Parameters
+    ----------
+    prims: typ.List[geo.Primitive]
+        The old list of primitives
+    params: typ.List[np.typing.NDArray]
+        The new list of parameters for the primitives
+
+    Returns
+    -------
+    typ.List[geo.Primitive]
+        The new list of primitives
+    """
+
+    # First create primitives where the new parameters have been applied
+    _new_prims = [
+        type(prim)(param=param, prims=prim.prims)
+        for prim, param in zip(prims, params)
+    ]
+
+    # Contract all child primitives into parents.
+    # This is needed because primitive are parameterized both by parameter and
+    # other primitives.
+    m = 0
+    new_prims = []
+    while m < len(_new_prims):
+        prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
+        cprims, *_ = expand_prim(prim, '')
+        new_prims = new_prims + [prim] + cprims
+        m += 1+dm
+
+    return new_prims
