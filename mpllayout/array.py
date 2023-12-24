@@ -1,10 +1,30 @@
+"""
+Container/array objects with both integer and string indices
+
+This modules contains container objects with both string and integer indices.
+These act basically as `dictionary` objects but can also be indexed with
+integers.
+
+The dual string/integer indices are used to facilitate creation of constraints
+and primitives. String labels for primitives are easy to keep track of and apply
+constraints to while integer indices are needed to solve systems of equations
+and build matrices.
+"""
+
 import typing as typ
 
 T = typ.TypeVar('T')
 
 class LabelledContainer(typ.Generic[T]):
     """
-    A generic container object with both string and integer indices
+    A generic container with both string and integer indices
+
+    Parameters
+    ----------
+    items: typ.Optional[typ.List[T]]
+        A list of items in the container
+    keys: typ.Optional[typ.List[str]]
+        A list of keys for each item
     """
     def __init__(
             self,
@@ -58,7 +78,11 @@ class LabelledContainer(typ.Generic[T]):
     def items(self):
         return [(key, self[key]) for key in self.keys()]
 
+
     def key_to_idx(self, key: typ.Union[str, int, slice]):
+        """
+        Return the integer index (indices) corresponding to a string label
+        """
         if isinstance(key, (int, slice)):
             return key
         elif isinstance(key, str):
@@ -69,6 +93,13 @@ class LabelledContainer(typ.Generic[T]):
 class LabelledList(LabelledContainer[T]):
     """
     A list with both string and integer indices
+
+    Parameters
+    ----------
+    items: typ.Optional[typ.List[T]]
+        A list of items in the container
+    keys: typ.Optional[typ.List[str]]
+        A list of keys for each item
     """
 
     def __init__(
@@ -88,6 +119,13 @@ class LabelledList(LabelledContainer[T]):
 class LabelledTuple(LabelledContainer[T]):
     """
     A tuple with both string and integer indices
+
+    Parameters
+    ----------
+    items: typ.Optional[typ.List[T]]
+        A list of items in the container
+    keys: typ.Optional[typ.List[str]]
+        A list of keys for each item
     """
 
     def __init__(
@@ -102,14 +140,14 @@ class LabelledTuple(LabelledContainer[T]):
 
 class Counter:
     """
-    A class used to count the nunber of added objects by class
+    A class used to count keys added to it
 
     This is used to create unique names for added items in `LabelledContainer`
     type objects.
     """
 
     def __init__(self):
-        self._count = {}
+        self._count: typ.Mapping[str, int] = {}
 
     @property
     def count(self):
@@ -121,20 +159,66 @@ class Counter:
     def __getitem__(self, key):
         return self.count.get(key, 0)
 
-    def add(self, item):
-        if item in self.count:
-            self.count[item] += 1
+    def add(self, key: str):
+        """
+        Add a string to the `Counter` instance
+
+        If the string already exists in the counter, then its count is
+        incremented by 1.
+
+        Parameters
+        ----------
+        key: str
+        """
+        if key in self.count:
+            self.count[key] += 1
         else:
-            self.count[item] = 1
+            self.count[key] = 1
 
 def append(
-        items: typ.List[T], label_to_idx: typ.Mapping[str, int],
+        items: typ.List[T],
+        label_to_idx: typ.Mapping[str, int],
         item: T,
         counter: Counter,
         label: typ.Optional[str]=None
-    ) -> typ.Tuple[typ.List[T], str]:
+    ) -> typ.Tuple[str, typ.List[T], typ.Mapping[str, int]]:
     """
-    Add an item to a list with labelled indices
+    Add an item to a labelled list with unique string labels
+
+    New items are added
+
+    Parameters
+    ----------
+    items: typ.List[T]
+        The list of items to append to
+    label_to_idx: typ.Mapping[str, int]
+        A dictionary of string labels for each integer index in `items`
+    item: T
+        The item to add to `items`
+    counter: Counter
+        A `Counter` instance tracking what strings have been added to `items`
+        and `label_to_idx`
+
+        What items have been added to `items` are categorized into string labels
+        by the class name. For example, if a `ClassA` instance were added to
+        `items` without a specified label and no other `ClassA` instances
+        were in `counter`, then an automatic string label of `ClassA0` would
+        be created. If 5 other `ClassA` instances had been added and tracked in
+        `counter`, then an automatic string label of `ClassA5` would be created.
+    label: typ.Optional[str]
+        The string label for the added item
+
+        If not provided, an automatic label will be created based on category
+        counts tracked through `counter`.
+
+    Returns
+    -------
+    label: str
+        The string label for the added item
+    items: typ.List[T]
+        The new list of items
+    label_to_idx: typ.Mapping[str, int]
+        The new dictionary of string labels for each integer index in `items`
     """
     item_class_name = item.__class__.__name__
     counter.add(item_class_name)
