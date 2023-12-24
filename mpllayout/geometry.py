@@ -306,8 +306,10 @@ class Constraint:
     Parameters
     ----------
     *args, **kwargs :
-        Each constraint may have specific parameters that control the constraint
-        , for example, an angle or distance parameter.
+        Specific parameters that control a constraint, for example, an angle or
+        distance
+
+        See `Constraint` subclasses for specific examples.
 
     Attributes
     ----------
@@ -318,6 +320,10 @@ class Constraint:
     """
 
     _PRIMITIVE_TYPES: typ.Tuple[typ.Type['Primitive'], ...]
+
+    def __init__(self, *args, **kwargs):
+        self._res_args = args
+        self._res_kwargs = kwargs
 
     def __call__(self, prims: typ.Tuple['Primitive', ...]):
         # Check the input primitives are valid
@@ -370,17 +376,7 @@ class PointToPointDirectedDistance(Constraint):
             direction = np.array([1, 0])
         else:
             direction = np.array(direction)
-
-        self._direction = direction
-        self._distance = distance
-
-    @property
-    def distance(self):
-        return self._distance
-
-    @property
-    def direction(self):
-        return self._direction
+        super().__init__(distance=distance, direction=direction)
 
     def assem_res(self, prims):
         """
@@ -389,7 +385,10 @@ class PointToPointDirectedDistance(Constraint):
         The distance is measured from the first to the second point along a
         specified direction.
         """
-        return jnp.dot(prims[1].param - prims[0].param, self.direction) - self.distance
+        distance = jnp.dot(
+            prims[1].param - prims[0].param, self._res_kwargs['direction']
+        )
+        return distance - self._res_kwargs['distance']
 
 class PointLocation(Constraint):
     """
@@ -402,13 +401,13 @@ class PointLocation(Constraint):
             self,
             location: NDArray
         ):
-        self._location = location
+        super().__init__(location=location)
 
     def assem_res(self, prims):
         """
         Return the location error for a point
         """
-        return prims[0].param - self._location
+        return prims[0].param - self._res_kwargs['location']
 
 class CoincidentPoints(Constraint):
     """
@@ -416,6 +415,9 @@ class CoincidentPoints(Constraint):
     """
 
     _PRIMITIVE_TYPES = (Point, Point)
+
+    def __init__(self):
+        super().__init__()
 
     def assem_res(self, prims):
         """
@@ -471,7 +473,7 @@ class LineLength(Constraint):
             self,
             length: float
         ):
-        self._length = length
+        super().__init__(length=length)
 
     def assem_res(self, prims):
         """
@@ -479,7 +481,7 @@ class LineLength(Constraint):
         """
         # This sets the length of a line
         vec = line_direction(prims[0])
-        return jnp.linalg.norm(vec) - self._length
+        return jnp.linalg.norm(vec) - self._res_kwargs['length']
 
 class RelativeLineLength(Constraint):
     """
@@ -492,7 +494,7 @@ class RelativeLineLength(Constraint):
             self,
             length: float
         ):
-        self._length = length
+        super().__init__(length=length)
 
     def assem_res(self, prims):
         """
@@ -501,13 +503,16 @@ class RelativeLineLength(Constraint):
         # This sets the length of a line
         vec_a = line_direction(prims[0])
         vec_b = line_direction(prims[1])
-        return jnp.linalg.norm(vec_a) - self._length*jnp.linalg.norm(vec_b)
+        return jnp.linalg.norm(vec_a) - self._res_kwargs['length']*jnp.linalg.norm(vec_b)
 
 class OrthogonalLines(Constraint):
     """
     A constraint on orthogonality of two lines
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
+
+    def __init__(self):
+        super().__init__()
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
         """
@@ -524,6 +529,9 @@ class ParallelLines(Constraint):
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
 
+    def __init__(self):
+        super().__init__()
+
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
         """
         Return the parallel error
@@ -539,6 +547,9 @@ class VerticalLine(Constraint):
     """
     _PRIMITIVE_TYPES = (LineSegment,)
 
+    def __init__(self):
+        super().__init__()
+
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         """
         Return the vertical error
@@ -552,6 +563,9 @@ class HorizontalLine(Constraint):
     A constraint that a line must be horizontal
     """
     _PRIMITIVE_TYPES = (LineSegment,)
+
+    def __init__(self):
+        super().__init__()
 
     def assem_res(self, prims: typ.Tuple[LineSegment]):
         """
@@ -571,7 +585,7 @@ class Angle(Constraint):
             self,
             angle: NDArray
         ):
-        self._angle = angle
+        super().__init__(angle=angle)
 
     def assem_res(self, prims):
         """
@@ -583,13 +597,16 @@ class Angle(Constraint):
 
         dir0 = dir0/jnp.linalg.norm(dir0)
         dir1 = dir1/jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - self._angle
+        return jnp.arccos(jnp.dot(dir0, dir1)) - self._res_kwargs['angle']
 
 class CollinearLines(Constraint):
     """
     A constraint on the collinearity of two lines
     """
     _PRIMITIVE_TYPES = (LineSegment, LineSegment)
+
+    def __init__(self):
+        super().__init__()
 
     def assem_res(self, prims: typ.Tuple[LineSegment, LineSegment]):
         """
