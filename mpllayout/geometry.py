@@ -481,7 +481,7 @@ class LineLength(Constraint):
         """
         # This sets the length of a line
         vec = line_direction(prims[0])
-        return jnp.linalg.norm(vec) - self._res_kwargs['length']
+        return jnp.sum(vec**2) - self._res_kwargs['length']**2
 
 class RelativeLineLength(Constraint):
     """
@@ -503,7 +503,7 @@ class RelativeLineLength(Constraint):
         # This sets the length of a line
         vec_a = line_direction(prims[0])
         vec_b = line_direction(prims[1])
-        return jnp.linalg.norm(vec_a) - self._res_kwargs['length']*jnp.linalg.norm(vec_b)
+        return jnp.sum(vec_a**2) - self._res_kwargs['length']**2 * jnp.sum(vec_b**2)
 
 class OrthogonalLines(Constraint):
     """
@@ -617,7 +617,6 @@ class CollinearLines(Constraint):
         line2 = LineSegment(prims=(line1.prims[1], line0.prims[0]))
         line3 = LineSegment(prims=(line1.prims[0], line0.prims[1]))
 
-        norm = jnp.linalg.norm
         return jnp.array([
             res_parallel.assem_res((line0, line1)),
             res_parallel.assem_res((line0, line2))
