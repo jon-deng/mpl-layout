@@ -85,7 +85,7 @@ class TestConstraints:
         line = lines[0]
         points = line.prims
         vec = points[1].param - points[0].param
-        ans_ref = np.linalg.norm(vec)
+        ans_ref = np.linalg.norm(vec)**2
 
         constraint = geo.LineLength(0)
         ans_com = constraint((line,))
@@ -98,7 +98,7 @@ class TestConstraints:
         line_lengths = tuple(np.linalg.norm(vec) for vec in vecs)
 
         rel_length = 0.25
-        ans_ref = line_lengths[0] - rel_length*line_lengths[1]
+        ans_ref = (line_lengths[0])**2 - (rel_length*line_lengths[1])**2
 
         constraint = geo.RelativeLineLength(rel_length)
         ans_com = constraint((lines))
