@@ -305,19 +305,11 @@ class Point(Primitive):
     A point
     """
 
-    def __init__(
-            self,
-            param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[PrimList]=None
-        ):
-
-        self._PARAM_SHAPE = (2,)
-        self._PRIM_TYPES = ()
-        self._PRIM_LABELS = ()
-        self._CONSTRAINT_TYPES = ()
-        self._CONSTRAINT_GRAPH = ()
-
-        super().__init__(param, prims)
+    _PARAM_SHAPE = (2,)
+    _PRIM_TYPES = ()
+    _PRIM_LABELS = ()
+    _CONSTRAINT_TYPES = ()
+    _CONSTRAINT_GRAPH = ()
 
 
 class LineSegment(Primitive):
@@ -325,18 +317,10 @@ class LineSegment(Primitive):
     A straight line segment between two points
     """
 
-    def __init__(
-            self,
-            param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[PrimList]=None
-        ):
-
-        self._PARAM_SHAPE = (0,)
-        self._PRIM_TYPES = (Point, Point)
-        self._CONSTRAINT_TYPES = ()
-        self._CONSTRAINT_GRAPH = ()
-
-        super().__init__(param, prims)
+    _PRIM_TYPES = (Point, Point)
+    _PARAM_SHAPE = (0,)
+    _CONSTRAINT_GRAPH = ()
+    _CONSTRAINT_TYPES = ()
 
 
 class ClosedPolyline(PrimitiveArray):
@@ -344,19 +328,10 @@ class ClosedPolyline(PrimitiveArray):
     A closed polygon through a given set of points
     """
 
-    def __init__(
-            self,
-            param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[PrimList]=None
-        ):
-
-        self._PARAM_SHAPE = (0,)
-        self._PRIM_TYPES = Point
-        self._CONSTRAINT_TYPES = ()
-        self._CONSTRAINT_GRAPH = ()
-
-        super().__init__(param, prims)
-
+    _PARAM_SHAPE = (0,)
+    _PRIM_TYPES = Point
+    _CONSTRAINT_TYPES = ()
+    _CONSTRAINT_GRAPH = ()
 
     def __len__(self):
         return len(self.prims)
@@ -380,26 +355,19 @@ class Box(ClosedPolyline):
     A box with vertical sides and horizontal top and bottom
     """
 
-    def __init__(
-            self,
-            param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[PrimList]=None
-        ):
+    _PRIM_TYPES = (Point, Point, Point, Point)
 
-        self._PRIM_TYPES = (Point, Point, Point, Point)
+    _CONSTRAINT_TYPES = (
+        cons.HorizontalLine,
+        cons.VerticalLine,
+        cons.HorizontalLine,
+        cons.VerticalLine
+    )
+    _CONSTRAINT_GRAPH = (
+        (PrimitiveIndex('', 0),),
+        (PrimitiveIndex('', 1),),
+        (PrimitiveIndex('', 2),),
+        (PrimitiveIndex('', 3),)
+    )
 
-        self._CONSTRAINT_TYPES = (
-            cons.HorizontalLine,
-            cons.VerticalLine,
-            cons.HorizontalLine,
-            cons.VerticalLine
-        )
-        self._CONSTRAINT_GRAPH = (
-            (PrimitiveIndex('', 0),),
-            (PrimitiveIndex('', 1),),
-            (PrimitiveIndex('', 2),),
-            (PrimitiveIndex('', 3),)
-        )
-
-        super().__init__(param, prims)
 
