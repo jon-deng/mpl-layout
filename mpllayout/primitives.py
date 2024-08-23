@@ -94,7 +94,7 @@ class Primitive:
     A `Primitive` can be parameterized by a parameter vector as well as
     other geometric primitives. For example, a point in 2D is parameterized by a
     vector representing (x, y) coordinates. Primitives can also contain implicit
-    cons to represent common use-cases. For example, an origin point may
+    constraints to represent common use-cases. For example, an origin point may
     be explicitly constrained to have (0, 0) coordinates.
 
     To create a `Primitive` class, subclass `Primitive` and define the class
@@ -115,9 +115,9 @@ class Primitive:
     prims: LabelledTuple['Primitive']
         If non-empty, the primitive contains child geometric primitives in
         `self.prims`
-    cons: LabelledTuple['Constraint']
-        If non-empty, the primitive contains implicit geometric cons in
-        `self.cons`
+    constraints: LabelledTuple['Constraint']
+        If non-empty, the primitive contains implicit geometric constraints in
+        `self.constraints`
     constraint_graph: PrimIdxConstraintGraph
         A graph representing which primitives a constraint applies to
 
@@ -131,9 +131,9 @@ class Primitive:
     _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]]
         Optional labels for the child primitives
     _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...]
-        The types of any internal cons on the `Primitive`
+        The types of any internal constraints on the `Primitive`
     _CONSTRAINT_GRAPH: 'PrimIdxConstraintGraph'
-        The constraint graph for the internal cons
+        The constraint graph for the internal constraints
     """
 
     ## Specific primitive classes should define these to represent different primitives
@@ -179,8 +179,8 @@ class Primitive:
 
         self._prims: LabelledTuple['Primitive'] = LabelledTuple(prims, keys)
 
-        # Create any internal cons
-        self._cons: LabelledTuple['cons.Constraint', ...] = LabelledTuple(
+        # Create any internal constraints
+        self._constraints: LabelledTuple['cons.Constraint', ...] = LabelledTuple(
             [Constraint() for Constraint in self._CONSTRAINT_TYPES]
         )
 
@@ -210,11 +210,11 @@ class Primitive:
         return self._prims
 
     @property
-    def cons(self):
+    def constraints(self):
         """
-        Return the primitive's implicit cons
+        Return the primitive's implicit constraints
         """
-        return self._cons
+        return self._constraints
 
     @property
     def constraint_graph(self) -> PrimIdxConstraintGraph:
@@ -253,9 +253,9 @@ class PrimitiveArray(Primitive):
     prims: LabelledTuple['Primitive']
         If non-empty, the primitive contains child geometric primitives in
         `self.prims`
-    cons: LabelledTuple['Constraint']
-        If non-empty, the primitive contains implicit geometric cons in
-        `self.cons`
+    constraints: LabelledTuple['Constraint']
+        If non-empty, the primitive contains implicit geometric constraints in
+        `self.constraints`
     constraint_graph: PrimIdxConstraintGraph
         A graph representing which primitives a constraint applies to
 
@@ -269,9 +269,9 @@ class PrimitiveArray(Primitive):
     _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]]
         Optional labels for the child primitives
     _CONSTRAINT_TYPES: typ.Tuple['Constraint', ...]
-        The types of any internal cons on the `Primitive`
+        The types of any internal constraints on the `Primitive`
     _CONSTRAINT_GRAPH: 'PrimIdxConstraintGraph'
-        The constraint graph for the internal cons
+        The constraint graph for the internal constraints
     """
 
     def __len__(self):
