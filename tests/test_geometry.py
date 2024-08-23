@@ -9,6 +9,13 @@ import numpy as np
 
 from mpllayout import geometry as geo
 
+
+class TestPrimitves:
+
+    def test_Box(self):
+        geo.Box()
+
+
 class TestConstraints:
 
     ## Constraints on points
