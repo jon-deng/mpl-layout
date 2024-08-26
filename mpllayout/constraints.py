@@ -305,9 +305,8 @@ class CollinearLines(Constraint):
         line2 = primitives.LineSegment(prims=(line1.prims[1], line0.prims[0]))
         line3 = primitives.LineSegment(prims=(line1.prims[0], line0.prims[1]))
 
-        return jnp.array([
-            res_parallel.assem_res((line0, line1)),
-            res_parallel.assem_res((line0, line2))
+        return jnp.concatenate([
+            res_parallel((line0, line1)), res_parallel((line0, line2))
         ])
 
 
@@ -331,7 +330,7 @@ class Box(Constraint):
         quad = prims[0]
         horizontal = HorizontalLine()
         vertical = VerticalLine()
-        res = jnp.array([
+        res = jnp.concatenate([
             horizontal((quad[0],)), 
             horizontal((quad[2],)), 
             vertical((quad[1],)), 
