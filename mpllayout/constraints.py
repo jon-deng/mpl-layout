@@ -319,11 +319,10 @@ class Box(Constraint):
     """
 
     def __init__(
-            self,
-            length: float
+            self
         ):
         self._PRIMITIVE_TYPES = (primitives.Quadrilateral,)
-        super().__init__(length=length)
+        super().__init__()
 
     def assem_res(self, prims):
         """
@@ -333,10 +332,10 @@ class Box(Constraint):
         horizontal = HorizontalLine()
         vertical = VerticalLine()
         res = jnp.array([
-            horizontal.assem_res(quad[0]),
-            horizontal.assem_res(quad[2]),
-            vertical.assem_res(quad[1]),
-            vertical.assem_res(quad[3])
+            horizontal((quad[0],)), 
+            horizontal((quad[2],)), 
+            vertical((quad[1],)), 
+            vertical((quad[3],))
         ])
         return res
     
