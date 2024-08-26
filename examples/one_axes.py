@@ -20,19 +20,21 @@ if __name__ == '__main__':
     verts = [
         [0, 0], [5, 0], [5, 5], [0, 5]
     ]
-    box = geo.Box(
+    box = geo.Quadrilateral(
         prims=[geo.Point(vert_coords) for vert_coords in verts]
     )
     layout.add_prim(box, 'Figure')
+    layout.add_constraint(geo.Box(), (PrimIdx('Figure'),))
 
     ## Create the axes box
     verts = [
         [0, 0], [5, 0], [5, 5], [0, 5]
     ]
-    box = geo.Box(
+    box = geo.Quadrilateral(
         prims=[geo.Point(vert_coords) for vert_coords in verts]
     )
     layout.add_prim(box, 'Axes1')
+    layout.add_constraint(geo.Box(), (PrimIdx('Axes1'),))
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
