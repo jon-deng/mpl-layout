@@ -138,14 +138,10 @@ class Layout:
         label = self.prims.append(prim, label=label)
 
         # Append all child primitives
-        child_prims, child_labels, child_constraints, child_constraint_graph = \
-            expand_prim(prim, label=label)
+        child_prims, child_labels = expand_prim(prim, label=label)
 
         for clabel, cprim in zip(child_labels, child_prims):
             self.prims.append(cprim, label=clabel)
-
-        for constr, prim_idxs in zip(child_constraints, child_constraint_graph):
-            self.add_constraint(constr, prim_idxs)
 
         return label
 
@@ -437,15 +433,11 @@ def expand_prim(
         label: str
     ) -> typ.Tuple[
         typ.List[geo.Primitive],
-        typ.List[str],
-        typ.List[geo.Constraint],
-        PrimIdxGraph
+        typ.List[str]
     ]:
     """
     Expand all child primitives of `prim` into a flat list
 
-    This also recursively flattens any implicit constraints and constraint
-    graphs.
     The flattening is done so that if a parent primitive has `n` child
     primitives, these are placed immediately after the parent.
 
@@ -462,45 +454,22 @@ def expand_prim(
         The list of child primitives
     child_labels: typ.List[str]
         The list of child primitive labels
-    child_constraints: typ.List[geo.Constraint]
-        A list of implicit constraints
-    child_constraint_graph: PrimIdxGraph
-        A list of the implicit constraint graph
     """
-    # Expand child primitives, constraints, and constraint graph
+    # Expand child primitives
     child_prims = list(prim.prims)
     child_labels = [
         f'{label}.{child_label}' for child_label in prim.prims.keys()
     ]
 
-    # To unpack the child constraint graph, we need to prepend all
-    # child primitives with the root primitive label, `label`
-    child_constraints = list(prim.constraints)
-    child_constraint_graph = [
-        tuple(
-            PrimIdx(
-                '.'.join([label] + prim_idx.label.split('.')[1:]),
-                prim_idx.array_idx
-            )
-            for prim_idx in prim_idxs
-        )
-        for prim_idxs in prim.constraint_graph
-    ]
-
-    # Recursively expand any child primitives/constraints
+    # Recursively expand any child primitives
     if len(prim.prims) == 0:
-        return child_prims, child_labels, child_constraints, child_constraint_graph
+        return child_prims, child_labels
     else:
         for child_prim, child_label in zip(child_prims, child_labels):
-            (_re_child_prims,
-                _re_child_labels,
-                _re_child_constraints,
-                _re_child_constraint_graph) = expand_prim(child_prim, child_label)
+            (_re_child_prims, _re_child_labels) = expand_prim(child_prim, child_label)
             child_prims += _re_child_prims
             child_labels += _re_child_labels
-            child_constraints += _re_child_constraints
-            child_constraint_graph += _re_child_constraint_graph
-        return child_prims, child_labels, child_constraints, child_constraint_graph
+        return child_prims, child_labels
 
 def contract_prim(
         prim: geo.Primitive,
@@ -576,7 +545,7 @@ def build_prims(
     new_prims = []
     while m < len(_new_prims):
         prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
-        cprims, *_ = expand_prim(prim, '')
+        cprims, _clabels = expand_prim(prim, '')
         new_prims = new_prims + [prim] + cprims
         m += 1+dm
 
