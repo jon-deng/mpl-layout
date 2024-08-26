@@ -311,6 +311,35 @@ class CollinearLines(Constraint):
         ])
 
 
+## Closed polyline constraints
+
+class Box(Constraint):
+    """
+    Constrain a `Quadrilateral` to have horizontal tops/bottom and vertical sides
+    """
+
+    def __init__(
+            self,
+            length: float
+        ):
+        self._PRIMITIVE_TYPES = (primitives.Quadrilateral,)
+        super().__init__(length=length)
+
+    def assem_res(self, prims):
+        """
+        Return the error in the 'boxiness'
+        """
+        quad = prims[0]
+        horizontal = HorizontalLine()
+        vertical = VerticalLine()
+        res = jnp.array([
+            horizontal.assem_res(quad[0]),
+            horizontal.assem_res(quad[2]),
+            vertical.assem_res(quad[1]),
+            vertical.assem_res(quad[3])
+        ])
+        return res
+    
 
 def line_direction(line: 'primitives.LineSegment'):
     return line.prims[1].param - line.prims[0].param
