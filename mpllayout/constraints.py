@@ -153,7 +153,7 @@ class LineLength(Constraint):
             self,
             length: float
         ):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment,)
+        self._PRIMITIVE_TYPES = (primitives.Line,)
         super().__init__(length=length)
 
     def assem_res(self, prims):
@@ -175,7 +175,7 @@ class RelativeLineLength(Constraint):
             self,
             length: float
         ):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment, primitives.LineSegment)
+        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__(length=length)
 
     def assem_res(self, prims):
@@ -194,7 +194,7 @@ class OrthogonalLines(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment, primitives.LineSegment)
+        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__()
 
     def assem_res(self, prims: typ.Tuple['primitives.LineSegment', 'primitives.LineSegment']):
@@ -213,7 +213,7 @@ class ParallelLines(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment, primitives.LineSegment)
+        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__()
 
     def assem_res(self, prims: typ.Tuple['primitives.LineSegment', 'primitives.LineSegment']):
@@ -232,7 +232,7 @@ class VerticalLine(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment,)
+        self._PRIMITIVE_TYPES = (primitives.Line,)
         super().__init__()
 
     def assem_res(self, prims: typ.Tuple['primitives.LineSegment']):
@@ -250,7 +250,7 @@ class HorizontalLine(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment,)
+        self._PRIMITIVE_TYPES = (primitives.Line,)
         super().__init__()
 
     def assem_res(self, prims: typ.Tuple['primitives.LineSegment']):
@@ -271,7 +271,7 @@ class Angle(Constraint):
             self,
             angle: NDArray
         ):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment, primitives.LineSegment)
+        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__(angle=angle)
 
     def assem_res(self, prims):
@@ -293,7 +293,7 @@ class CollinearLines(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.LineSegment, primitives.LineSegment)
+        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__()
 
     def assem_res(self, prims: typ.Tuple['primitives.LineSegment', 'primitives.LineSegment']):
@@ -302,8 +302,8 @@ class CollinearLines(Constraint):
         """
         res_parallel = ParallelLines()
         line0, line1 = prims
-        line2 = primitives.LineSegment(prims=(line1.prims[1], line0.prims[0]))
-        line3 = primitives.LineSegment(prims=(line1.prims[0], line0.prims[1]))
+        line2 = primitives.Line(prims=(line1.prims[1], line0.prims[0]))
+        line3 = primitives.Line(prims=(line1.prims[0], line0.prims[1]))
 
         return jnp.concatenate([
             res_parallel((line0, line1)), res_parallel((line0, line2))
@@ -331,13 +331,13 @@ class Box(Constraint):
         horizontal = HorizontalLine()
         vertical = VerticalLine()
         res = jnp.concatenate([
-            horizontal((quad[0],)), 
-            horizontal((quad[2],)), 
-            vertical((quad[1],)), 
+            horizontal((quad[0],)),
+            horizontal((quad[2],)),
+            vertical((quad[1],)),
             vertical((quad[3],))
         ])
         return res
-    
+
 
 def line_direction(line: 'primitives.LineSegment'):
     return line.prims[1].param - line.prims[0].param

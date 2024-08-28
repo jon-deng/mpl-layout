@@ -21,13 +21,13 @@ if __name__ == '__main__':
     ## Create two lines
     vert_coords = [[0, 0],  [1, 0]]
     layout.add_prim(
-        geo.LineSegment(prims=[geo.Point(coord) for coord in vert_coords]),
+        geo.Line(prims=[geo.Point(coord) for coord in vert_coords]),
         'LineA'
     )
 
     vert_coords = [[2, 0],  [3, 3]]
     layout.add_prim(
-        geo.LineSegment(prims=[geo.Point(coord) for coord in vert_coords]),
+        geo.Line(prims=[geo.Point(coord) for coord in vert_coords]),
         'LineB'
     )
 

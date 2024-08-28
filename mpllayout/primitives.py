@@ -82,7 +82,7 @@ class PrimitiveIndex:
         return self.__repr__()
 
 ## Generic primitive class/interface
-# You can create specific primitive definitions by inheriting from these and 
+# You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
 
 class Primitive:
@@ -228,7 +228,7 @@ class PrimitiveArray(Primitive):
         """
         raise NotImplementedError
 
-    
+
 ## Actual primitive classes
 
 class Point(Primitive):
@@ -241,7 +241,7 @@ class Point(Primitive):
     _PRIM_LABELS = ()
 
 
-class LineSegment(Primitive):
+class Line(Primitive):
     """
     A straight line segment between two points
     """
@@ -250,9 +250,9 @@ class LineSegment(Primitive):
     _PARAM_SHAPE = (0,)
 
 
-class ClosedPolyline(PrimitiveArray):
+class Polygon(PrimitiveArray):
     """
-    A closed polygon through a given set of points
+    A polygon through a given set of points
     """
 
     _PARAM_SHAPE = (0,)
@@ -263,7 +263,7 @@ class ClosedPolyline(PrimitiveArray):
 
     def index_spec(self, key):
         def make_prim(prims):
-            return LineSegment(prims=prims)
+            return Line(prims=prims)
 
         if isinstance(key, int):
             idx1 = f'Point{key % len(self)}'
@@ -275,7 +275,7 @@ class ClosedPolyline(PrimitiveArray):
         return make_prim, child_prim_idxs
 
 
-class Quadrilateral(ClosedPolyline):
+class Quadrilateral(Polygon):
     """
     A 4 sided closed polygon
     """

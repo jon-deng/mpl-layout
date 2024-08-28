@@ -1,5 +1,5 @@
 """
-Test geometric primitive and constraints 
+Test geometric primitive and constraints
 """
 
 import pytest
@@ -28,15 +28,15 @@ class TestConstraints:
     @pytest.fixture()
     def points(self, vertices):
         return [geo.Point(vert) for vert in vertices]
-    
+
     @pytest.fixture()
     def direction(self):
         return np.array([0, 1], dtype=float)
-    
+
     @pytest.fixture()
     def location(self):
         return np.array([5, 5], dtype=float)
-    
+
     def test_PointToPointAbsDistance(self, points, direction):
         ans_ref = np.dot(points[1].param - points[0].param, direction)
 
@@ -63,10 +63,10 @@ class TestConstraints:
     @pytest.fixture()
     def lines(self, points):
         return [
-            geo.LineSegment(prims=(pa, pb)) 
+            geo.Line(prims=(pa, pb))
             for pa, pb in zip(points[:-1], points[1:])
         ]
-    
+
     @pytest.fixture()
     def orthogonal_lines(self):
         vec_a = np.random.rand(2)-0.5
@@ -76,18 +76,18 @@ class TestConstraints:
         vert1_a = 10*2*(np.random.rand(2)-0.5)
         vert1_b = 10*2*(np.random.rand(2)-0.5)
         lines = tuple(
-            geo.LineSegment(prims=(geo.Point(vert1), geo.Point(vert1+vec)))
+            geo.Line(prims=(geo.Point(vert1), geo.Point(vert1+vec)))
             for vert1, vec in zip([vert1_a, vert1_b], [vec_a, vec_b])
         )
         return lines
-    
+
     @pytest.fixture()
     def parallel_lines(self, points):
         return (
-            geo.LineSegment(prims=(pa, pb)) 
+            geo.Line(prims=(pa, pb))
             for pa, pb in zip(points[:-1], points[1:])
         )
-    
+
     def test_LineLength(self, lines):
         line = lines[0]
         points = line.prims

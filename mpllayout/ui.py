@@ -24,7 +24,7 @@ def plot_point(
     ax.plot([x], [y], marker='.', **kwargs)
 
 def plot_line_segment(
-        ax: mpl.axes.Axes, line_segment: geo.LineSegment,
+        ax: mpl.axes.Axes, line_segment: geo.Line,
         label=None, **kwargs
     ):
     """
@@ -35,7 +35,7 @@ def plot_line_segment(
     ax.plot(xs, ys, **kwargs)
 
 def plot_closed_polyline(
-        ax: mpl.axes.Axes, polyline: geo.ClosedPolyline,
+        ax: mpl.axes.Axes, polyline: geo.Polygon,
         label=None, **kwargs
     ):
     """
@@ -66,9 +66,9 @@ def make_plot(
 
     if isinstance(prim, geo.Point):
         return plot_point
-    elif isinstance(prim, geo.LineSegment):
+    elif isinstance(prim, geo.Line):
         return plot_line_segment
-    elif isinstance(prim, geo.ClosedPolyline):
+    elif isinstance(prim, geo.Polygon):
         return plot_closed_polyline
     else:
         raise ValueError(f"No plotting function for primitive of type {type(prim)}")
