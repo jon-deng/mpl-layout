@@ -250,29 +250,28 @@ class Line(Primitive):
     _PARAM_SHAPE = (0,)
 
 
-class Polygon(PrimitiveArray):
+class Polygon(Primitive):
     """
     A polygon through a given set of points
     """
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = Point
+    _PRIM_TYPES = Line
 
-    def __len__(self):
-        return len(self.prims)
+    def __init__(
+            self,
+            param: typ.Optional[NDArray]=None,
+            prims: typ.Optional[PrimList]=None
+        ):
+        # This converts a series of points into a series of line segments that
+        # represent the polygon
 
-    def index_spec(self, key):
-        def make_prim(prims):
-            return Line(prims=prims)
+        _prims = [
+            Line([pointa, pointb])
+            for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
+        ]
 
-        if isinstance(key, int):
-            idx1 = f'Point{key % len(self)}'
-            idx2 = f'Point{(key+1) % len(self)}'
-        else:
-            raise TypeError("`key`, {key}, must be an integer")
-
-        child_prim_idxs = (idx1, idx2)
-        return make_prim, child_prim_idxs
+        super().__init__(param, _prims)
 
 
 class Quadrilateral(Polygon):
