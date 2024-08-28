@@ -33,6 +33,7 @@ import numpy as np
 from . import geometry as geo
 from .array import LabelledList
 
+Prim = geo.Primitive
 PrimIdx = geo.PrimitiveIndex
 PrimIdxs = typ.Tuple[PrimIdx, ...]
 PrimLabelledList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
@@ -41,6 +42,74 @@ ConstraintLabelledList = LabelledList[geo.Constraint]
 PrimIdxGraph = typ.List[PrimIdxs]
 IntGraph = typ.List[typ.Tuple[int, ...]]
 StrGraph = typ.List[typ.Tuple[str, ...]]
+
+class PrimitiveTree:
+    """
+    Tree structure mapping keys to `Primitive`s
+    """
+
+    def __init__(
+            self, 
+            value: typ.Union[None, Prim],
+            nodes: typ.Union[None, typ.Mapping[str, 'PrimitiveTree']]
+        ):
+        self._value = value
+        self._nodes = nodes
+
+    def nodes(self):
+        return self._nodes
+
+    def value(self):
+        return self._value
+    
+    def __getitem__(self, key: str):
+        """
+        Return the primitive indexed by a slash-separated key
+
+        Parameters
+        ----------
+        key: str
+            A slash-separated key, for example 'Box/Line0/Point2'
+        """
+        split_key = key.split('/')
+        parent_key = split_key[0]
+        child_key = '/'.join(split_key[1:])
+
+        try:
+            if len(split_key) == 1:
+                return self[parent_key]
+            else:
+                return self[parent_key][child_key]
+        except KeyError as err:
+            raise KeyError(f"Key {key} does not exist") from err
+        
+    def __setitem__(self, key: str, value: typ.Union['PrimitiveTree', Prim]):
+        """
+        Add a primitive indexed by a slash-separated key
+
+        Parameters
+        ----------
+        key: str
+            A slash-separated key, for example 'Box/Line0/Point2'
+        """
+        split_key = key.split('/')
+        # parent_key = split_key[0]
+        child_key = '/'.join(split_key[1:])
+        
+        try:
+            self[key] = value
+
+            # Add any child primitives of `value`
+            if isinstance(value, Prim):
+                value: Prim
+                for child_key, child_prim in value.prims.items():
+                    self[f'{key}/{child_key}'] = child_prim
+
+        except KeyError as err:
+            raise ValueError(f"Couldn't set primitive key {key}") from err
+
+    def __len__(self):
+        return len(self.value)
 
 
 class Layout:
