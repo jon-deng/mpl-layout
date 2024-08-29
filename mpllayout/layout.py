@@ -58,6 +58,25 @@ class PrimitiveTree:
         self._tree = tree
 
     @property
+    def prim_graph(self):
+        """
+        Return a mapping from primitive instance to integer index in `prims`
+        """
+        graph = {tree.value: None for tree in self.values(flat=True)}
+
+        for idx, prim in enumerate(graph.keys()):
+            graph[prim] = idx
+
+        return graph
+
+    @property
+    def prims(self):
+        """
+        Return a list of all unique primitives in the tree
+        """
+        return list(self.prim_graph.keys())
+
+    @property
     def tree(self):
         return self._tree
 
@@ -84,6 +103,7 @@ class PrimitiveTree:
             for key, child_tree in self.tree.items():
                 flat_values += [child_tree]
                 flat_values += child_tree.values(flat)
+            return flat_values
         else:
             return list(self.tree.values())
 

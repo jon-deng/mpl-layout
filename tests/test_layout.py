@@ -18,4 +18,5 @@ class TestPrimitiveTree:
 
         print("keys:", prim_tree.keys())
         print("flat keys:", prim_tree.keys(flat=True))
+        print("prims", prim_tree.prims)
 
