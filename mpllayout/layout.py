@@ -49,19 +49,23 @@ class PrimitiveTree:
     """
 
     def __init__(
-            self, 
+            self,
             value: typ.Union[None, Prim],
-            nodes: typ.Union[None, typ.Mapping[str, 'PrimitiveTree']]
+            nodes: typ.Mapping[str, 'PrimitiveTree']
         ):
         self._value = value
         self._nodes = nodes
 
+    @property
     def nodes(self):
         return self._nodes
 
+    @property
     def value(self):
         return self._value
-    
+
+    ## Dict-like interface
+
     def __getitem__(self, key: str):
         """
         Return the primitive indexed by a slash-separated key
@@ -77,12 +81,12 @@ class PrimitiveTree:
 
         try:
             if len(split_key) == 1:
-                return self[parent_key]
+                return self.nodes[parent_key]
             else:
-                return self[parent_key][child_key]
+                return self.nodes[parent_key][child_key]
         except KeyError as err:
             raise KeyError(f"Key {key} does not exist") from err
-        
+
     def __setitem__(self, key: str, value: typ.Union['PrimitiveTree', Prim]):
         """
         Add a primitive indexed by a slash-separated key
@@ -95,15 +99,15 @@ class PrimitiveTree:
         split_key = key.split('/')
         # parent_key = split_key[0]
         child_key = '/'.join(split_key[1:])
-        
+
         try:
-            self[key] = value
+            self.nodes[key] = value
 
             # Add any child primitives of `value`
             if isinstance(value, Prim):
                 value: Prim
                 for child_key, child_prim in value.prims.items():
-                    self[f'{key}/{child_key}'] = child_prim
+                    self.nodes[f'{key}/{child_key}'] = child_prim
 
         except KeyError as err:
             raise ValueError(f"Couldn't set primitive key {key}") from err

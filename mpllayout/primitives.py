@@ -266,8 +266,11 @@ class Polygon(Primitive):
         # This converts a series of points into a series of line segments that
         # represent the polygon
 
+        if prims is None:
+            prims = [PrimType() for PrimType in self._PRIM_TYPES]
+
         _prims = [
-            Line([pointa, pointb])
+            Line(np.array([0]), [pointa, pointb])
             for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
         ]
 
@@ -279,4 +282,5 @@ class Quadrilateral(Polygon):
     A 4 sided closed polygon
     """
 
+    _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (Point, Point, Point, Point)
