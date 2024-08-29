@@ -35,7 +35,7 @@ from . import geometry as geo
 from .array import LabelledList
 
 Prim = geo.Primitive
-PrimIdx = geo.PrimitiveIndex
+PrimIdx = str
 PrimIdxs = typ.Tuple[PrimIdx, ...]
 PrimLabelledList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintLabelledList = LabelledList[geo.Constraint]
@@ -128,7 +128,7 @@ class PrimitiveTree:
             if len(split_key) == 1:
                 return self.tree[parent_key].value
             else:
-                return self.tree[parent_key][child_key].value
+                return self.tree[parent_key][child_key]
         except KeyError as err:
             raise KeyError(f"Key {key} does not exist") from err
 
@@ -179,19 +179,19 @@ class Layout:
 
     def __init__(
             self,
-            prims: typ.Optional[PrimLabelledList]=None,
+            prim_tree: typ.Optional[PrimitiveTree]=None,
             constraints: typ.Optional[ConstraintLabelledList]=None,
             constraint_graph: typ.Optional[StrGraph]=None
         ):
 
-        if prims is None:
-            prims = []
+        if prim_tree is None:
+            prim_tree = PrimitiveTree(None, {})
         if constraints is None:
             constraints = []
         if constraint_graph is None:
             constraint_graph = []
 
-        self._prims = LabelledList(prims)
+        self._prim_tree = prim_tree
         self._constraints = LabelledList(constraints)
         self._constraint_graph = constraint_graph
 
@@ -202,8 +202,12 @@ class Layout:
         self._label_to_constraintidx = {}
 
     @property
+    def prim_tree(self):
+        return self._prim_tree
+
+    @property
     def prims(self):
-        return self._prims
+        return self.prim_tree.prims
 
     @property
     def constraints(self):
@@ -216,8 +220,13 @@ class Layout:
     @property
     def constraint_graph_int(self) -> IntGraph:
         return [
-            tuple(self.prims.key_to_idx(prim_idx) for prim_idx in prim_idxs)
-            for prim_idxs in self.constraint_graph
+            tuple(
+                self.prim_tree.prim_graph[
+                    self.prim_tree[prim_label]
+                ]
+                for prim_label in prim_labels
+            )
+            for prim_labels in self.constraint_graph
         ]
 
     def add_prim(
@@ -247,22 +256,13 @@ class Layout:
         label: str
             The label for the added primitive
         """
-
-        # Append the root primitive
-        label = self.prims.append(prim, label=label)
-
-        # Append all child primitives
-        child_prims, child_labels = expand_prim(prim, label=label)
-
-        for clabel, cprim in zip(child_labels, child_prims):
-            self.prims.append(cprim, label=clabel)
-
+        self.prim_tree[label] = prim
         return label
 
     def add_constraint(
             self,
             constraint: geo.Constraint,
-            prim_idxs: PrimIdxs,
+            prim_labels: PrimIdxs,
             constraint_label: typ.Optional[str]=None
         ) -> str:
         """
@@ -284,14 +284,10 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
-        new_constraint, new_prim_idxs = make_str_constraint_graph(
-            constraint, prim_idxs, self.prims
-        )
-
         constraint_label = self.constraints.append(
-            new_constraint, label=constraint_label
+            constraint, label=constraint_label
         )
-        self.constraint_graph.append(new_prim_idxs)
+        self.constraint_graph.append(prim_labels)
         return constraint_label
 
 def make_str_constraint_graph(
