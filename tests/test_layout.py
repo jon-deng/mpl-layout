@@ -16,4 +16,6 @@ class TestPrimitiveTree:
     def test_set_prim(self, prim_tree):
         prim_tree['MyBox'] = geo.Quadrilateral()
 
-        print(prim_tree.keys())
+        print("keys:", prim_tree.keys())
+        print("flat keys:", prim_tree.keys(flat=True))
+

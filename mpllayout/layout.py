@@ -25,6 +25,7 @@ The class `Layout` handles construction of these three lists while functions
 
 import typing as typ
 import warnings
+import functools
 
 import jax
 from jax import numpy as jnp
@@ -51,20 +52,44 @@ class PrimitiveTree:
     def __init__(
             self,
             value: typ.Union[None, Prim],
-            nodes: typ.Mapping[str, 'PrimitiveTree']
+            tree: typ.Mapping[str, 'PrimitiveTree']
         ):
         self._value = value
-        self._nodes = nodes
+        self._tree = tree
 
     @property
-    def nodes(self):
-        return self._nodes
+    def tree(self):
+        return self._tree
 
     @property
     def value(self):
         return self._value
 
     ## Dict-like interface
+    def keys(self, flat: bool=False) -> typ.List[str]:
+        if flat:
+            flat_keys = []
+            for key, child_tree in self.tree.items():
+                flat_keys += [f'{key}']
+                flat_keys += [
+                    f'{key}/{child_key}' for child_key in child_tree.keys(flat)
+                ]
+            return flat_keys
+        else:
+            return list(self.tree.keys())
+
+    def values(self, flat: bool=False) -> typ.List['PrimitiveTree']:
+        if flat:
+            flat_values = []
+            for key, child_tree in self.tree.items():
+                flat_values += [child_tree]
+                flat_values += child_tree.values(flat)
+        else:
+            return list(self.tree.values())
+
+    def items(self, flat: bool=False) -> typ.List[typ.Tuple[str, 'PrimitiveTree']]:
+
+        return zip(self.items(flat), self.values(flat))
 
     def __getitem__(self, key: str):
         """
@@ -81,9 +106,9 @@ class PrimitiveTree:
 
         try:
             if len(split_key) == 1:
-                return self.nodes[parent_key]
+                return self.tree[parent_key].value
             else:
-                return self.nodes[parent_key][child_key]
+                return self.tree[parent_key][child_key].value
         except KeyError as err:
             raise KeyError(f"Key {key} does not exist") from err
 
@@ -101,13 +126,11 @@ class PrimitiveTree:
         child_key = '/'.join(split_key[1:])
 
         try:
-            self.nodes[key] = value
-
             # Add any child primitives of `value`
             if isinstance(value, Prim):
-                value: Prim
+                self.tree[key] = PrimitiveTree(value, {})
                 for child_key, child_prim in value.prims.items():
-                    self.nodes[f'{key}/{child_key}'] = child_prim
+                    self.tree[key][child_key] = child_prim
 
         except KeyError as err:
             raise ValueError(f"Couldn't set primitive key {key}") from err
