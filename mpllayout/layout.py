@@ -130,7 +130,7 @@ class PrimitiveTree:
             else:
                 return self.tree[parent_key][child_key]
         except KeyError as err:
-            raise KeyError(f"Key {key} does not exist") from err
+            raise KeyError(f"{key}") from err
 
     def __setitem__(self, key: str, value: typ.Union['PrimitiveTree', Prim]):
         """
@@ -153,7 +153,7 @@ class PrimitiveTree:
                     self.tree[key][child_key] = child_prim
 
         except KeyError as err:
-            raise ValueError(f"Couldn't set primitive key {key}") from err
+            raise KeyError(f"{key}") from err
 
     def __len__(self):
         return len(self.value)
