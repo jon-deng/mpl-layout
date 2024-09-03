@@ -51,23 +51,18 @@ class PrimitiveTree:
 
     def __init__(
             self,
-            value: typ.Union[None, Prim],
-            tree: typ.Mapping[str, 'PrimitiveTree']
+            data: typ.Union[None, Prim],
+            children: typ.Mapping[str, 'PrimitiveTree']
         ):
-        self._value = value
-        self._tree = tree
+        self._data = data
+        self._children = children
 
     @property
     def prim_graph(self):
         """
         Return a mapping from primitive instance to integer index in `prims`
         """
-        graph = {tree.value: None for tree in self.values(flat=True)}
-
-        for idx, prim in enumerate(graph.keys()):
-            graph[prim] = idx
-
-        return graph
+        return {tree.data: ii for ii, tree in enumerate(self.values(flat=True))}
 
     @property
     def prims(self):
@@ -77,35 +72,38 @@ class PrimitiveTree:
         return list(self.prim_graph.keys())
 
     @property
-    def tree(self):
-        return self._tree
+    def children(self):
+        """
+        Return a list of all unique primitives in the tree
+        """
+        return self._children
 
     @property
-    def value(self):
-        return self._value
+    def data(self):
+        return self._data
 
     ## Dict-like interface
     def keys(self, flat: bool=False) -> typ.List[str]:
         if flat:
             flat_keys = []
-            for key, child_tree in self.tree.items():
+            for key, child_tree in self.children.items():
                 flat_keys += [f'{key}']
                 flat_keys += [
                     f'{key}/{child_key}' for child_key in child_tree.keys(flat)
                 ]
             return flat_keys
         else:
-            return list(self.tree.keys())
+            return list(self.children.keys())
 
     def values(self, flat: bool=False) -> typ.List['PrimitiveTree']:
         if flat:
             flat_values = []
-            for key, child_tree in self.tree.items():
+            for key, child_tree in self.children.items():
                 flat_values += [child_tree]
                 flat_values += child_tree.values(flat)
             return flat_values
         else:
-            return list(self.tree.values())
+            return list(self.children.values())
 
     def items(self, flat: bool=False) -> typ.List[typ.Tuple[str, 'PrimitiveTree']]:
 
@@ -126,9 +124,9 @@ class PrimitiveTree:
 
         try:
             if len(split_key) == 1:
-                return self.tree[parent_key].value
+                return self.children[parent_key].data
             else:
-                return self.tree[parent_key][child_key]
+                return self.children[parent_key][child_key]
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
@@ -148,15 +146,15 @@ class PrimitiveTree:
         try:
             # Add any child primitives of `value`
             if isinstance(value, Prim):
-                self.tree[key] = PrimitiveTree(value, {})
+                self.children[key] = PrimitiveTree(value, {})
                 for child_key, child_prim in value.prims.items():
-                    self.tree[key][child_key] = child_prim
+                    self.children[key][child_key] = child_prim
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
     def __len__(self):
-        return len(self.value)
+        return len(self.data)
 
 
 class Layout:
