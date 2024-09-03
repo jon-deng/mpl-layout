@@ -62,7 +62,8 @@ class PrimitiveTree:
         """
         Return a mapping from primitive instance to integer index in `prims`
         """
-        return {tree.data: ii for ii, tree in enumerate(self.values(flat=True))}
+        _graph = {tree.data: None for tree in self.values(flat=True)}
+        return {prim: ii for ii, prim in enumerate(_graph)}
 
     @property
     def prims(self):
@@ -217,12 +218,10 @@ class Layout:
 
     @property
     def constraint_graph_int(self) -> IntGraph:
+        prim_graph = self.prim_tree.prim_graph
         return [
             tuple(
-                self.prim_tree.prim_graph[
-                    self.prim_tree[prim_label]
-                ]
-                for prim_label in prim_labels
+                prim_graph[self.prim_tree[prim_label]] for prim_label in prim_labels
             )
             for prim_labels in self.constraint_graph
         ]
