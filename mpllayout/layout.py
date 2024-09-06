@@ -480,24 +480,35 @@ def contract_prim(
 
 def build_tree(
         tree: PrimitiveTree,
-        oldprim_to_newprim: typ.Mapping[Prim, Prim],
-        oldprim_to_idx: typ.Mapping[Prim, int],
-        params: typ.List[np.typing.NDArray]
+        prim_to_idx: typ.Mapping[Prim, int],
+        params: typ.List[np.typing.NDArray],
+        prim_to_newprim: typ.Mapping[Prim, Prim]
     ) -> PrimitiveTree:
     """
     Return a new `PrimitiveTree` using new primitives for given parameter values
 
     Parameters
     ----------
-    prims: typ.List[geo.Primitive]
-        The old list of primitives
-    params: typ.List[np.typing.NDArray]
-        The new list of parameters for the primitives
+    tree:
+        The old `PrimitiveTree` instance
+    prim_to_idx:
+        A mapping from `Primitive` in `tree` to corresponding parameters in `params`
+
+        If `params` is a list with parameters in order from `tree.prims`, then this
+        corresponds to `tree.prim_graph`.
+    params:
+        A list of parameter values to build a new `PrimitiveTree` with
+    prim_to_newprim:
+        A mapping from `Primitive`s in `tree` to replacement `Primitives` in the new tree
+
+        This should be an empty dictionary in the root `build_tree` call. As
+        `build_tree` builds the new tree, it will populate this dictionary to preserve
+        the mapping of primitives.
 
     Returns
     -------
     PrimitiveTree
-        The new `PrimitiveTree`
+        The new `PrimitiveTree` with parameters from `params`
     """
     oldprim = tree.data
 
@@ -507,19 +518,19 @@ def build_tree(
         children = {}
     else:
         children = {
-            key: build_tree(childtree, oldprim_to_newprim, oldprim_to_idx, params)
+            key: build_tree(childtree, prim_to_idx, params, prim_to_newprim)
             for key, childtree in tree.children.items()
         }
 
     if oldprim is None:
         newprim = None
-    elif oldprim in oldprim_to_newprim:
-        newprim = oldprim_to_newprim[oldprim]
+    elif oldprim in prim_to_newprim:
+        newprim = prim_to_newprim[oldprim]
     else:
-        param = params[oldprim_to_idx[oldprim]]
+        param = params[prim_to_idx[oldprim]]
         newprim = type(oldprim)(
             param, tuple(child_tree.data for child_tree in children.values())
         )
-        oldprim_to_newprim[oldprim] = newprim
+        prim_to_newprim[oldprim] = newprim
 
     return PrimitiveTree(newprim, children)

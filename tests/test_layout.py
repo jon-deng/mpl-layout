@@ -40,7 +40,7 @@ class TestPrimitiveTree:
 
         new_params = [rng.random(prim.param.shape) for prim in prim_tree.prims]
 
-        new_tree = lat.build_tree(prim_tree, {}, prim_graph, new_params)
+        new_tree = lat.build_tree(prim_tree, prim_graph, new_params, {})
 
         print("Old primitive graph:")
         pprint(prim_tree.prim_graph)
