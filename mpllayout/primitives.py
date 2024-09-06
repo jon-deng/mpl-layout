@@ -256,7 +256,7 @@ class Polygon(Primitive):
     """
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = Line
+    _PRIM_TYPES = Point
 
     def __init__(
             self,
@@ -267,7 +267,11 @@ class Polygon(Primitive):
         # represent the polygon
 
         if prims is None:
-            prims = [PrimType() for PrimType in self._PRIM_TYPES]
+            if not isinstance(self._PRIM_TYPES, tuple):
+                prim_types = tuple([self._PRIM_TYPES])
+            else:
+                prim_types = self._PRIM_TYPES
+            prims = [PrimType() for PrimType in prim_types]
 
         _prims = [
             Line(np.array([]), [pointa, pointb])

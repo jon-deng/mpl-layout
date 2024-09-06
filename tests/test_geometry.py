@@ -12,8 +12,18 @@ from mpllayout import geometry as geo
 
 class TestPrimitves:
 
-    def test_Box(self):
-        geo.Box()
+    def test_Quadrilateral(self):
+        quad = geo.Quadrilateral()
+
+    def test_Line(self):
+        line = geo.Line()
+
+    def test_Point(self):
+        point = geo.Point()
+
+    def test_Polygon(self):
+        poly = geo.Polygon()
+
 
 
 class TestConstraints:
