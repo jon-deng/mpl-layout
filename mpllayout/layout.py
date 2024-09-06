@@ -159,13 +159,13 @@ class PrimitiveTree:
     def __len__(self):
         return len(self.data)
 
-def convert_prim_to_tree(prim: Prim) -> PrimitiveTree:
+def convert_primitive_to_tree(prim: Prim) -> PrimitiveTree:
     """
     Return a `PrimitiveTree` representation of a `Primitive`
     """
     # Recursively create any child trees:
     children = {
-        child_key: convert_prim_to_tree(child_prim)
+        child_key: convert_primitive_to_tree(child_prim)
         for child_key, child_prim in prim.prims.items()
     }
     return PrimitiveTree(prim, children)
@@ -265,7 +265,7 @@ class Layout:
         label: str
             The label for the added primitive
         """
-        self.prim_tree[label] = convert_prim_to_tree(prim)
+        self.prim_tree[label] = convert_primitive_to_tree(prim)
         return label
 
     def add_constraint(
@@ -478,7 +478,7 @@ def contract_prim(
 
     return type(prim)(param=prim.param, prims=tuple(child_prims)), m
 
-def build_primtree(
+def build_tree(
         tree: PrimitiveTree,
         oldprim_to_newprim: typ.Mapping[Prim, Prim],
         oldprim_to_idx: typ.Mapping[Prim, int],
@@ -507,7 +507,7 @@ def build_primtree(
         children = {}
     else:
         children = {
-            key: build_primtree(childtree, oldprim_to_newprim, oldprim_to_idx, params)
+            key: build_tree(childtree, oldprim_to_newprim, oldprim_to_idx, params)
             for key, childtree in tree.children.items()
         }
 

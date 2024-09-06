@@ -17,7 +17,7 @@ class TestPrimitiveTree:
         return lat.PrimitiveTree(None, {})
 
     def test_set_prim(self, prim_tree):
-        prim_tree['MyBox'] = lat.convert_prim_to_tree(geo.Quadrilateral())
+        prim_tree['MyBox'] = lat.convert_primitive_to_tree(geo.Quadrilateral())
 
         pprint(f"Keys:")
         pprint(prim_tree.children['MyBox'].keys())
@@ -31,8 +31,8 @@ class TestPrimitiveTree:
     def test_build_primtree(self, prim_tree):
         point_a = geo.Point([0, 0])
         point_b = geo.Point([1, 1])
-        prim_tree['PointA'] = lat.convert_prim_to_tree(point_a)
-        prim_tree['LineA'] = lat.convert_prim_to_tree(geo.Line([], (point_a, point_b)))
+        prim_tree['PointA'] = lat.convert_primitive_to_tree(point_a)
+        prim_tree['LineA'] = lat.convert_primitive_to_tree(geo.Line([], (point_a, point_b)))
 
         prim_graph = prim_tree.prim_graph
 
@@ -40,7 +40,7 @@ class TestPrimitiveTree:
 
         new_params = [rng.random(prim.param.shape) for prim in prim_tree.prims]
 
-        new_tree = lat.build_primtree(prim_tree, {}, prim_graph, new_params)
+        new_tree = lat.build_tree(prim_tree, {}, prim_graph, new_params)
 
         print("Old primitive graph:")
         pprint(prim_tree.prim_graph)
