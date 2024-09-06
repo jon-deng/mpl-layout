@@ -33,8 +33,7 @@ import numpy as np
 from . import geometry as geo
 from .array import LabelledList
 
-# TODO: Remove this later
-from .layout import Layout
+from . import layout
 
 PrimIdx = geo.PrimitiveIndex
 PrimIdxs = typ.Tuple[PrimIdx, ...]
@@ -48,7 +47,7 @@ StrGraph = typ.List[typ.Tuple[str, ...]]
 SolverInfo = typ.Mapping[str, typ.Any]
 
 def solve(
-        prims: PrimLabelledList,
+        primitive_tree: layout.PrimitiveTree,
         constraints: ConstraintLabelledList,
         constraint_graph: IntGraph,
         abs_tol: float = 1e-10,
@@ -101,7 +100,7 @@ def solve(
     n = 0
     abs_err = np.inf
     rel_err = np.inf
-    prims_n = prims
+    prims_n = primitive_tree
     while (abs_err > abs_tol) and (rel_err > rel_tol) and (n < max_iter):
         prims_n, linear_solve_info = solve_linear(prims_n, constraints, constraint_graph)
 
@@ -119,7 +118,7 @@ def solve(
     return prims_n, nonlinear_solve_info
 
 def solve_linear(
-        prims: PrimLabelledList,
+        primitive_tree: layout.PrimitiveTree,
         constraints: ConstraintLabelledList,
         constraint_graph: IntGraph
     ) -> typ.Tuple[PrimLabelledList, SolverInfo]:
@@ -158,6 +157,7 @@ def solve_linear(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
+    prims = primitive_tree.prims
     prim_sizes = [prim.param.size for prim in prims]
     prim_idx_bounds = np.cumsum([0] + prim_sizes)
 
@@ -168,7 +168,10 @@ def solve_linear(
             global_param[idx_start:idx_end]
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
-        new_prims = build_prims(prims, new_prim_params)
+        new_tree = layout.build_tree(
+            primitive_tree, primitive_tree.prim_graph, new_prim_params, {}
+        )
+        new_prims = new_tree.prims
         constraint_vals = []
         for constraint_idx, prim_idxs in enumerate(constraint_graph):
             constraint = constraints[constraint_idx]
@@ -192,7 +195,8 @@ def solve_linear(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    new_prims = build_prims(prims, new_prim_params)
-    new_prims = LabelledList(new_prims, list(prims.keys()))
+    new_tree = layout.build_tree(
+        primitive_tree, primitive_tree.prim_graph, new_prim_params, {}
+    )
 
-    return new_prims, solver_info
+    return new_tree, solver_info

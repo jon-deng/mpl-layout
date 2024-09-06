@@ -34,6 +34,8 @@ class TestPrimitiveTree:
         prim_tree['PointA'] = lat.convert_primitive_to_tree(point_a)
         prim_tree['LineA'] = lat.convert_primitive_to_tree(geo.Line([], (point_a, point_b)))
 
+        prim_tree['MySpecialBox'] = lat.convert_primitive_to_tree(geo.Quadrilateral())
+
         prim_graph = prim_tree.prim_graph
 
         rng = np.random.default_rng()
