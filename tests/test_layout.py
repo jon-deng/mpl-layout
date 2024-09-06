@@ -2,8 +2,9 @@
 Test `layout`
 """
 
-
 import pytest
+
+from pprint import pprint
 
 from mpllayout import geometry as geo, layout as lat
 
@@ -14,11 +15,16 @@ class TestPrimitiveTree:
         return lat.PrimitiveTree(None, {})
 
     def test_set_prim(self, prim_tree):
-        prim_tree['MyBox'] = geo.Quadrilateral()
+        prim_tree['MyBox'] = lat.convert_prim_to_tree(geo.Quadrilateral())
 
-        print("keys:", prim_tree.keys())
-        print("flat keys:", prim_tree.keys(flat=True))
-        print("prims", prim_tree.prims)
+        pprint(f"Keys:")
+        pprint(prim_tree.children['MyBox'].keys())
+
+        pprint("Flat keys:")
+        pprint(prim_tree.keys(flat=True))
+
+        pprint("Unique prims:")
+        pprint(prim_tree.prims)
 
 class TestLayout:
 
@@ -30,8 +36,8 @@ class TestLayout:
 
         layout.add_constraint(geo.PointLocation((0, 0)), ('MyBox/Line0/Point0',))
 
-        print(layout.prims)
-        print(layout.constraints)
-        print(layout.constraint_graph)
-        print(layout.constraint_graph_int)
+        pprint(layout.prims)
+        pprint(layout.constraints)
+        pprint(layout.constraint_graph)
+        pprint(layout.constraint_graph_int)
 

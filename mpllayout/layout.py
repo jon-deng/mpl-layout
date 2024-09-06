@@ -131,7 +131,7 @@ class PrimitiveTree:
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def __setitem__(self, key: str, value: typ.Union['PrimitiveTree', Prim]):
+    def __setitem__(self, key: str, value: 'PrimitiveTree'):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -141,15 +141,17 @@ class PrimitiveTree:
             A slash-separated key, for example 'Box/Line0/Point2'
         """
         split_key = key.split('/')
-        # parent_key = split_key[0]
-        child_key = '/'.join(split_key[1:])
+        parent_key = split_key[0]
+        child_keys = split_key[1:]
+        child_key = '/'.join(child_keys)
 
         try:
-            # Add any child primitives of `value`
-            if isinstance(value, Prim):
-                self.children[key] = PrimitiveTree(value, {})
-                for child_key, child_prim in value.prims.items():
-                    self.children[key][child_key] = child_prim
+            if len(child_keys) > 0:
+                self.children[parent_key][child_key] = value
+            elif len(child_keys) == 0:
+                self.children[parent_key] = value
+            else:
+                assert False
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
@@ -157,6 +159,16 @@ class PrimitiveTree:
     def __len__(self):
         return len(self.data)
 
+def convert_prim_to_tree(prim: Prim) -> PrimitiveTree:
+    """
+    Return a `PrimitiveTree` representation of a `Primitive`
+    """
+    # Recursively create any child trees:
+    children = {
+        child_key: convert_prim_to_tree(child_prim)
+        for child_key, child_prim in prim.prims.items()
+    }
+    return PrimitiveTree(prim, children)
 
 class Layout:
     """
@@ -253,7 +265,7 @@ class Layout:
         label: str
             The label for the added primitive
         """
-        self.prim_tree[label] = prim
+        self.prim_tree[label] = convert_prim_to_tree(prim)
         return label
 
     def add_constraint(
