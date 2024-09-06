@@ -270,7 +270,7 @@ class Polygon(Primitive):
             prims = [PrimType() for PrimType in self._PRIM_TYPES]
 
         _prims = [
-            Line(np.array([0]), [pointa, pointb])
+            Line(np.array([]), [pointa, pointb])
             for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
         ]
 
