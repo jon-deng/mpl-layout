@@ -478,15 +478,14 @@ def contract_prim(
 
     return type(prim)(param=prim.param, prims=tuple(child_prims)), m
 
-def build_prims(
-        prims: typ.List[geo.Primitive],
+def build_primtree(
+        tree: PrimitiveTree,
+        oldprim_to_newprim: typ.Mapping[Prim, Prim],
+        oldprim_to_idx: typ.Mapping[Prim, int],
         params: typ.List[np.typing.NDArray]
-    ) -> typ.List[geo.Primitive]:
+    ) -> PrimitiveTree:
     """
-    Create an updated list of `Primitive`s from new parameters
-
-    This function rebuilds a list of primitives with new parameters in
-    a corresponding list of parameters.
+    Return a new `PrimitiveTree` using new primitives for given parameter values
 
     Parameters
     ----------
@@ -497,25 +496,30 @@ def build_prims(
 
     Returns
     -------
-    typ.List[geo.Primitive]
-        The new list of primitives
+    PrimitiveTree
+        The new `PrimitiveTree`
     """
+    oldprim = tree.data
 
-    # First create primitives where the new parameters have been applied
-    _new_prims = [
-        type(prim)(param=param, prims=prim.prims)
-        for prim, param in zip(prims, params)
-    ]
+    # If the tree has no children, we simply create the primitive with no children
+    # If the tree has children, we need to recursively create all child trees
+    if len(tree.children) == 0:
+        children = {}
+    else:
+        children = {
+            key: build_primtree(childtree, oldprim_to_newprim, oldprim_to_idx, params)
+            for key, childtree in tree.children.items()
+        }
 
-    # Contract all child primitives into parents.
-    # This is needed because primitive are parameterized both by parameter and
-    # other primitives.
-    m = 0
-    new_prims = []
-    while m < len(_new_prims):
-        prim, dm = contract_prim(_new_prims[m], _new_prims[m+1:])
-        cprims, _clabels = expand_prim(prim, '')
-        new_prims = new_prims + [prim] + cprims
-        m += 1+dm
+    if oldprim is None:
+        newprim = None
+    elif oldprim in oldprim_to_newprim:
+        newprim = oldprim_to_newprim[oldprim]
+    else:
+        param = params[oldprim_to_idx[oldprim]]
+        newprim = type(oldprim)(
+            param, tuple(child_tree.data for child_tree in children.values())
+        )
+        oldprim_to_newprim[oldprim] = newprim
 
-    return new_prims
+    return PrimitiveTree(newprim, children)

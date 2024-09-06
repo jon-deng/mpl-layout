@@ -6,6 +6,8 @@ import pytest
 
 from pprint import pprint
 
+import numpy as np
+
 from mpllayout import geometry as geo, layout as lat
 
 class TestPrimitiveTree:
@@ -25,6 +27,41 @@ class TestPrimitiveTree:
 
         pprint("Unique prims:")
         pprint(prim_tree.prims)
+
+    def test_build_primtree(self, prim_tree):
+        point_a = geo.Point([0, 0])
+        point_b = geo.Point([1, 1])
+        prim_tree['PointA'] = lat.convert_prim_to_tree(point_a)
+        prim_tree['LineA'] = lat.convert_prim_to_tree(geo.Line([], (point_a, point_b)))
+
+        prim_graph = prim_tree.prim_graph
+
+        rng = np.random.default_rng()
+
+        new_params = [rng.random(prim.param.shape) for prim in prim_tree.prims]
+
+        new_tree = lat.build_primtree(prim_tree, {}, prim_graph, new_params)
+
+        print("Old primitive graph:")
+        pprint(prim_tree.prim_graph)
+
+        print("Old primitive list")
+        pprint(prim_tree.prims)
+
+        print("Old primitive keys")
+        pprint(prim_tree.keys(flat=True))
+
+        print("New parameters")
+        pprint(new_params)
+
+        print("New primitive graph:")
+        pprint(new_tree.prim_graph)
+
+        print("New primitive list")
+        pprint(new_tree.prims)
+
+        print("New primitive keys")
+        pprint(new_tree.keys(flat=True))
 
 class TestLayout:
 
