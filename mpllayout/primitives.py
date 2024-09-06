@@ -190,6 +190,12 @@ class Primitive:
     def __str__(self):
         return self.__repr__()
 
+    def __len__(self) -> int:
+        return len(self.prims)
+
+    def __getitem__(self, key: int) -> 'Primitive':
+        return self.prims[key]
+
 
 class PrimitiveArray(Primitive):
     """
@@ -256,29 +262,31 @@ class Polygon(Primitive):
     """
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = Point
+    _PRIM_TYPES = Line
 
     def __init__(
             self,
             param: typ.Optional[NDArray]=None,
             prims: typ.Optional[PrimList]=None
         ):
-        # This converts a series of points into a series of line segments that
-        # represent the polygon
+        # This allows you to input `prims` as a series of points rather than lines
+        if not isinstance(self._PRIM_TYPES, tuple):
+            prim_types = ()
+        else:
+            prim_types = self._PRIM_TYPES
 
         if prims is None:
-            if not isinstance(self._PRIM_TYPES, tuple):
-                prim_types = tuple([self._PRIM_TYPES])
-            else:
-                prim_types = self._PRIM_TYPES
-            prims = [PrimType() for PrimType in prim_types]
+            prims = tuple(Point() for _ in range(len(prim_types)))
 
-        _prims = [
-            Line(np.array([]), [pointa, pointb])
-            for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
-        ]
+        if all((isinstance(prim, Point) for prim in prims)):
+            lines = [
+                Line(np.array([]), [pointa, pointb])
+                for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
+            ]
+        else:
+            lines = prims
 
-        super().__init__(param, _prims)
+        super().__init__(param, lines)
 
 
 class Quadrilateral(Polygon):
@@ -287,4 +295,4 @@ class Quadrilateral(Polygon):
     """
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (Point, Point, Point, Point)
+    _PRIM_TYPES = (Line, Line, Line, Line)
