@@ -26,7 +26,7 @@ class TestPrimitiveTree:
         pprint(prim_tree.keys(flat=True))
 
         pprint("Unique prims:")
-        pprint(prim_tree.prims)
+        pprint(prim_tree.prims())
 
     def test_build_primtree(self, prim_tree):
         point_a = geo.Point([0, 0])
@@ -36,19 +36,19 @@ class TestPrimitiveTree:
 
         prim_tree['MySpecialBox'] = lat.convert_primitive_to_tree(geo.Quadrilateral())
 
-        prim_graph = prim_tree.prim_graph
+        prim_graph = prim_tree.prim_graph()
 
         rng = np.random.default_rng()
 
-        new_params = [rng.random(prim.param.shape) for prim in prim_tree.prims]
+        new_params = [rng.random(prim.param.shape) for prim in prim_tree.prims()]
 
         new_tree = lat.build_tree(prim_tree, prim_graph, new_params, {})
 
         print("Old primitive graph:")
-        pprint(prim_tree.prim_graph)
+        pprint(prim_tree.prim_graph())
 
         print("Old primitive list")
-        pprint(prim_tree.prims)
+        pprint(prim_tree.prims())
 
         print("Old primitive keys")
         pprint(prim_tree.keys(flat=True))
@@ -57,10 +57,10 @@ class TestPrimitiveTree:
         pprint(new_params)
 
         print("New primitive graph:")
-        pprint(new_tree.prim_graph)
+        pprint(new_tree.prim_graph())
 
         print("New primitive list")
-        pprint(new_tree.prims)
+        pprint(new_tree.prims())
 
         print("New primitive keys")
         pprint(new_tree.keys(flat=True))
@@ -75,7 +75,7 @@ class TestLayout:
 
         layout.add_constraint(geo.PointLocation((0, 0)), ('MyBox/Line0/Point0',))
 
-        pprint(layout.prims)
+        pprint(layout.prims())
         pprint(layout.constraints)
         pprint(layout.constraint_graph)
         pprint(layout.constraint_graph_int)

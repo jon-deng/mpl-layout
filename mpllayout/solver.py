@@ -157,7 +157,7 @@ def solve_linear(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
-    prims = primitive_tree.prims
+    prims = primitive_tree.prims()
     prim_sizes = [prim.param.size for prim in prims]
     prim_idx_bounds = np.cumsum([0] + prim_sizes)
 
@@ -169,9 +169,9 @@ def solve_linear(
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
         new_tree = layout.build_tree(
-            primitive_tree, primitive_tree.prim_graph, new_prim_params, {}
+            primitive_tree, primitive_tree.prim_graph(), new_prim_params, {}
         )
-        new_prims = new_tree.prims
+        new_prims = new_tree.prims()
         constraint_vals = []
         for constraint_idx, prim_idxs in enumerate(constraint_graph):
             constraint = constraints[constraint_idx]
@@ -196,7 +196,7 @@ def solve_linear(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     new_tree = layout.build_tree(
-        primitive_tree, primitive_tree.prim_graph, new_prim_params, {}
+        primitive_tree, primitive_tree.prim_graph(), new_prim_params, {}
     )
 
     return new_tree, solver_info

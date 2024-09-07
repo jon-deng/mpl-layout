@@ -57,20 +57,18 @@ class PrimitiveTree:
         self._data = data
         self._children = children
 
-    @property
-    def prim_graph(self):
+    def prim_graph(self) -> typ.Mapping[Prim, int]:
         """
         Return a mapping from primitive instance to integer index in `prims`
         """
         _graph = {tree.data: None for tree in self.values(flat=True)}
         return {prim: ii for ii, prim in enumerate(_graph)}
 
-    @property
-    def prims(self):
+    def prims(self) -> typ.List[Prim]:
         """
         Return a list of all unique primitives in the tree
         """
-        return list(self.prim_graph.keys())
+        return list(self.prim_graph().keys())
 
     @property
     def children(self):
@@ -212,13 +210,12 @@ class Layout:
         self._constraint_type_count = {}
         self._label_to_constraintidx = {}
 
+    def prims(self):
+        return self.primitive_tree.prims()
+
     @property
     def primitive_tree(self):
         return self._primitive_tree
-
-    @property
-    def prims(self):
-        return self.primitive_tree.prims
 
     @property
     def constraints(self):
@@ -230,7 +227,7 @@ class Layout:
 
     @property
     def constraint_graph_int(self) -> IntGraph:
-        prim_graph = self.primitive_tree.prim_graph
+        prim_graph = self.primitive_tree.prim_graph()
         return [
             tuple(
                 prim_graph[self.primitive_tree[prim_label]] for prim_label in prim_labels
@@ -494,8 +491,8 @@ def build_tree(
     prim_to_idx:
         A mapping from `Primitive` in `tree` to corresponding parameters in `params`
 
-        If `params` is a list with parameters in order from `tree.prims`, then this
-        corresponds to `tree.prim_graph`.
+        If `params` is a list with parameters in order from `tree.prims()`, then this
+        corresponds to `tree.prim_graph()`.
     params:
         A list of parameter values to build a new `PrimitiveTree` with
     prim_to_newprim:
