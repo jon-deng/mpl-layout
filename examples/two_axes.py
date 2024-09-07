@@ -9,7 +9,7 @@ from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as
 
 def plot_layout(layout: lay.Layout, fig_path: str):
     prim_tree_n, info = solver.solve(
-        layout.primitive_tree, layout.constraints, layout.constraint_graph_int,
+        layout.prim_tree, layout.constraints, layout.constraint_graph_int,
         max_iter=40, rel_tol=1e-9
     )
     root_prim_labels = [label for label in prim_tree_n.keys() if '.' not in label]
@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
     ## Solve for the constrained positions of the primitives
     prims, info = solver.solve(
-        layout.primitive_tree, layout.constraints, layout.constraint_graph_int,
+        layout.prim_tree, layout.constraints, layout.constraint_graph_int,
         max_iter=40, rel_tol=1e-9
     )
     print('Figure:', prims['Figure'])

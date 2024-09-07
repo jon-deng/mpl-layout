@@ -211,10 +211,10 @@ class Layout:
         self._label_to_constraintidx = {}
 
     def prims(self):
-        return self.primitive_tree.prims()
+        return self.prim_tree.prims()
 
     @property
-    def primitive_tree(self):
+    def prim_tree(self):
         return self._primitive_tree
 
     @property
@@ -227,10 +227,10 @@ class Layout:
 
     @property
     def constraint_graph_int(self) -> IntGraph:
-        prim_graph = self.primitive_tree.prim_graph()
+        prim_graph = self.prim_tree.prim_graph()
         return [
             tuple(
-                prim_graph[self.primitive_tree[prim_label]] for prim_label in prim_labels
+                prim_graph[self.prim_tree[prim_label]] for prim_label in prim_labels
             )
             for prim_labels in self.constraint_graph
         ]
@@ -262,7 +262,7 @@ class Layout:
         label: str
             The label for the added primitive
         """
-        self.primitive_tree[label] = convert_primitive_to_tree(prim)
+        self.prim_tree[label] = convert_primitive_to_tree(prim)
         return label
 
     def add_constraint(

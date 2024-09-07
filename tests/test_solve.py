@@ -26,7 +26,7 @@ class TestPrimitiveTree:
 
     def test_solve_linear(self, layout: lay.Layout):
         prim_tree_n, solve_info = solver.solve_linear(
-            layout.primitive_tree, layout.constraints, layout.constraint_graph_int
+            layout.prim_tree, layout.constraints, layout.constraint_graph_int
         )
 
         pprint(solve_info)
