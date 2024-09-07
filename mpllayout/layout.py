@@ -24,11 +24,7 @@ The class `Layout` handles construction of these three lists while functions
 """
 
 import typing as typ
-import warnings
-import functools
 
-import jax
-from jax import numpy as jnp
 import numpy as np
 
 from . import geometry as geo

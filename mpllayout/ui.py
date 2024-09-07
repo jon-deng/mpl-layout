@@ -5,7 +5,6 @@ Utilities for a user interface/visualization of the plot layout
 import typing as typ
 
 import matplotlib as mpl
-from matplotlib import patches
 import numpy as np
 
 from . import geometry as geo

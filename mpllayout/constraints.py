@@ -10,12 +10,12 @@ import jax.numpy as jnp
 
 from . import primitives as primitives
 
-PrimList = typ.Tuple['Primitive', ...]
+PrimList = typ.Tuple[primitives.Primitive, ...]
 ConstraintList = typ.List['Constraint']
 Idxs = typ.Tuple[int]
 
 ArrayShape = typ.Tuple[int, ...]
-PrimTuple = typ.Tuple['Primitive', ...]
+PrimTuple = typ.Tuple[primitives.Primitive, ...]
 
 class Constraint:
     """
