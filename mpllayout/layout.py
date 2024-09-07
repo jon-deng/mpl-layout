@@ -108,7 +108,7 @@ class PrimitiveTree:
 
     def items(self, flat: bool=False) -> typ.List[typ.Tuple[str, 'PrimitiveTree']]:
 
-        return zip(self.items(flat), self.values(flat))
+        return zip(self.keys(flat), self.values(flat))
 
     def __getitem__(self, key: str):
         """
