@@ -35,12 +35,9 @@ from .array import LabelledList
 
 from . import layout
 
-PrimIdx = geo.PrimitiveIndex
-PrimIdxs = typ.Tuple[PrimIdx, ...]
 PrimLabelledList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
 ConstraintLabelledList = LabelledList[geo.Constraint]
 
-PrimIdxGraph = typ.List[PrimIdxs]
 IntGraph = typ.List[typ.Tuple[int, ...]]
 StrGraph = typ.List[typ.Tuple[str, ...]]
 
