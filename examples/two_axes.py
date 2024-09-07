@@ -5,7 +5,7 @@ Create a two axes figure
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt, ui, array
+from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt, ui
 
 def plot_layout(layout: lay.Layout, fig_path: str):
     prim_tree_n, info = solver.solve(

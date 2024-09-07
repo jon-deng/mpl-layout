@@ -3,7 +3,6 @@ Create a one axes figure
 """
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt
 
