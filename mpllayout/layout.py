@@ -47,6 +47,22 @@ StrGraph = typ.List[typ.Tuple[str, ...]]
 class PrimitiveTree:
     """
     Tree structure mapping keys to `Primitive`s
+
+    The tree structure reflects the `Primitive` structure where a primitive can have
+    associated child primitives.
+
+    Parameters
+    ----------
+    data:
+        A `Primitive` associated with the node
+    children:
+        Any child `Primitive` of the primitive
+
+        This follows the recursive layout of `Primitive`. For example, consider a `Line`
+        instance `line` which has two points. The tree representation of `line` is
+        ```
+        PrimitiveTree(line, {'Point0': line[0], 'Point1': line[1]})
+        ```
     """
 
     def __init__(
@@ -59,7 +75,7 @@ class PrimitiveTree:
 
     def prim_graph(self) -> typ.Mapping[Prim, int]:
         """
-        Return a mapping from primitive instance to integer index in `prims`
+        Return a mapping from primitives to integer indices in `self.prims()`
         """
         _graph = {tree.data: None for tree in self.values(flat=True)}
         return {prim: ii for ii, prim in enumerate(_graph)}
@@ -73,16 +89,29 @@ class PrimitiveTree:
     @property
     def children(self):
         """
-        Return a list of all unique primitives in the tree
+        Return any child primitives of the primitive in `self.data`
         """
         return self._children
 
     @property
     def data(self):
+        """
+        Return the associated primitive
+        """
         return self._data
 
     ## Dict-like interface
     def keys(self, flat: bool=False) -> typ.List[str]:
+        """
+        Return child keys
+
+        Parameters
+        ----------
+        flat:
+            Toggle whether to recursively flatten keys
+
+            Child keys are separated using '/'
+        """
         if flat:
             flat_keys = []
             for key, child_tree in self.children.items():
@@ -95,6 +124,14 @@ class PrimitiveTree:
             return list(self.children.keys())
 
     def values(self, flat: bool=False) -> typ.List['PrimitiveTree']:
+        """
+        Return child primitives
+
+        Parameters
+        ----------
+        flat:
+            Toggle whether to recursively flatten child primitives
+        """
         if flat:
             flat_values = []
             for key, child_tree in self.children.items():
@@ -105,6 +142,14 @@ class PrimitiveTree:
             return list(self.children.values())
 
     def items(self, flat: bool=False) -> typ.List[typ.Tuple[str, 'PrimitiveTree']]:
+        """
+        Return paired child keys and associated trees
+
+        Parameters
+        ----------
+        flat:
+            Toggle whether to recursively flatten keys and trees
+        """
 
         return zip(self.keys(flat), self.values(flat))
 
