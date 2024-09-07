@@ -190,19 +190,19 @@ class Layout:
 
     def __init__(
             self,
-            prim_tree: typ.Optional[PrimitiveTree]=None,
+            primitive_tree: typ.Optional[PrimitiveTree]=None,
             constraints: typ.Optional[ConstraintLabelledList]=None,
             constraint_graph: typ.Optional[StrGraph]=None
         ):
 
-        if prim_tree is None:
-            prim_tree = PrimitiveTree(None, {})
+        if primitive_tree is None:
+            primitive_tree = PrimitiveTree(None, {})
         if constraints is None:
             constraints = []
         if constraint_graph is None:
             constraint_graph = []
 
-        self._prim_tree = prim_tree
+        self._primitive_tree = primitive_tree
         self._constraints = LabelledList(constraints)
         self._constraint_graph = constraint_graph
 
@@ -213,12 +213,12 @@ class Layout:
         self._label_to_constraintidx = {}
 
     @property
-    def prim_tree(self):
-        return self._prim_tree
+    def primitive_tree(self):
+        return self._primitive_tree
 
     @property
     def prims(self):
-        return self.prim_tree.prims
+        return self.primitive_tree.prims
 
     @property
     def constraints(self):
@@ -230,10 +230,10 @@ class Layout:
 
     @property
     def constraint_graph_int(self) -> IntGraph:
-        prim_graph = self.prim_tree.prim_graph
+        prim_graph = self.primitive_tree.prim_graph
         return [
             tuple(
-                prim_graph[self.prim_tree[prim_label]] for prim_label in prim_labels
+                prim_graph[self.primitive_tree[prim_label]] for prim_label in prim_labels
             )
             for prim_labels in self.constraint_graph
         ]
@@ -265,7 +265,7 @@ class Layout:
         label: str
             The label for the added primitive
         """
-        self.prim_tree[label] = convert_primitive_to_tree(prim)
+        self.primitive_tree[label] = convert_primitive_to_tree(prim)
         return label
 
     def add_constraint(
