@@ -34,16 +34,17 @@ def plot_line_segment(
     ys = np.array([point.param[1] for point in line_segment.prims])
     ax.plot(xs, ys, **kwargs)
 
-def plot_closed_polyline(
-        ax: mpl.axes.Axes, polyline: geo.Polygon,
+def plot_polygon(
+        ax: mpl.axes.Axes, polygon: geo.Polygon,
         label=None, **kwargs
     ):
     """
     Plot a `ClosedPolyline` primitive in an axes
     """
-    closed_prims = polyline.prims[:]+(polyline.prims[0],)
-    xs = np.array([point.param[0] for point in closed_prims])
-    ys = np.array([point.param[1] for point in closed_prims])
+    closed_prims = polygon.prims[:]+(polygon.prims[0],)
+    points = [polygon[0][0]] + [polygon[ii][1] for ii in range(len(polygon))]
+    xs = np.array([point.param[0] for point in points])
+    ys = np.array([point.param[1] for point in points])
 
     line, = ax.plot(xs, ys, **kwargs)
     if label is not None:
@@ -69,7 +70,7 @@ def make_plot(
     elif isinstance(prim, geo.Line):
         return plot_line_segment
     elif isinstance(prim, geo.Polygon):
-        return plot_closed_polyline
+        return plot_polygon
     else:
         raise ValueError(f"No plotting function for primitive of type {type(prim)}")
 
@@ -81,5 +82,5 @@ def plot_prims(
     """
 
     for label, prim in prims.items():
-        plot = make_plot(prim)
-        plot(ax, prim, label=label)
+        plot = make_plot(prim.data)
+        plot(ax, prim.data, label=label)

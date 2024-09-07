@@ -5,10 +5,10 @@ Create a one axes figure
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mpllayout import solver, geometry as geo, matplotlibutils as lplt
+from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt
 
 if __name__ == '__main__':
-    layout = solver.Layout()
+    layout = lay.Layout()
 
     ## Create an origin point
     layout.add_prim(geo.Point([0, 0]), 'Origin')
@@ -76,14 +76,14 @@ if __name__ == '__main__':
     )
 
     ## Solve the constraints and form the figure/axes layout
-    prims, info = solver.solve(
-        layout.prims, layout.constraints, layout.constraint_graph_int
+    prim_tree_n, info = solver.solve(
+        layout.primitive_tree, layout.constraints, layout.constraint_graph_int
     )
 
-    print('Figure:', prims['Figure'])
-    print('Axes1:', prims['Axes1'])
+    print('Figure:', prim_tree_n['Figure'])
+    print('Axes1:', prim_tree_n['Axes1'])
 
-    fig, axs = lplt.subplots(prims)
+    fig, axs = lplt.subplots(prim_tree_n)
 
     x = np.linspace(0, 1)
     axs['Axes1'].plot(x, x**2)
