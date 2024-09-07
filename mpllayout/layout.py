@@ -223,29 +223,29 @@ class Layout:
 
     Parameters
     ----------
-    prims: typ.Optional[PrimLabelledList]
-        A list of primitives
-    constraints: typ.Optional[ConstraintLabelledList]
+    prim_tree:
+        A `PrimitiveTree`
+    constraints:
         A list of constraints
-    constraint_graph: typ.Optional[StrGraph]
+    constraint_graph:
         A constraint graph
     """
 
     def __init__(
             self,
-            primitive_tree: typ.Optional[PrimitiveTree]=None,
+            prim_tree: typ.Optional[PrimitiveTree]=None,
             constraints: typ.Optional[ConstraintLabelledList]=None,
             constraint_graph: typ.Optional[StrGraph]=None
         ):
 
-        if primitive_tree is None:
-            primitive_tree = PrimitiveTree(None, {})
+        if prim_tree is None:
+            prim_tree = PrimitiveTree(None, {})
         if constraints is None:
             constraints = []
         if constraint_graph is None:
             constraint_graph = []
 
-        self._primitive_tree = primitive_tree
+        self._primitive_tree = prim_tree
         self._constraints = LabelledList(constraints)
         self._constraint_graph = constraint_graph
 
@@ -286,11 +286,9 @@ class Layout:
             label: typ.Optional[str]=None
         ) -> str:
         """
-        Add a `geo.Primitive` to the `Layout`
+        Add a `Primitive` to the `Layout`
 
-        The primitive will be added with the label 'label'. In addition, all
-        child primitives will be recursively added with label
-        'label.child_prim_label'.
+        The primitive will be added `self.prim_tree` under the given `label`.
 
         Parameters
         ----------
@@ -321,10 +319,10 @@ class Layout:
 
         Parameters
         ----------
-        constraint: geo.Constraint
+        constraint:
             The constraint to apply
-        prim_idxs: PrimIdxs
-            Indices of the primitives the constraint applies to
+        prim_idxs:
+            A tuple of strings referencing primitives (`self.prim_tree`) to apply the constraint
         constraint_label: typ.Optional[str]
             An optional label for the constraint.
             If not provided, an automatic name based on the constraint class
