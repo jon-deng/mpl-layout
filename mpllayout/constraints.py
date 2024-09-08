@@ -3,6 +3,9 @@ Geometric constraints
 """
 
 import typing as typ
+
+import itertools
+
 from numpy.typing import NDArray
 
 import numpy as np
@@ -337,6 +340,75 @@ class Box(Constraint):
             vertical((quad[3],))
         ])
         return res
+
+## Grid constraints
+
+class Grid(Constraint):
+
+    def __init__(
+            self,
+            shape: typ.Tuple[int, ...],
+            vertical_margins: typ.Union[float, NDArray[float]],
+            horizontal_margins: typ.Union[float, NDArray[float]],
+            heights: typ.Union[float, NDArray[float]],
+            widths: typ.Union[float, NDArray[float]]
+        ):
+
+        self._PRIMITIVE_TYPES = (primitives.Quadrilateral,) * int(np.prod(shape))
+
+        self._shape = shape
+        self._vertical_margins = vertical_margins
+        self._horizontal_margins = horizontal_margins
+        self._heights = heights
+        self._widths = widths
+
+        super().__init__()
+
+    def assem_res(self, prims):
+        # boxes = np.array(prims).reshape(self._shape)
+
+        num_row, num_col = self._shape
+
+        # Set the top left (0 box) to have the right width/height
+        box_topleft = prims[0]
+        LineLength(self._widths[0])((box_topleft[0],))
+        LineLength(self._heights[0])((box_topleft[1],))
+
+        for ii, jj in itertools.product(range(1, num_row), range(num_col)):
+
+            # Set vertical margins
+            margin = self._vertical_margins[ii]
+
+            box_a = prims[(ii-1)*num_col + jj]
+            box_b = prims[ii*num_col + jj]
+
+            PointToPointDirectedDistance(margin, direction=np.array([0, -1]))((box_a[0][0], box_b[2][1]))
+
+            # Set vertical widths
+            length = self._heights[jj]/self._heights[0]
+            RelativeLineLength(length)((box_topleft[1], box_b[1],))
+
+            # Set vertical collinearity
+            CollinearLines()((box_a[1], box_b[1],))
+            CollinearLines()((box_a[3], box_b[3],))
+
+        for ii, jj in itertools.product(range(num_row), range(1, num_col)):
+
+            # Set horizontal margins
+            margin = self._horizontal_margins[jj]
+
+            box_a = prims[ii*num_col + (jj-1)]
+            box_b = prims[ii*num_col + jj]
+
+            PointToPointDirectedDistance(margin, direction=np.array([1, 0]))((box_a[0][1], box_b[0][0]))
+
+            # Set horizontal widths
+            length = self._widths[jj]/self._widths[0]
+            RelativeLineLength(length)((box_topleft[0], box_b[0],))
+
+            # Set horizontal collinearity
+            CollinearLines()((box_a[0], box_b[0],))
+            CollinearLines()((box_a[2], box_b[2],))
 
 
 def line_direction(line: 'primitives.LineSegment'):
