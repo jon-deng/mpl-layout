@@ -391,8 +391,8 @@ class Grid(Constraint):
             )
 
             # Set vertical widths
-            length = self._heights[ii]/self._heights[0]
-            res_arrays.append(RelativeLineLength(length)((box_topleft[1], box_b[1],)))
+            length = self._heights[ii]
+            res_arrays.append(RelativeLineLength(length)((box_b[1], box_topleft[1])))
 
             # Set vertical collinearity
             res_arrays.append(CollinearLines()((box_a[1], box_b[1],)))
@@ -413,8 +413,9 @@ class Grid(Constraint):
             )
 
             # Set horizontal widths
-            length = self._widths[jj]/self._widths[0]
-            res_arrays.append(RelativeLineLength(length)((box_topleft[0], box_b[0],)))
+            length = self._widths[jj]
+            # breakpoint()
+            res_arrays.append(RelativeLineLength(length)((box_b[0], box_topleft[0])))
 
             # Set horizontal collinearity
             res_arrays.append(CollinearLines()((box_a[0], box_b[0],)))
