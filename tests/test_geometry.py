@@ -3,6 +3,10 @@ Test geometric primitive and constraints
 """
 
 import pytest
+
+import typing as typ
+
+import itertools
 from pprint import pprint
 
 import numpy as np
@@ -60,6 +64,42 @@ class TestConstraints:
         constraint = geo.PointLocation(location)
         ans_com = constraint(points[:2])
         assert np.all(np.isclose(ans_ref, ans_com))
+
+    @pytest.fixture(params=[(1, 1), (2, 1), (1, 2), (2, 2)])
+    def shape(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def quads(self, shape):
+        num_quads = int(np.prod(shape))
+
+        quads = []
+        for ii, jj in itertools.product(*(range(size) for size in shape)):
+            height = 1
+            width = 2
+            height_margin = 0.1
+            width_margin = 0.1
+            origin_topleft = np.array(
+                [ii*(height+height_margin), jj*(width+width_margin)], dtype=float
+            )
+            points = [
+                origin_topleft - [0, height],
+                origin_topleft - [0, height] + [width, 0],
+                origin_topleft - [0, height] + [width, 0] + [0, height],
+                origin_topleft
+            ]
+            quads.append(geo.Quadrilateral([], [geo.Point(point) for point in points]))
+
+        return quads
+
+    def test_Grid(self, quads: typ.List[geo.Quadrilateral], shape: typ.Tuple[int, ...]):
+        num_row, num_col = shape
+
+        res = geo.Grid(
+            shape, (num_col-1)*[0.1], (num_row-1)*[0.1], (num_col-1)*[1], (num_row-1)*[1]
+        )(quads)
+
+        print(res)
 
     # def test_CoincidentPoint(self, points):
     #     ans_ref = points[0].param
