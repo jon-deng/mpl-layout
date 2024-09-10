@@ -10,11 +10,8 @@ import jax.numpy as jnp
 
 from .array import LabelledTuple
 
-PrimList = typ.Tuple["Primitive", ...]
-Idxs = typ.Tuple[int]
 
 ArrayShape = typ.Tuple[int, ...]
-PrimTuple = typ.Tuple["Primitive", ...]
 
 ## Generic primitive class/interface
 # You can create specific primitive definitions by inheriting from these and
@@ -126,6 +123,10 @@ class Primitive:
 
     def __getitem__(self, key: int) -> "Primitive":
         return self.prims[key]
+
+
+PrimList = typ.Tuple[Primitive, ...]
+PrimTuple = typ.Tuple[Primitive, ...]
 
 
 class PrimitiveArray(Primitive):
