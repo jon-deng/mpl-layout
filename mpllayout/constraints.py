@@ -109,6 +109,20 @@ class DirectedDistance(Constraint):
         )
         return distance - self._res_kwargs['distance']
 
+class XDistance(DirectedDistance):
+
+    def __init__(
+            self, distance: float
+        ):
+        super().__init__(distance, direction=np.array([1, 0]))
+
+class YDistance(DirectedDistance):
+
+    def __init__(
+            self, distance: float
+        ):
+        super().__init__(distance, direction=np.array([0, 1]))
+
 class PointLocation(Constraint):
     """
     A constraint on the location of a point
