@@ -54,7 +54,7 @@ class TestConstraints:
     def test_PointToPointAbsDistance(self, points, direction):
         ans_ref = np.dot(points[1].param - points[0].param, direction)
 
-        dist = geo.PointToPointDirectedDistance(0)
+        dist = geo.DirectedDistance(0)
         ans_com = dist(points[:2])
         assert np.isclose(ans_ref, ans_com)
 

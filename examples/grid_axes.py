@@ -94,11 +94,11 @@ if __name__ == '__main__':
     margin_top = 1.1
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.PointToPointDirectedDistance(margin_bottom, np.array([0, -1])),
+        geo.DirectedDistance(margin_bottom, np.array([0, -1])),
         ('Axes0/Line1/Point0', 'Figure/Line1/Point0')
     )
     layout.add_constraint(
-        geo.PointToPointDirectedDistance(margin_top, np.array([0, 1])),
+        geo.DirectedDistance(margin_top, np.array([0, 1])),
         ('Axes0/Line1/Point1', 'Figure/Line1/Point1')
     )
 
@@ -106,11 +106,11 @@ if __name__ == '__main__':
     margin_left = 0.2
     margin_right = 0.3
     layout.add_constraint(
-        geo.PointToPointDirectedDistance(margin_left, np.array([-1, 0])),
+        geo.DirectedDistance(margin_left, np.array([-1, 0])),
         ('Axes0/Line0/Point0', 'Figure/Line0/Point0')
     )
     layout.add_constraint(
-        geo.PointToPointDirectedDistance(margin_right, np.array([1, 0])),
+        geo.DirectedDistance(margin_right, np.array([1, 0])),
         (f'Axes{num_col-1}/Line1/Point1', 'Figure/Line1/Point1')
     )
 

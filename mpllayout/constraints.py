@@ -78,12 +78,12 @@ class Constraint:
         raise NotImplementedError()
 
 
+## Constraints on points
 
-class PointToPointDirectedDistance(Constraint):
+class DirectedDistance(Constraint):
     """
     A constraint on distance between two points along a direction
     """
-
 
     def __init__(
             self, distance: float, direction: typ.Optional[NDArray]=None
@@ -385,7 +385,7 @@ class Grid(Constraint):
             box_b = prims[(ii+1)*num_col + jj]
 
             res_arrays.append(
-                PointToPointDirectedDistance(
+                DirectedDistance(
                     margin, direction=np.array([0, -1])
                 )((box_a[0][0], box_b[2][1]))
             )
@@ -407,7 +407,7 @@ class Grid(Constraint):
             box_b = prims[ii*num_col + (jj+1)]
 
             res_arrays.append(
-                PointToPointDirectedDistance(
+                DirectedDistance(
                     margin, direction=np.array([1, 0])
                 )((box_a[0][1], box_b[0][0]))
             )
