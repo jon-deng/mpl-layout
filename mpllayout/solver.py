@@ -43,14 +43,15 @@ StrGraph = typ.List[typ.Tuple[str, ...]]
 
 SolverInfo = typ.Mapping[str, typ.Any]
 
+
 def solve(
-        primitive_tree: layout.PrimitiveTree,
-        constraints: ConstraintLabelledList,
-        constraint_graph: IntGraph,
-        abs_tol: float = 1e-10,
-        rel_tol: float = 1e-7,
-        max_iter: int = 10
-    ) -> typ.Tuple[PrimLabelledList, SolverInfo]:
+    primitive_tree: layout.PrimitiveTree,
+    constraints: ConstraintLabelledList,
+    constraint_graph: IntGraph,
+    abs_tol: float = 1e-10,
+    rel_tol: float = 1e-7,
+    max_iter: int = 10,
+) -> typ.Tuple[PrimLabelledList, SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -99,26 +100,29 @@ def solve(
     rel_err = np.inf
     prims_n = primitive_tree
     while (abs_err > abs_tol) and (rel_err > rel_tol) and (n < max_iter):
-        prims_n, linear_solve_info = solve_linear(prims_n, constraints, constraint_graph)
+        prims_n, linear_solve_info = solve_linear(
+            prims_n, constraints, constraint_graph
+        )
 
         n += 1
-        abs_err = np.linalg.norm(linear_solve_info['res'])
+        abs_err = np.linalg.norm(linear_solve_info["res"])
         abs_errs.append(abs_err)
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', RuntimeWarning)
-            rel_err = abs_errs[-1]/abs_errs[0]
+            warnings.simplefilter("ignore", RuntimeWarning)
+            rel_err = abs_errs[-1] / abs_errs[0]
         rel_errs.append(rel_err)
 
-    nonlinear_solve_info['abs_errs'] = abs_errs
-    nonlinear_solve_info['rel_errs'] = rel_errs
+    nonlinear_solve_info["abs_errs"] = abs_errs
+    nonlinear_solve_info["rel_errs"] = rel_errs
 
     return prims_n, nonlinear_solve_info
 
+
 def solve_linear(
-        primitive_tree: layout.PrimitiveTree,
-        constraints: ConstraintLabelledList,
-        constraint_graph: IntGraph
-    ) -> typ.Tuple[PrimLabelledList, SolverInfo]:
+    primitive_tree: layout.PrimitiveTree,
+    constraints: ConstraintLabelledList,
+    constraint_graph: IntGraph,
+) -> typ.Tuple[PrimLabelledList, SolverInfo]:
     """
     Return a set of primitives that satisfy the (linearized) constraints
 
@@ -183,8 +187,11 @@ def solve_linear(
     dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
     global_param_n = global_param_n + dglobal_param
     solver_info = {
-        'err': err, 'rank': rank, 's': s, 'num_dof': len(global_param_n),
-        'res': global_res
+        "err": err,
+        "rank": rank,
+        "s": s,
+        "num_dof": len(global_param_n),
+        "res": global_res,
     }
 
     ## Build a list of primitives from a global parameter vector

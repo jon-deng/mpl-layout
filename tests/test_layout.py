@@ -10,6 +10,7 @@ import numpy as np
 
 from mpllayout import geometry as geo, layout as lat
 
+
 class TestPrimitiveTree:
 
     @pytest.fixture()
@@ -17,10 +18,10 @@ class TestPrimitiveTree:
         return lat.PrimitiveTree(None, {})
 
     def test_set_prim(self, prim_tree):
-        prim_tree['MyBox'] = lat.convert_prim_to_tree(geo.Quadrilateral())
+        prim_tree["MyBox"] = lat.convert_prim_to_tree(geo.Quadrilateral())
 
         pprint(f"Keys:")
-        pprint(prim_tree.children['MyBox'].keys())
+        pprint(prim_tree.children["MyBox"].keys())
 
         pprint("Flat keys:")
         pprint(prim_tree.keys(flat=True))
@@ -31,10 +32,10 @@ class TestPrimitiveTree:
     def test_build_primtree(self, prim_tree):
         point_a = geo.Point([0, 0])
         point_b = geo.Point([1, 1])
-        prim_tree['PointA'] = lat.convert_prim_to_tree(point_a)
-        prim_tree['LineA'] = lat.convert_prim_to_tree(geo.Line([], (point_a, point_b)))
+        prim_tree["PointA"] = lat.convert_prim_to_tree(point_a)
+        prim_tree["LineA"] = lat.convert_prim_to_tree(geo.Line([], (point_a, point_b)))
 
-        prim_tree['MySpecialBox'] = lat.convert_prim_to_tree(geo.Quadrilateral())
+        prim_tree["MySpecialBox"] = lat.convert_prim_to_tree(geo.Quadrilateral())
 
         prim_graph = prim_tree.prim_graph()
 
@@ -65,18 +66,18 @@ class TestPrimitiveTree:
         print("New primitive keys")
         pprint(new_tree.keys(flat=True))
 
+
 class TestLayout:
 
     def test_layout(self):
         layout = lat.Layout()
 
-        layout.add_prim(geo.Quadrilateral(), 'MyBox')
-        layout.add_constraint(geo.Box(), ('MyBox',))
+        layout.add_prim(geo.Quadrilateral(), "MyBox")
+        layout.add_constraint(geo.Box(), ("MyBox",))
 
-        layout.add_constraint(geo.PointLocation((0, 0)), ('MyBox/Line0/Point0',))
+        layout.add_constraint(geo.PointLocation((0, 0)), ("MyBox/Line0/Point0",))
 
         pprint(layout.prims())
         pprint(layout.constraints)
         pprint(layout.constraint_graph)
         pprint(layout.constraint_graph_int)
-

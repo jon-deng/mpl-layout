@@ -10,15 +10,16 @@ import jax.numpy as jnp
 
 from .array import LabelledTuple
 
-PrimList = typ.Tuple['Primitive', ...]
+PrimList = typ.Tuple["Primitive", ...]
 Idxs = typ.Tuple[int]
 
 ArrayShape = typ.Tuple[int, ...]
-PrimTuple = typ.Tuple['Primitive', ...]
+PrimTuple = typ.Tuple["Primitive", ...]
 
 ## Generic primitive class/interface
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
+
 
 class Primitive:
     """
@@ -65,16 +66,13 @@ class Primitive:
     # If it's a single type, then this implies a variable number of child primitives of that type
     # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
     _PRIM_TYPES: typ.Union[
-        typ.Tuple[typ.Type['Primitive'], ...],
-        typ.Type['Primitive']
+        typ.Tuple[typ.Type["Primitive"], ...], typ.Type["Primitive"]
     ] = ()
     _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]] = None
 
     def __init__(
-            self,
-            param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[PrimList]=None
-        ):
+        self, param: typ.Optional[NDArray] = None, prims: typ.Optional[PrimList] = None
+    ):
         # Create default `param` if it's undefined
         if param is None:
             param = np.zeros(self._PARAM_SHAPE, dtype=float)
@@ -96,9 +94,9 @@ class Primitive:
         elif isinstance(self._PRIM_LABELS, tuple):
             keys = self._PRIM_LABELS
         else:
-            keys = len(prims)*(self._PRIM_LABELS,)
+            keys = len(prims) * (self._PRIM_LABELS,)
 
-        self._prims: LabelledTuple['Primitive'] = LabelledTuple(prims, keys)
+        self._prims: LabelledTuple["Primitive"] = LabelledTuple(prims, keys)
 
     @property
     def param(self):
@@ -116,11 +114,9 @@ class Primitive:
 
     def __repr__(self):
         prim_tuple_repr = (
-            '('
-            + str.join(', ', [prim.__repr__() for prim in self.prims])
-            + ')'
+            "(" + str.join(", ", [prim.__repr__() for prim in self.prims]) + ")"
         )
-        return f'{type(self).__name__}({self.param}, {prim_tuple_repr})'
+        return f"{type(self).__name__}({self.param}, {prim_tuple_repr})"
 
     def __str__(self):
         return self.__repr__()
@@ -128,7 +124,7 @@ class Primitive:
     def __len__(self) -> int:
         return len(self.prims)
 
-    def __getitem__(self, key: int) -> 'Primitive':
+    def __getitem__(self, key: int) -> "Primitive":
         return self.prims[key]
 
 
@@ -152,10 +148,9 @@ class PrimitiveArray(Primitive):
         make_prim, child_prim_idxs = self.index_spec(key)
         return make_prim(tuple(self.prims[idx] for idx in child_prim_idxs))
 
-    def index_spec(self, key) -> typ.Tuple[
-            typ.Callable[[PrimTuple], Primitive],
-            typ.Tuple[str, ...]
-        ]:
+    def index_spec(
+        self, key
+    ) -> typ.Tuple[typ.Callable[[PrimTuple], Primitive], typ.Tuple[str, ...]]:
         """
         Return a function and argument indices that form an indexed primitive
 
@@ -171,6 +166,7 @@ class PrimitiveArray(Primitive):
 
 
 ## Actual primitive classes
+
 
 class Point(Primitive):
     """
@@ -200,10 +196,8 @@ class Polygon(Primitive):
     _PRIM_TYPES = Line
 
     def __init__(
-            self,
-            param: typ.Optional[NDArray]=None,
-            prims: typ.Optional[PrimList]=None
-        ):
+        self, param: typ.Optional[NDArray] = None, prims: typ.Optional[PrimList] = None
+    ):
         if not isinstance(prims, (tuple, list)):
             super().__init__(param, prims)
         else:
@@ -216,15 +210,13 @@ class Polygon(Primitive):
             super().__init__(param, lines)
 
     @staticmethod
-    def _points_to_lines(
-            prims: PrimList
-        ):
+    def _points_to_lines(prims: PrimList):
         """
         Return a sequence of joined lines through a set of points
         """
         lines = [
             Line(np.array([]), [pointa, pointb])
-            for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
+            for pointa, pointb in zip(prims[:], prims[1:] + prims[:1])
         ]
 
         return lines

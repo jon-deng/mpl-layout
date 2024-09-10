@@ -37,6 +37,7 @@ ConstraintLabelledList = LabelledList[geo.Constraint]
 IntGraph = typ.List[typ.Tuple[int, ...]]
 StrGraph = typ.List[typ.Tuple[str, ...]]
 
+
 class PrimitiveTree:
     """
     Tree structure mapping keys to `Primitive`s
@@ -59,10 +60,8 @@ class PrimitiveTree:
     """
 
     def __init__(
-            self,
-            data: typ.Union[None, Prim],
-            children: typ.Mapping[str, 'PrimitiveTree']
-        ):
+        self, data: typ.Union[None, Prim], children: typ.Mapping[str, "PrimitiveTree"]
+    ):
         self._data = data
         self._children = children
 
@@ -94,7 +93,7 @@ class PrimitiveTree:
         return self._data
 
     ## Dict-like interface
-    def keys(self, flat: bool=False) -> typ.List[str]:
+    def keys(self, flat: bool = False) -> typ.List[str]:
         """
         Return child keys
 
@@ -108,15 +107,15 @@ class PrimitiveTree:
         if flat:
             flat_keys = []
             for key, child_tree in self.children.items():
-                flat_keys += [f'{key}']
+                flat_keys += [f"{key}"]
                 flat_keys += [
-                    f'{key}/{child_key}' for child_key in child_tree.keys(flat)
+                    f"{key}/{child_key}" for child_key in child_tree.keys(flat)
                 ]
             return flat_keys
         else:
             return list(self.children.keys())
 
-    def values(self, flat: bool=False) -> typ.List['PrimitiveTree']:
+    def values(self, flat: bool = False) -> typ.List["PrimitiveTree"]:
         """
         Return child primitives
 
@@ -134,7 +133,7 @@ class PrimitiveTree:
         else:
             return list(self.children.values())
 
-    def items(self, flat: bool=False) -> typ.List[typ.Tuple[str, 'PrimitiveTree']]:
+    def items(self, flat: bool = False) -> typ.List[typ.Tuple[str, "PrimitiveTree"]]:
         """
         Return paired child keys and associated trees
 
@@ -155,9 +154,9 @@ class PrimitiveTree:
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        split_key = key.split('/')
+        split_key = key.split("/")
         parent_key = split_key[0]
-        child_key = '/'.join(split_key[1:])
+        child_key = "/".join(split_key[1:])
 
         try:
             if len(split_key) == 1:
@@ -167,7 +166,7 @@ class PrimitiveTree:
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def __setitem__(self, key: str, value: 'PrimitiveTree'):
+    def __setitem__(self, key: str, value: "PrimitiveTree"):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -176,10 +175,10 @@ class PrimitiveTree:
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        split_key = key.split('/')
+        split_key = key.split("/")
         parent_key = split_key[0]
         child_keys = split_key[1:]
-        child_key = '/'.join(child_keys)
+        child_key = "/".join(child_keys)
 
         try:
             if len(child_keys) > 0:
@@ -195,6 +194,7 @@ class PrimitiveTree:
     def __len__(self):
         return len(self.data)
 
+
 def convert_prim_to_tree(prim: Prim) -> PrimitiveTree:
     """
     Return a `PrimitiveTree` representation of a `Primitive`
@@ -205,6 +205,7 @@ def convert_prim_to_tree(prim: Prim) -> PrimitiveTree:
         for child_key, child_prim in prim.prims.items()
     }
     return PrimitiveTree(prim, children)
+
 
 class Layout:
     """
@@ -225,11 +226,11 @@ class Layout:
     """
 
     def __init__(
-            self,
-            prim_tree: typ.Optional[PrimitiveTree]=None,
-            constraints: typ.Optional[ConstraintLabelledList]=None,
-            constraint_graph: typ.Optional[StrGraph]=None
-        ):
+        self,
+        prim_tree: typ.Optional[PrimitiveTree] = None,
+        constraints: typ.Optional[ConstraintLabelledList] = None,
+        constraint_graph: typ.Optional[StrGraph] = None,
+    ):
 
         if prim_tree is None:
             prim_tree = PrimitiveTree(None, {})
@@ -267,17 +268,11 @@ class Layout:
     def constraint_graph_int(self) -> IntGraph:
         prim_graph = self.prim_tree.prim_graph()
         return [
-            tuple(
-                prim_graph[self.prim_tree[prim_label]] for prim_label in prim_labels
-            )
+            tuple(prim_graph[self.prim_tree[prim_label]] for prim_label in prim_labels)
             for prim_labels in self.constraint_graph
         ]
 
-    def add_prim(
-            self,
-            prim: geo.Primitive,
-            label: typ.Optional[str]=None
-        ) -> str:
+    def add_prim(self, prim: geo.Primitive, label: typ.Optional[str] = None) -> str:
         """
         Add a `Primitive` to the `Layout`
 
@@ -302,11 +297,11 @@ class Layout:
         return label
 
     def add_constraint(
-            self,
-            constraint: geo.Constraint,
-            prim_labels: typ.Tuple[str, ...],
-            constraint_label: typ.Optional[str]=None
-        ) -> str:
+        self,
+        constraint: geo.Constraint,
+        prim_labels: typ.Tuple[str, ...],
+        constraint_label: typ.Optional[str] = None,
+    ) -> str:
         """
         Add a `Constraint` between `Primitive`s
 
@@ -326,18 +321,17 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
-        constraint_label = self.constraints.append(
-            constraint, label=constraint_label
-        )
+        constraint_label = self.constraints.append(constraint, label=constraint_label)
         self.constraint_graph.append(prim_labels)
         return constraint_label
 
+
 def build_tree(
-        tree: PrimitiveTree,
-        prim_to_idx: typ.Mapping[Prim, int],
-        params: typ.List[np.typing.NDArray],
-        prim_to_newprim: typ.Mapping[Prim, Prim]
-    ) -> PrimitiveTree:
+    tree: PrimitiveTree,
+    prim_to_idx: typ.Mapping[Prim, int],
+    params: typ.List[np.typing.NDArray],
+    prim_to_newprim: typ.Mapping[Prim, Prim],
+) -> PrimitiveTree:
     """
     Return a new `PrimitiveTree` using new primitives for given parameter values
 

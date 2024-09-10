@@ -13,7 +13,8 @@ and build matrices.
 
 import typing as typ
 
-T = typ.TypeVar('T')
+T = typ.TypeVar("T")
+
 
 class LabelledContainer(typ.Generic[T]):
     """
@@ -26,11 +27,12 @@ class LabelledContainer(typ.Generic[T]):
     keys: typ.Optional[typ.List[str]]
         A list of keys for each item
     """
+
     def __init__(
-            self,
-            items: typ.Optional[typ.List[T]]=None,
-            keys: typ.Optional[typ.List[str]]=None
-        ):
+        self,
+        items: typ.Optional[typ.List[T]] = None,
+        keys: typ.Optional[typ.List[str]] = None,
+    ):
         # This stores the count of items of each type in the container,
         # which is used for automatically generating names.
         self._type_to_count = Counter()
@@ -78,7 +80,6 @@ class LabelledContainer(typ.Generic[T]):
     def items(self):
         return [(key, self[key]) for key in self.keys()]
 
-
     def key_to_idx(self, key: typ.Union[str, int, slice]):
         """
         Return the integer index (indices) corresponding to a string label
@@ -89,6 +90,7 @@ class LabelledContainer(typ.Generic[T]):
             return self._label_to_idx[key]
         else:
             raise TypeError(f"`key` must be `str` or `int`, not `{type(key)}`")
+
 
 class LabelledList(LabelledContainer[T]):
     """
@@ -103,18 +105,21 @@ class LabelledList(LabelledContainer[T]):
     """
 
     def __init__(
-            self,
-            items: typ.Optional[typ.List[T]]=None,
-            keys: typ.Optional[typ.List[str]]=None
-        ):
+        self,
+        items: typ.Optional[typ.List[T]] = None,
+        keys: typ.Optional[typ.List[str]] = None,
+    ):
 
         super().__init__(items, keys)
 
         self._items = list(self._items)
 
-    def append(self, item: T, label: typ.Optional[str]=None) -> str:
-        label, *_ = append(self._items, self._label_to_idx, item, self._type_to_count, label)
+    def append(self, item: T, label: typ.Optional[str] = None) -> str:
+        label, *_ = append(
+            self._items, self._label_to_idx, item, self._type_to_count, label
+        )
         return label
+
 
 class LabelledTuple(LabelledContainer[T]):
     """
@@ -129,14 +134,15 @@ class LabelledTuple(LabelledContainer[T]):
     """
 
     def __init__(
-            self,
-            items: typ.Optional[typ.List[T]]=None,
-            keys: typ.Optional[typ.List[str]]=None
-        ):
+        self,
+        items: typ.Optional[typ.List[T]] = None,
+        keys: typ.Optional[typ.List[str]] = None,
+    ):
 
         super().__init__(items, keys)
 
         self._items = tuple(self._items)
+
 
 class Counter:
     """
@@ -175,13 +181,14 @@ class Counter:
         else:
             self.count[key] = 1
 
+
 def append(
-        items: typ.List[T],
-        label_to_idx: typ.Mapping[str, int],
-        item: T,
-        counter: Counter,
-        label: typ.Optional[str]=None
-    ) -> typ.Tuple[str, typ.List[T], typ.Mapping[str, int]]:
+    items: typ.List[T],
+    label_to_idx: typ.Mapping[str, int],
+    item: T,
+    counter: Counter,
+    label: typ.Optional[str] = None,
+) -> typ.Tuple[str, typ.List[T], typ.Mapping[str, int]]:
     """
     Add an item to a labelled list with unique string labels
 
@@ -224,10 +231,10 @@ def append(
     counter.add(item_class_name)
 
     if label is None:
-        n =  counter[item_class_name] - 1
-        label = f'{item_class_name}{n:d}'
+        n = counter[item_class_name] - 1
+        label = f"{item_class_name}{n:d}"
 
     assert label not in label_to_idx
     items.append(item)
-    label_to_idx[label] = len(items)-1
+    label_to_idx[label] = len(items) - 1
     return label, items, label_to_idx

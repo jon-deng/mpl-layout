@@ -14,11 +14,12 @@ import jax.numpy as jnp
 from . import primitives as primitives
 
 PrimList = typ.Tuple[primitives.Primitive, ...]
-ConstraintList = typ.List['Constraint']
+ConstraintList = typ.List["Constraint"]
 Idxs = typ.Tuple[int]
 
 ArrayShape = typ.Tuple[int, ...]
 PrimTuple = typ.Tuple[primitives.Primitive, ...]
+
 
 class Constraint:
     """
@@ -46,13 +47,13 @@ class Constraint:
         This is used for type checking.
     """
 
-    _PRIMITIVE_TYPES: typ.Tuple[typ.Type['Primitive'], ...]
+    _PRIMITIVE_TYPES: typ.Tuple[typ.Type["Primitive"], ...]
 
     def __init__(self, *args, **kwargs):
         self._res_args = args
         self._res_kwargs = kwargs
 
-    def __call__(self, prims: typ.Tuple['Primitive', ...]):
+    def __call__(self, prims: typ.Tuple["Primitive", ...]):
         # Check the input primitives are valid
         # assert len(prims) == len(self._PRIMITIVE_TYPES)
         # for prim, prim_type in zip(prims, self._PRIMITIVE_TYPES):
@@ -60,7 +61,7 @@ class Constraint:
 
         return jnp.atleast_1d(self.assem_res(prims))
 
-    def assem_res(self, prims: typ.Tuple['Primitive', ...]) -> NDArray:
+    def assem_res(self, prims: typ.Tuple["Primitive", ...]) -> NDArray:
         """
         Return a residual vector representing the constraint satisfaction
 
@@ -80,14 +81,13 @@ class Constraint:
 
 ## Constraints on points
 
+
 class DirectedDistance(Constraint):
     """
     A constraint on distance between two points along a direction
     """
 
-    def __init__(
-            self, distance: float, direction: typ.Optional[NDArray]=None
-        ):
+    def __init__(self, distance: float, direction: typ.Optional[NDArray] = None):
 
         self._PRIMITIVE_TYPES = (primitives.Point, primitives.Point)
 
@@ -105,42 +105,38 @@ class DirectedDistance(Constraint):
         specified direction.
         """
         distance = jnp.dot(
-            prims[1].param - prims[0].param, self._res_kwargs['direction']
+            prims[1].param - prims[0].param, self._res_kwargs["direction"]
         )
-        return distance - self._res_kwargs['distance']
+        return distance - self._res_kwargs["distance"]
+
 
 class XDistance(DirectedDistance):
 
-    def __init__(
-            self, distance: float
-        ):
+    def __init__(self, distance: float):
         super().__init__(distance, direction=np.array([1, 0]))
+
 
 class YDistance(DirectedDistance):
 
-    def __init__(
-            self, distance: float
-        ):
+    def __init__(self, distance: float):
         super().__init__(distance, direction=np.array([0, 1]))
+
 
 class PointLocation(Constraint):
     """
     A constraint on the location of a point
     """
 
-
-    def __init__(
-            self,
-            location: NDArray
-        ):
-        self._PRIMITIVE_TYPES = (primitives.Point, )
+    def __init__(self, location: NDArray):
+        self._PRIMITIVE_TYPES = (primitives.Point,)
         super().__init__(location=location)
 
     def assem_res(self, prims):
         """
         Return the location error for a point
         """
-        return prims[0].param - self._res_kwargs['location']
+        return prims[0].param - self._res_kwargs["location"]
+
 
 class CoincidentPoints(Constraint):
     """
@@ -160,15 +156,13 @@ class CoincidentPoints(Constraint):
 
 ## Line constraints
 
+
 class Length(Constraint):
     """
     A constraint on the length of a line
     """
 
-    def __init__(
-            self,
-            length: float
-        ):
+    def __init__(self, length: float):
         self._PRIMITIVE_TYPES = (primitives.Line,)
         super().__init__(length=length)
 
@@ -178,7 +172,7 @@ class Length(Constraint):
         """
         # This sets the length of a line
         vec = line_direction(prims[0])
-        return jnp.sum(vec**2) - self._res_kwargs['length']**2
+        return jnp.sum(vec**2) - self._res_kwargs["length"] ** 2
 
 
 class RelativeLength(Constraint):
@@ -186,10 +180,7 @@ class RelativeLength(Constraint):
     A constraint on relative length between two lines
     """
 
-    def __init__(
-            self,
-            length: float
-        ):
+    def __init__(self, length: float):
         self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__(length=length)
 
@@ -200,7 +191,7 @@ class RelativeLength(Constraint):
         # This sets the length of a line
         vec_a = line_direction(prims[0])
         vec_b = line_direction(prims[1])
-        return jnp.sum(vec_a**2) - self._res_kwargs['length']**2 * jnp.sum(vec_b**2)
+        return jnp.sum(vec_a**2) - self._res_kwargs["length"] ** 2 * jnp.sum(vec_b**2)
 
 
 class Orthogonal(Constraint):
@@ -212,7 +203,9 @@ class Orthogonal(Constraint):
         self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__()
 
-    def assem_res(self, prims: typ.Tuple['primitives.LineSegment', 'primitives.LineSegment']):
+    def assem_res(
+        self, prims: typ.Tuple["primitives.LineSegment", "primitives.LineSegment"]
+    ):
         """
         Return the orthogonal error
         """
@@ -231,7 +224,9 @@ class Parallel(Constraint):
         self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__()
 
-    def assem_res(self, prims: typ.Tuple['primitives.LineSegment', 'primitives.LineSegment']):
+    def assem_res(
+        self, prims: typ.Tuple["primitives.LineSegment", "primitives.LineSegment"]
+    ):
         """
         Return the parallel error
         """
@@ -250,11 +245,11 @@ class Vertical(Constraint):
         self._PRIMITIVE_TYPES = (primitives.Line,)
         super().__init__()
 
-    def assem_res(self, prims: typ.Tuple['primitives.LineSegment']):
+    def assem_res(self, prims: typ.Tuple["primitives.LineSegment"]):
         """
         Return the vertical error
         """
-        line0, = prims
+        (line0,) = prims
         dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([1, 0]))
 
@@ -268,11 +263,11 @@ class Horizontal(Constraint):
         self._PRIMITIVE_TYPES = (primitives.Line,)
         super().__init__()
 
-    def assem_res(self, prims: typ.Tuple['primitives.LineSegment']):
+    def assem_res(self, prims: typ.Tuple["primitives.LineSegment"]):
         """
         Return the horizontal error
         """
-        line0, = prims
+        (line0,) = prims
         dir0 = line_direction(line0)
         return jnp.dot(dir0, np.array([0, 1]))
 
@@ -282,10 +277,7 @@ class Angle(Constraint):
     A constraint on the angle between two lines
     """
 
-    def __init__(
-            self,
-            angle: NDArray
-        ):
+    def __init__(self, angle: NDArray):
         self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__(angle=angle)
 
@@ -297,9 +289,9 @@ class Angle(Constraint):
         dir0 = line_direction(line0)
         dir1 = line_direction(line1)
 
-        dir0 = dir0/jnp.linalg.norm(dir0)
-        dir1 = dir1/jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - self._res_kwargs['angle']
+        dir0 = dir0 / jnp.linalg.norm(dir0)
+        dir1 = dir1 / jnp.linalg.norm(dir1)
+        return jnp.arccos(jnp.dot(dir0, dir1)) - self._res_kwargs["angle"]
 
 
 class Collinear(Constraint):
@@ -311,7 +303,9 @@ class Collinear(Constraint):
         self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
         super().__init__()
 
-    def assem_res(self, prims: typ.Tuple['primitives.LineSegment', 'primitives.LineSegment']):
+    def assem_res(
+        self, prims: typ.Tuple["primitives.LineSegment", "primitives.LineSegment"]
+    ):
         """
         Return the collinearity error
         """
@@ -320,21 +314,20 @@ class Collinear(Constraint):
         line2 = primitives.Line(prims=(line1.prims[1], line0.prims[0]))
         line3 = primitives.Line(prims=(line1.prims[0], line0.prims[1]))
 
-        return jnp.concatenate([
-            res_parallel((line0, line1)), res_parallel((line0, line2))
-        ])
+        return jnp.concatenate(
+            [res_parallel((line0, line1)), res_parallel((line0, line2))]
+        )
 
 
 ## Closed polyline constraints
+
 
 class Box(Constraint):
     """
     Constrain a `Quadrilateral` to have horizontal tops/bottom and vertical sides
     """
 
-    def __init__(
-            self
-        ):
+    def __init__(self):
         self._PRIMITIVE_TYPES = (primitives.Quadrilateral,)
         super().__init__()
 
@@ -345,26 +338,30 @@ class Box(Constraint):
         quad = prims[0]
         horizontal = Horizontal()
         vertical = Vertical()
-        res = jnp.concatenate([
-            horizontal((quad[0],)),
-            horizontal((quad[2],)),
-            vertical((quad[1],)),
-            vertical((quad[3],))
-        ])
+        res = jnp.concatenate(
+            [
+                horizontal((quad[0],)),
+                horizontal((quad[2],)),
+                vertical((quad[1],)),
+                vertical((quad[3],)),
+            ]
+        )
         return res
 
+
 ## Grid constraints
+
 
 class Grid(Constraint):
 
     def __init__(
-            self,
-            shape: typ.Tuple[int, ...],
-            horizontal_margins: typ.Union[float, NDArray[float]],
-            vertical_margins: typ.Union[float, NDArray[float]],
-            widths: typ.Union[float, NDArray[float]],
-            heights: typ.Union[float, NDArray[float]]
-        ):
+        self,
+        shape: typ.Tuple[int, ...],
+        horizontal_margins: typ.Union[float, NDArray[float]],
+        vertical_margins: typ.Union[float, NDArray[float]],
+        widths: typ.Union[float, NDArray[float]],
+        heights: typ.Union[float, NDArray[float]],
+    ):
 
         self._PRIMITIVE_TYPES = (primitives.Quadrilateral,) * int(np.prod(shape))
 
@@ -388,18 +385,18 @@ class Grid(Constraint):
 
         res_arrays = [np.array([])]
 
-        for ii, jj in itertools.product(range(num_row-1), range(num_col)):
+        for ii, jj in itertools.product(range(num_row - 1), range(num_col)):
 
             # Set vertical margins
             margin = self._vertical_margins[ii]
 
-            box_a = prims[(ii)*num_col + jj]
-            box_b = prims[(ii+1)*num_col + jj]
+            box_a = prims[(ii) * num_col + jj]
+            box_b = prims[(ii + 1) * num_col + jj]
 
             res_arrays.append(
-                DirectedDistance(
-                    margin, direction=np.array([0, -1])
-                )((box_a[0][0], box_b[2][1]))
+                DirectedDistance(margin, direction=np.array([0, -1]))(
+                    (box_a[0][0], box_b[2][1])
+                )
             )
 
             # Set vertical widths
@@ -407,21 +404,35 @@ class Grid(Constraint):
             res_arrays.append(RelativeLength(length)((box_b[1], box_topleft[1])))
 
             # Set vertical collinearity
-            res_arrays.append(Collinear()((box_a[1], box_b[1],)))
-            res_arrays.append(Collinear()((box_a[3], box_b[3],)))
+            res_arrays.append(
+                Collinear()(
+                    (
+                        box_a[1],
+                        box_b[1],
+                    )
+                )
+            )
+            res_arrays.append(
+                Collinear()(
+                    (
+                        box_a[3],
+                        box_b[3],
+                    )
+                )
+            )
 
-        for ii, jj in itertools.product(range(num_row), range(num_col-1)):
+        for ii, jj in itertools.product(range(num_row), range(num_col - 1)):
 
             # Set horizontal margins
             margin = self._horizontal_margins[jj]
 
-            box_a = prims[ii*num_col + (jj)]
-            box_b = prims[ii*num_col + (jj+1)]
+            box_a = prims[ii * num_col + (jj)]
+            box_b = prims[ii * num_col + (jj + 1)]
 
             res_arrays.append(
-                DirectedDistance(
-                    margin, direction=np.array([1, 0])
-                )((box_a[0][1], box_b[0][0]))
+                DirectedDistance(margin, direction=np.array([1, 0]))(
+                    (box_a[0][1], box_b[0][0])
+                )
             )
 
             # Set horizontal widths
@@ -430,12 +441,25 @@ class Grid(Constraint):
             res_arrays.append(RelativeLength(length)((box_b[0], box_topleft[0])))
 
             # Set horizontal collinearity
-            res_arrays.append(Collinear()((box_a[0], box_b[0],)))
-            res_arrays.append(Collinear()((box_a[2], box_b[2],)))
+            res_arrays.append(
+                Collinear()(
+                    (
+                        box_a[0],
+                        box_b[0],
+                    )
+                )
+            )
+            res_arrays.append(
+                Collinear()(
+                    (
+                        box_a[2],
+                        box_b[2],
+                    )
+                )
+            )
 
         return jnp.concatenate(res_arrays)
 
 
-def line_direction(line: 'primitives.LineSegment'):
+def line_direction(line: "primitives.LineSegment"):
     return line.prims[1].param - line.prims[0].param
-

@@ -29,15 +29,12 @@ class TestPrimitves:
         poly = geo.Polygon()
 
 
-
 class TestConstraints:
 
     ## Constraints on points
     @pytest.fixture()
     def vertices(self):
-        return np.array([
-            [0, 0], [2, 2], [4, 4]
-        ])
+        return np.array([[0, 0], [2, 2], [4, 4]])
 
     @pytest.fixture()
     def points(self, vertices):
@@ -80,13 +77,14 @@ class TestConstraints:
             height_margin = 0.1
             width_margin = 0.1
             origin_topleft = np.array(
-                [ii*(height+height_margin), jj*(width+width_margin)], dtype=float
+                [ii * (height + height_margin), jj * (width + width_margin)],
+                dtype=float,
             )
             points = [
                 origin_topleft - [0, height],
                 origin_topleft - [0, height] + [width, 0],
                 origin_topleft - [0, height] + [width, 0] + [0, height],
-                origin_topleft
+                origin_topleft,
             ]
             quads.append(geo.Quadrilateral([], [geo.Point(point) for point in points]))
 
@@ -96,7 +94,11 @@ class TestConstraints:
         num_row, num_col = shape
 
         res = geo.Grid(
-            shape, (num_col-1)*[0.1], (num_row-1)*[0.1], (num_col-1)*[1], (num_row-1)*[1]
+            shape,
+            (num_col - 1) * [0.1],
+            (num_row - 1) * [0.1],
+            (num_col - 1) * [1],
+            (num_row - 1) * [1],
         )(quads)
 
         print(res)
@@ -112,37 +114,31 @@ class TestConstraints:
 
     @pytest.fixture()
     def lines(self, points):
-        return [
-            geo.Line(prims=(pa, pb))
-            for pa, pb in zip(points[:-1], points[1:])
-        ]
+        return [geo.Line(prims=(pa, pb)) for pa, pb in zip(points[:-1], points[1:])]
 
     @pytest.fixture()
     def orthogonal_lines(self):
-        vec_a = np.random.rand(2)-0.5
+        vec_a = np.random.rand(2) - 0.5
         vec_b = np.array([-vec_a[1], vec_a[0]])
 
         # Make the line starting point somewhere in a 10x10 box around the origin
-        vert1_a = 10*2*(np.random.rand(2)-0.5)
-        vert1_b = 10*2*(np.random.rand(2)-0.5)
+        vert1_a = 10 * 2 * (np.random.rand(2) - 0.5)
+        vert1_b = 10 * 2 * (np.random.rand(2) - 0.5)
         lines = tuple(
-            geo.Line(prims=(geo.Point(vert1), geo.Point(vert1+vec)))
+            geo.Line(prims=(geo.Point(vert1), geo.Point(vert1 + vec)))
             for vert1, vec in zip([vert1_a, vert1_b], [vec_a, vec_b])
         )
         return lines
 
     @pytest.fixture()
     def parallel_lines(self, points):
-        return (
-            geo.Line(prims=(pa, pb))
-            for pa, pb in zip(points[:-1], points[1:])
-        )
+        return (geo.Line(prims=(pa, pb)) for pa, pb in zip(points[:-1], points[1:]))
 
     def test_LineLength(self, lines):
         line = lines[0]
         points = line.prims
         vec = points[1].param - points[0].param
-        ans_ref = np.linalg.norm(vec)**2
+        ans_ref = np.linalg.norm(vec) ** 2
 
         constraint = geo.Length(0)
         ans_com = constraint((line,))
@@ -155,7 +151,7 @@ class TestConstraints:
         line_lengths = tuple(np.linalg.norm(vec) for vec in vecs)
 
         rel_length = 0.25
-        ans_ref = (line_lengths[0])**2 - (rel_length*line_lengths[1])**2
+        ans_ref = (line_lengths[0]) ** 2 - (rel_length * line_lengths[1]) ** 2
 
         constraint = geo.RelativeLength(rel_length)
         ans_com = constraint((lines))
