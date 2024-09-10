@@ -160,11 +160,11 @@ if __name__ == '__main__':
     ## Make the top/bottom edges of the right axes ('Axes2') line up with the
     # top/bottom edges of the left axes ('Axes1')
     layout.add_constraint(
-        geo.CollinearLines(),
+        geo.Collinear(),
         ('Axes1/Line0', 'Axes2/Line0')
     )
     layout.add_constraint(
-        geo.CollinearLines(),
+        geo.Collinear(),
         ('Axes1/Line2', 'Axes2/Line2')
     )
 

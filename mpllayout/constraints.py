@@ -203,7 +203,7 @@ class RelativeLength(Constraint):
         return jnp.sum(vec_a**2) - self._res_kwargs['length']**2 * jnp.sum(vec_b**2)
 
 
-class OrthogonalLines(Constraint):
+class Orthogonal(Constraint):
     """
     A constraint on orthogonality of two lines
     """
@@ -222,7 +222,7 @@ class OrthogonalLines(Constraint):
         return jnp.dot(dir0, dir1)
 
 
-class ParallelLines(Constraint):
+class Parallel(Constraint):
     """
     A constraint on parallelism of two lines
     """
@@ -241,7 +241,7 @@ class ParallelLines(Constraint):
         return jnp.cross(dir0, dir1)
 
 
-class VerticalLine(Constraint):
+class Vertical(Constraint):
     """
     A constraint that a line must be vertical
     """
@@ -259,7 +259,7 @@ class VerticalLine(Constraint):
         return jnp.dot(dir0, np.array([1, 0]))
 
 
-class HorizontalLine(Constraint):
+class Horizontal(Constraint):
     """
     A constraint that a line must be horizontal
     """
@@ -302,7 +302,7 @@ class Angle(Constraint):
         return jnp.arccos(jnp.dot(dir0, dir1)) - self._res_kwargs['angle']
 
 
-class CollinearLines(Constraint):
+class Collinear(Constraint):
     """
     A constraint on the collinearity of two lines
     """
@@ -315,7 +315,7 @@ class CollinearLines(Constraint):
         """
         Return the collinearity error
         """
-        res_parallel = ParallelLines()
+        res_parallel = Parallel()
         line0, line1 = prims
         line2 = primitives.Line(prims=(line1.prims[1], line0.prims[0]))
         line3 = primitives.Line(prims=(line1.prims[0], line0.prims[1]))
@@ -343,8 +343,8 @@ class Box(Constraint):
         Return the error in the 'boxiness'
         """
         quad = prims[0]
-        horizontal = HorizontalLine()
-        vertical = VerticalLine()
+        horizontal = Horizontal()
+        vertical = Vertical()
         res = jnp.concatenate([
             horizontal((quad[0],)),
             horizontal((quad[2],)),
@@ -407,8 +407,8 @@ class Grid(Constraint):
             res_arrays.append(RelativeLength(length)((box_b[1], box_topleft[1])))
 
             # Set vertical collinearity
-            res_arrays.append(CollinearLines()((box_a[1], box_b[1],)))
-            res_arrays.append(CollinearLines()((box_a[3], box_b[3],)))
+            res_arrays.append(Collinear()((box_a[1], box_b[1],)))
+            res_arrays.append(Collinear()((box_a[3], box_b[3],)))
 
         for ii, jj in itertools.product(range(num_row), range(num_col-1)):
 
@@ -430,8 +430,8 @@ class Grid(Constraint):
             res_arrays.append(RelativeLength(length)((box_b[0], box_topleft[0])))
 
             # Set horizontal collinearity
-            res_arrays.append(CollinearLines()((box_a[0], box_b[0],)))
-            res_arrays.append(CollinearLines()((box_a[2], box_b[2],)))
+            res_arrays.append(Collinear()((box_a[0], box_b[0],)))
+            res_arrays.append(Collinear()((box_a[2], box_b[2],)))
 
         return jnp.concatenate(res_arrays)
 

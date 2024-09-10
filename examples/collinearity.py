@@ -37,7 +37,7 @@ if __name__ == '__main__':
         (PrimIdx('LineA.Point0'), PrimIdx('Origin'))
     )
     layout.add_constraint(
-        geo.HorizontalLine(),
+        geo.Horizontal(),
         (PrimIdx('LineA'),)
     )
     layout.add_constraint(
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         (PrimIdx('LineA.Point1'), PrimIdx('LineB.Point0'))
     )
     layout.add_constraint(
-        geo.CollinearLines(),
+        geo.Collinear(),
         (PrimIdx('LineA'), PrimIdx('LineB'))
     )
     layout.add_constraint(

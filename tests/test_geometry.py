@@ -165,7 +165,7 @@ class TestConstraints:
     def test_Orthogonal(self, orthogonal_lines):
         lines = orthogonal_lines
 
-        constraint = geo.OrthogonalLines()
+        constraint = geo.Orthogonal()
         ans_com = constraint(lines)
 
         assert np.all(np.isclose([0, 0], ans_com))
