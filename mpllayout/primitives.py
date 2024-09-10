@@ -204,24 +204,30 @@ class Polygon(Primitive):
             param: typ.Optional[NDArray]=None,
             prims: typ.Optional[PrimList]=None
         ):
-        # This allows you to input `prims` as a series of points rather than lines
-        if not isinstance(self._PRIM_TYPES, tuple):
-            prim_types = ()
+        if not isinstance(prims, (tuple, list)):
+            super().__init__(param, prims)
         else:
-            prim_types = self._PRIM_TYPES
+            # This allows you to input `prims` as a series of points rather than lines
+            if all((isinstance(prim, Point) for prim in prims)):
+                lines = self._points_to_lines(prims)
+            else:
+                lines = prims
 
-        if prims is None:
-            prims = tuple(Point() for _ in range(len(prim_types)))
+            super().__init__(param, lines)
 
-        if all((isinstance(prim, Point) for prim in prims)):
-            lines = [
-                Line(np.array([]), [pointa, pointb])
-                for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
-            ]
-        else:
-            lines = prims
+    @staticmethod
+    def _points_to_lines(
+            prims: PrimList
+        ):
+        """
+        Return a sequence of joined lines through a set of points
+        """
+        lines = [
+            Line(np.array([]), [pointa, pointb])
+            for pointa, pointb in zip(prims[:], prims[1:]+prims[:1])
+        ]
 
-        super().__init__(param, lines)
+        return lines
 
 
 class Quadrilateral(Polygon):
