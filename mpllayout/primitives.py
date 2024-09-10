@@ -68,7 +68,9 @@ class Primitive:
     _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]] = None
 
     def __init__(
-        self, param: typ.Optional[NDArray] = None, prims: typ.Optional[PrimList] = None
+        self,
+        param: typ.Optional[NDArray] = None,
+        prims: typ.Optional[typ.List["Primitive"]] = None,
     ):
         # Create default `param` if it's undefined
         if param is None:
