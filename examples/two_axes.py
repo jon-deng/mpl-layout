@@ -86,13 +86,13 @@ if __name__ == '__main__':
 
     # Constrain the bottom edge of the figure box to have length `fig_width`
     layout.add_constraint(
-        geo.LineLength(fig_width),
+        geo.Length(fig_width),
         ('Figure/Line0',),
     )
 
     # Constrain the right edge of the figure box to have length `fig_height`
     layout.add_constraint(
-        geo.LineLength(fig_height),
+        geo.Length(fig_height),
         ('Figure/Line1',)
     )
 
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     ## Constrain the width of 'Axes1' by setting the length of the bottom edge
     width = 2
     layout.add_constraint(
-        geo.LineLength(width),
+        geo.Length(width),
         ('Axes1/Line0',)
     )
 

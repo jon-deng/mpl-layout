@@ -49,10 +49,10 @@ if __name__ == '__main__':
     ## Constrain the figure size and position
     fig_width, fig_height = 6, 3
     layout.add_constraint(
-        geo.LineLength(fig_width), ('Figure/Line0',)
+        geo.Length(fig_width), ('Figure/Line0',)
     )
     layout.add_constraint(
-        geo.LineLength(fig_height), ('Figure/Line1',)
+        geo.Length(fig_height), ('Figure/Line1',)
     )
     layout.add_constraint(
         geo.CoincidentPoints(), ('Figure/Line0/Point0', 'Origin')

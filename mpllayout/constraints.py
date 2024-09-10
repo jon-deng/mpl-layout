@@ -160,11 +160,10 @@ class CoincidentPoints(Constraint):
 
 ## Line constraints
 
-class LineLength(Constraint):
+class Length(Constraint):
     """
     A constraint on the length of a line
     """
-
 
     def __init__(
             self,
@@ -182,11 +181,10 @@ class LineLength(Constraint):
         return jnp.sum(vec**2) - self._res_kwargs['length']**2
 
 
-class RelativeLineLength(Constraint):
+class RelativeLength(Constraint):
     """
     A constraint on relative length between two lines
     """
-
 
     def __init__(
             self,
@@ -406,7 +404,7 @@ class Grid(Constraint):
 
             # Set vertical widths
             length = self._heights[ii]
-            res_arrays.append(RelativeLineLength(length)((box_b[1], box_topleft[1])))
+            res_arrays.append(RelativeLength(length)((box_b[1], box_topleft[1])))
 
             # Set vertical collinearity
             res_arrays.append(CollinearLines()((box_a[1], box_b[1],)))
@@ -429,7 +427,7 @@ class Grid(Constraint):
             # Set horizontal widths
             length = self._widths[jj]
             # breakpoint()
-            res_arrays.append(RelativeLineLength(length)((box_b[0], box_topleft[0])))
+            res_arrays.append(RelativeLength(length)((box_b[0], box_topleft[0])))
 
             # Set horizontal collinearity
             res_arrays.append(CollinearLines()((box_a[0], box_b[0],)))

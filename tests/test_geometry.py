@@ -144,7 +144,7 @@ class TestConstraints:
         vec = points[1].param - points[0].param
         ans_ref = np.linalg.norm(vec)**2
 
-        constraint = geo.LineLength(0)
+        constraint = geo.Length(0)
         ans_com = constraint((line,))
 
         assert np.all(np.isclose(ans_ref, ans_com))
@@ -157,7 +157,7 @@ class TestConstraints:
         rel_length = 0.25
         ans_ref = (line_lengths[0])**2 - (rel_length*line_lengths[1])**2
 
-        constraint = geo.RelativeLineLength(rel_length)
+        constraint = geo.RelativeLength(rel_length)
         ans_com = constraint((lines))
 
         assert np.all(np.isclose(ans_ref, ans_com))
