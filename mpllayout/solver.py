@@ -24,6 +24,8 @@ The class `Layout` handles construction of these three lists while functions
 """
 
 import typing as typ
+from numpy.typing import NDArray
+
 import warnings
 
 import jax
@@ -46,12 +48,12 @@ SolverInfo = typ.Mapping[str, typ.Any]
 
 def solve(
     prim_tree: layout.PrimitiveTree,
-    constraints: ConstraintLabelledList,
+    constraints: typ.List[geo.Constraint],
     constraint_graph: IntGraph,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> typ.Tuple[PrimLabelledList, SolverInfo]:
+) -> typ.Tuple[layout.PrimitiveTree, SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -60,9 +62,9 @@ def solve(
 
     Parameters
     ----------
-    prims: PrimLabelledList
-        The list of primitives
-    constraints: ConstraintLabelledList
+    prim_tree: layout.PrimitiveTree
+        The tree of primitives
+    constraints: typ.List[geo.Constraint]
         The list of constraints
     constraint_graph: IntGraph
         A mapping from each constraint to the primitives it applies to
@@ -71,13 +73,13 @@ def solve(
         constraint applies to primitives `(prims[0], prims[5], prims[8])`.
     abs_tol, rel_tol: float
         The absolute and relative tolerance for the iterative solution
-    max_iter: int = 10
+    max_iter: int
         The maximum number of iterations for the iterative solution
 
     Returns
     -------
-    PrimLabelledList
-        The list of primitives satisfying the constraints
+    layout.PrimitiveTree
+        The tree of primitives satisfying the constraints
     SolverInfo
         Information about the solve
 
@@ -91,13 +93,8 @@ def solve(
                 initial absolute error.
     """
 
-    nonlinear_solve_info = {}
-    abs_errs = []
-    rel_errs = []
-
-    n = 0
-    abs_err = np.inf
-    rel_err = np.inf
+    ## Set-up assembly function for the global residual as a function of a global
+    ## parameter list
 
     # `prim_idx_bounds` stores the right/left indices for each primitive's
     # parameter vector in the global parameter vector array
@@ -105,8 +102,7 @@ def solve(
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
     prims = prim_tree.prims()
-    prim_sizes = [prim.param.size for prim in prims]
-    prim_idx_bounds = np.cumsum([0] + prim_sizes)
+    prim_idx_bounds = np.cumsum([0] + [prim.param.size for prim in prims])
 
     global_param_n = np.concatenate([prim.param for prim in prims])
     prim_graph = prim_tree.prim_graph()
@@ -117,12 +113,20 @@ def solve(
             global_param[idx_start:idx_end]
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
-        return assem_constraint_residual(
+        residuals = assem_constraint_residual(
             new_prim_params, prim_tree, prim_graph, constraints, constraint_graph
         )
+        return jnp.concatenate(residuals)
 
     assem_global_jac = jax.jacfwd(assem_global_res)
 
+    ## Iteratively minimize the global residual as function of the global parameter vector
+    abs_errs = []
+    rel_errs = []
+
+    n = 0
+    abs_err = np.inf
+    rel_err = np.inf
     while (abs_err > abs_tol) and (rel_err > rel_tol) and (n < max_iter):
 
         global_res = assem_global_res(global_param_n)
@@ -130,57 +134,65 @@ def solve(
 
         dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
         global_param_n = global_param_n + dglobal_param
-        linear_solve_info = {
-            "err": err,
-            "rank": rank,
-            "s": s,
-            "num_dof": len(global_param_n),
-            "res": global_res,
-        }
-        # prims_n, linear_solve_info = solve_linear(
-        #     prims_n, constraints, constraint_graph
-        # )
 
         n += 1
-        abs_err = np.linalg.norm(linear_solve_info["res"])
+        abs_err = np.linalg.norm(global_res)
         abs_errs.append(abs_err)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             rel_err = abs_errs[-1] / abs_errs[0]
         rel_errs.append(rel_err)
 
-    nonlinear_solve_info["abs_errs"] = abs_errs
-    nonlinear_solve_info["rel_errs"] = rel_errs
+    nonlinear_solve_info = {
+        "abs_errs": abs_errs,
+        "rel_errs": rel_errs
+    }
 
-    ## Build a list of primitives from a global parameter vector
-    new_prim_params = [
+    ## Build a new primitive tree from the global parameter vector
+    prim_params_n = [
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    new_tree = layout.build_tree(
-        prim_tree, prim_tree.prim_graph(), new_prim_params, {}
+    prim_tree_n = layout.build_tree(
+        prim_tree, prim_graph, prim_params_n, {}
     )
 
-    return new_tree, nonlinear_solve_info
+    return prim_tree_n, nonlinear_solve_info
 
 def assem_constraint_residual(
-    new_prim_params,
-    primitive_tree,
-    prim_graph,
-    constraints,
-    constraint_graph
-):
+    prim_params: typ.List[NDArray],
+    prim_tree: layout.PrimitiveTree,
+    prim_graph: typ.Mapping[geo.Primitive, int],
+    constraints: typ.List[geo.Constraint],
+    constraint_graph: IntGraph
+) -> typ.List[NDArray]:
+    """
+    Return a list of constraint residual vectors
 
-    # new_prim_params = [
-    #     global_param[idx_start:idx_end]
-    #     for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
-    # ]
+    Parameters
+    ----------
+    prim_params: typ.List[NDArray]
+        A list of parameter vectors for each unique primitive in `prim_tree`
+    prim_tree: layout.PrimitiveTree
+        A primitive tree
+    prim_graph: typ.Mapping[geo.Primitive, int]
+        A mapping from each primitive in `prim_tree` to a parameter vector in `prim_params`
+    constraints: typ.List[geo.Constraint]
+        A list of constraints
+    constraint_graph: IntGraph
+        A list of integer tuples indicating primitive arguments for each constraint
+
+    Returns
+    -------
+    constraint_residuals: typ.List[NDArray]
+        A list of residual vectors corresponding to each constraint in `constraints`
+    """
     new_tree = layout.build_tree(
-        primitive_tree, prim_graph, new_prim_params, {}
+        prim_tree, prim_graph, prim_params, {}
     )
     new_prims = new_tree.prims()
-    constraint_vals = [
+    constraint_residuals = [
         constraints[constraint_idx](tuple(new_prims[idx] for idx in prim_idxs))
         for constraint_idx, prim_idxs in enumerate(constraint_graph)
     ]
-    return jnp.concatenate(constraint_vals)
+    return constraint_residuals
