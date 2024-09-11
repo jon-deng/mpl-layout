@@ -45,7 +45,7 @@ SolverInfo = typ.Mapping[str, typ.Any]
 
 
 def solve(
-    primitive_tree: layout.PrimitiveTree,
+    prim_tree: layout.PrimitiveTree,
     constraints: ConstraintLabelledList,
     constraint_graph: IntGraph,
     abs_tol: float = 1e-10,
@@ -98,11 +98,48 @@ def solve(
     n = 0
     abs_err = np.inf
     rel_err = np.inf
-    prims_n = primitive_tree
-    while (abs_err > abs_tol) and (rel_err > rel_tol) and (n < max_iter):
-        prims_n, linear_solve_info = solve_linear(
-            prims_n, constraints, constraint_graph
+
+    # `prim_idx_bounds` stores the right/left indices for each primitive's
+    # parameter vector in the global parameter vector array
+    # For primitive with index `n`, for example,
+    # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
+    # the parameter vectors are stored.
+    prims = prim_tree.prims()
+    prim_sizes = [prim.param.size for prim in prims]
+    prim_idx_bounds = np.cumsum([0] + prim_sizes)
+
+    global_param_n = np.concatenate([prim.param for prim in prims])
+    prim_graph = prim_tree.prim_graph()
+
+    @jax.jit
+    def assem_global_res(global_param):
+        new_prim_params = [
+            global_param[idx_start:idx_end]
+            for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
+        ]
+        return assem_constraint_residual(
+            new_prim_params, prim_tree, prim_graph, constraints, constraint_graph
         )
+
+    assem_global_jac = jax.jacfwd(assem_global_res)
+
+    while (abs_err > abs_tol) and (rel_err > rel_tol) and (n < max_iter):
+
+        global_res = assem_global_res(global_param_n)
+        global_jac = assem_global_jac(global_param_n)
+
+        dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
+        global_param_n = global_param_n + dglobal_param
+        linear_solve_info = {
+            "err": err,
+            "rank": rank,
+            "s": s,
+            "num_dof": len(global_param_n),
+            "res": global_res,
+        }
+        # prims_n, linear_solve_info = solve_linear(
+        #     prims_n, constraints, constraint_graph
+        # )
 
         n += 1
         abs_err = np.linalg.norm(linear_solve_info["res"])
@@ -115,92 +152,35 @@ def solve(
     nonlinear_solve_info["abs_errs"] = abs_errs
     nonlinear_solve_info["rel_errs"] = rel_errs
 
-    return prims_n, nonlinear_solve_info
-
-
-def solve_linear(
-    primitive_tree: layout.PrimitiveTree,
-    constraints: ConstraintLabelledList,
-    constraint_graph: IntGraph,
-) -> typ.Tuple[PrimLabelledList, SolverInfo]:
-    """
-    Return a set of primitives that satisfy the (linearized) constraints
-
-    Parameters
-    ----------
-    prims: PrimLabelledList
-        The list of primitives
-    constraints: ConstraintLabelledList
-        The list of constraints
-    constraint_graph: IntGraph
-        A mapping from each constraint to the primitives it applies to
-
-        For example, `constraint_graph[0] == (0, 5, 8)` means the first
-        constraint applies to primitives `(prims[0], prims[5], prims[8])`.
-
-    Returns
-    -------
-    PrimLabelledList
-        The list of primitives satisfying the (linearized) constraints
-    SolverInfo
-        Information about the solve
-
-        Keys are:
-            'err': the least squares solver error
-            'rank': the rank of the linearized constraint problem
-            's': a matrix of singular values for the problem
-            'num_dof': the number of degrees of freedom in the problem
-            'res': The global constraint residual vector
-    """
-
-    # `prim_idx_bounds` stores the right/left indices for each primitive's
-    # parameter vector in the global parameter vector array
-    # For primitive with index `n`, for example,
-    # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
-    # the parameter vectors are stored.
-    prims = primitive_tree.prims()
-    prim_sizes = [prim.param.size for prim in prims]
-    prim_idx_bounds = np.cumsum([0] + prim_sizes)
-
-    global_param_n = np.concatenate([prim.param for prim in prims])
-
-    def assem_global_res(global_param):
-        new_prim_params = [
-            global_param[idx_start:idx_end]
-            for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
-        ]
-        new_tree = layout.build_tree(
-            primitive_tree, primitive_tree.prim_graph(), new_prim_params, {}
-        )
-        new_prims = new_tree.prims()
-        constraint_vals = []
-        for constraint_idx, prim_idxs in enumerate(constraint_graph):
-            constraint = constraints[constraint_idx]
-            local_prims = tuple(new_prims[idx] for idx in prim_idxs)
-
-            constraint_vals.append(constraint(local_prims))
-        return jnp.concatenate(constraint_vals)
-
-    global_res = assem_global_res(global_param_n)
-    global_jac = jax.jacfwd(assem_global_res)(global_param_n)
-
-    dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
-    global_param_n = global_param_n + dglobal_param
-    solver_info = {
-        "err": err,
-        "rank": rank,
-        "s": s,
-        "num_dof": len(global_param_n),
-        "res": global_res,
-    }
-
     ## Build a list of primitives from a global parameter vector
     new_prim_params = [
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     new_tree = layout.build_tree(
-        primitive_tree, primitive_tree.prim_graph(), new_prim_params, {}
+        prim_tree, prim_tree.prim_graph(), new_prim_params, {}
     )
 
-    return new_tree, solver_info
+    return new_tree, nonlinear_solve_info
+
+def assem_constraint_residual(
+    new_prim_params,
+    primitive_tree,
+    prim_graph,
+    constraints,
+    constraint_graph
+):
+
+    # new_prim_params = [
+    #     global_param[idx_start:idx_end]
+    #     for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
+    # ]
+    new_tree = layout.build_tree(
+        primitive_tree, prim_graph, new_prim_params, {}
+    )
+    new_prims = new_tree.prims()
+    constraint_vals = [
+        constraints[constraint_idx](tuple(new_prims[idx] for idx in prim_idxs))
+        for constraint_idx, prim_idxs in enumerate(constraint_graph)
+    ]
+    return jnp.concatenate(constraint_vals)
