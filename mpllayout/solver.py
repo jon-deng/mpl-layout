@@ -37,7 +37,7 @@ from .array import LabelledList
 
 from . import layout
 
-PrimLabelledList = LabelledList[typ.Union[geo.Primitive, geo.PrimitiveArray]]
+PrimLabelledList = LabelledList[geo.Primitive]
 ConstraintLabelledList = LabelledList[geo.Constraint]
 
 IntGraph = typ.List[typ.Tuple[int, ...]]

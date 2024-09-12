@@ -131,43 +131,6 @@ PrimList = typ.Tuple[Primitive, ...]
 PrimTuple = typ.Tuple[Primitive, ...]
 
 
-class PrimitiveArray(Primitive):
-    """
-    A representation of an array of geometric primitives
-
-    Parameters
-    ----------
-    ... : see `Primitive`
-
-    Attributes
-    ----------
-    ... : see `Primitive`
-    """
-
-    def __len__(self):
-        raise NotImplementedError
-
-    def __getitem__(self, key):
-        make_prim, child_prim_idxs = self.index_spec(key)
-        return make_prim(tuple(self.prims[idx] for idx in child_prim_idxs))
-
-    def index_spec(
-        self, key
-    ) -> typ.Tuple[typ.Callable[[PrimTuple], Primitive], typ.Tuple[str, ...]]:
-        """
-        Return a function and argument indices that form an indexed primitive
-
-        Returns
-        -------
-        make_prim: typ.Callable[[PrimTuple], Primitive]
-            A function that returns the indexed primitive from input primitives
-        child_prim_idxs: typ.Tuple[str, ...]
-            Indices of child primitives that are input to `make_prim` to get the
-            indexed primitive
-        """
-        raise NotImplementedError
-
-
 ## Actual primitive classes
 
 
