@@ -63,11 +63,11 @@ def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
         The `(width, height)` of the box
     """
 
-    point_bottomleft = box[0][0]
+    point_bottomleft = box['Line0']['Point0']
     xmin = point_bottomleft.param[0]
     ymin = point_bottomleft.param[1]
 
-    point_topright = box[1][1]
+    point_topright = box['Line1']['Point1']
     xmax = point_topright.param[0]
     ymax = point_topright.param[1]
 
@@ -96,11 +96,11 @@ def rect_from_box(
     """
     fig_w, fig_h = fig_size
 
-    point_bottomleft = box[0][0]
+    point_bottomleft = box['Line0']['Point0']
     xmin = point_bottomleft.param[0] / fig_w
     ymin = point_bottomleft.param[1] / fig_h
 
-    point_topright = box[1][1]
+    point_topright = box['Line1']['Point1']
     xmax = point_topright.param[0] / fig_w
     ymax = point_topright.param[1] / fig_h
     width = xmax - xmin

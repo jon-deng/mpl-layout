@@ -25,8 +25,8 @@ def plot_line_segment(ax: mpl.axes.Axes, line_segment: geo.Line, label=None, **k
     """
     Plot a `LineSegment` primitive in an axes
     """
-    xs = np.array([point.param[0] for point in line_segment.prims])
-    ys = np.array([point.param[1] for point in line_segment.prims])
+    xs = np.array([point.param[0] for point in line_segment.prims.values()])
+    ys = np.array([point.param[1] for point in line_segment.prims.values()])
     ax.plot(xs, ys, **kwargs)
 
 
@@ -34,8 +34,7 @@ def plot_polygon(ax: mpl.axes.Axes, polygon: geo.Polygon, label=None, **kwargs):
     """
     Plot a `ClosedPolyline` primitive in an axes
     """
-    closed_prims = polygon.prims[:] + (polygon.prims[0],)
-    points = [polygon[0][0]] + [polygon[ii][1] for ii in range(len(polygon))]
+    points = [polygon[f'Line0']['Point0']] + [polygon[f'Line{ii}']['Point1'] for ii in range(len(polygon))]
     xs = np.array([point.param[0] for point in points])
     ys = np.array([point.param[1] for point in points])
 

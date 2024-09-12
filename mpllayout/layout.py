@@ -55,7 +55,7 @@ class PrimitiveTree:
         This follows the recursive layout of `Primitive`. For example, consider a `Line`
         instance `line` which has two points. The tree representation of `line` is
         ```
-        PrimitiveTree(line, {'Point0': line[0], 'Point1': line[1]})
+        PrimitiveTree(line, {'Point0': line['Point0'], 'Point1': line['Point1']})
         ```
     """
 

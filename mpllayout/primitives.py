@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 import numpy as np
 import jax.numpy as jnp
+import jax
 
 from .array import LabelledTuple
 
@@ -78,24 +79,25 @@ class Primitive:
         elif not isinstance(param, (np.ndarray, jnp.ndarray)):
             param = np.array(param, dtype=float)
 
-        self._param: NDArray[float] = param
+        self._param: NDArray = param
 
         # Create default `prims` if it's undefined
         if prims is None:
             if isinstance(self._PRIM_TYPES, tuple):
                 prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
             else:
-                # PrimType = self._PRIM_TYPES
                 prims = ()
 
         if self._PRIM_LABELS is None:
-            keys = None
+            keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(prims)]
+        elif isinstance(self._PRIM_LABELS, str):
+            keys = [f'{self._PRIM_LABELS}{n}' for n in range(len(prims))]
         elif isinstance(self._PRIM_LABELS, tuple):
             keys = self._PRIM_LABELS
         else:
-            keys = len(prims) * (self._PRIM_LABELS,)
+            raise TypeError(f"{self._PRIM_LABELS}")
 
-        self._prims: LabelledTuple["Primitive"] = LabelledTuple(prims, keys)
+        self._prims = {key: prim for key, prim in zip(keys, prims)}
 
     @property
     def param(self):
@@ -113,7 +115,7 @@ class Primitive:
 
     def __repr__(self):
         prim_tuple_repr = (
-            "(" + str.join(", ", [prim.__repr__() for prim in self.prims]) + ")"
+            "(" + str.join(", ", [prim.__repr__() for prim in self.prims.values()]) + ")"
         )
         return f"{type(self).__name__}({self.param}, {prim_tuple_repr})"
 
@@ -123,7 +125,7 @@ class Primitive:
     def __len__(self) -> int:
         return len(self.prims)
 
-    def __getitem__(self, key: int) -> "Primitive":
+    def __getitem__(self, key: str) -> "Primitive":
         return self.prims[key]
 
 
@@ -195,3 +197,37 @@ class Quadrilateral(Polygon):
 
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (Line, Line, Line, Line)
+
+
+def _flatten_primitive(prim: Primitive):
+    children = (prim.param, prim.prims)
+    aux_data = None
+    return (children, None)
+
+def _unflatten_primitive(aux_data, children):
+    param, prims = children
+    return Primitive(param, prims)
+
+jax.tree_util.register_pytree_node(
+    Line,
+    _flatten_primitive,
+    _unflatten_primitive
+)
+
+jax.tree_util.register_pytree_node(
+    Point,
+    _flatten_primitive,
+    _unflatten_primitive
+)
+
+jax.tree_util.register_pytree_node(
+    Polygon,
+    _flatten_primitive,
+    _unflatten_primitive
+)
+
+jax.tree_util.register_pytree_node(
+    Quadrilateral,
+    _flatten_primitive,
+    _unflatten_primitive
+)
