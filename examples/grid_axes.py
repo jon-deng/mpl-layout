@@ -58,11 +58,12 @@ if __name__ == "__main__":
     ## Constrain the figure size and position
     fig_width, fig_height = 6, 3
     layout.add_constraint(geo.Length(fig_width), ("Figure/Line0",))
-    layout.add_constraint(geo.Length(fig_height), ("Figure/Line1",))
+    # layout.add_constraint(geo.Length(fig_height), ("Figure/Line1",))
     layout.add_constraint(geo.CoincidentPoints(), ("Figure/Line0/Point0", "Origin"))
 
     ## Create the axes boxes
-    axes_shape = (1, 4)
+    axes_shape = (3, 4)
+    num_row, num_col = axes_shape
     num_axes = int(np.prod(axes_shape))
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     for n in range(num_axes):
@@ -74,31 +75,32 @@ if __name__ == "__main__":
 
     ## Constrain the axes in a grid
     num_row, num_col = axes_shape
-    # layout.add_constraint(
-    #     geo.Grid(axes_shape, [0.0]*(num_col-1), [], 2.0**-np.arange(1, num_col), []),
-    #     tuple(f'Axes{n}' for n in range(num_axes))
-    # )
-    # layout.add_constraint(
-    #     geo.Grid(
-    #         axes_shape, [0.1, 0.2, 0.2], [], [0.5, 0.5/2, 0.5/4], []
-    #     ),
-    #     tuple(f'Axes{n}' for n in range(num_axes))
-    # )
     layout.add_constraint(
-        geo.Grid(axes_shape, [0.3, 0.3, 0.3], [], [0.5, 0.25, 0.125], []),
+        geo.Grid(
+            axes_shape,
+            (num_col-1)*[1/16],
+            (num_row-1)*[1/16],
+            (num_col-1)*[1],
+            (num_row-1)*[1]
+        ),
         tuple(f"Axes{n}" for n in range(num_axes)),
+    )
+
+    # Constrain the first axis aspect ratio
+    layout.add_constraint(
+        geo.RelativeLength(2), ('Axes0/Line0', 'Axes0/Line1')
     )
 
     # Constrain top/bottom margins
     margin_top = 1.1
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(margin_bottom, np.array([0, -1])),
-        ("Axes0/Line1/Point0", "Figure/Line1/Point0"),
-    )
-    layout.add_constraint(
         geo.DirectedDistance(margin_top, np.array([0, 1])),
         ("Axes0/Line1/Point1", "Figure/Line1/Point1"),
+    )
+    layout.add_constraint(
+        geo.DirectedDistance(margin_bottom, np.array([0, -1])),
+        (f"Axes{num_axes-1}/Line1/Point0", "Figure/Line1/Point0"),
     )
 
     # Constrain left/right margins
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     )
     print(info)
 
-    plot_layout(layout, "grid_axes.png")
+    # plot_layout(layout, "grid_axes.png")
 
     # print('Figure:', prim_tree_n['Figure'])
     # print('Axes1:', prim_tree_n['Axes1'])
@@ -129,4 +131,4 @@ if __name__ == "__main__":
     # x = np.linspace(0, 1)
     # axs['Axes1'].plot(x, x**2)
 
-    fig.savefig("out/grid_axes.png")
+    fig.savefig("grid_axes.png")
