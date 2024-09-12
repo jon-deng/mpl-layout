@@ -199,19 +199,40 @@ class Quadrilateral(Polygon):
     _PRIM_TYPES = (Line, Line, Line, Line)
 
 
-_PrimitiveClasses = [
-    Point, Line, Polygon, Quadrilateral
-]
-for _PrimitiveClass in _PrimitiveClasses:
-    def _flatten_primitive(prim: Primitive):
+
+def _flatten_primitive(prim: Primitive):
+    children = (prim.param, prim.prims)
+    aux_data = None
+    return (children, None)
+
+def _unflatten_primitive(aux_data, children):
+    param, prims = children
+    return Primitive(param, tuple(prims.values()))
+
+jax.tree_util.register_pytree_node(
+    Primitive,
+    _flatten_primitive,
+    _unflatten_primitive
+)
+
+def _make_flatten_unflatten(PrimitiveClass):
+
+    def _flatten_primitive(prim):
         children = (prim.param, prim.prims)
         aux_data = None
         return (children, None)
 
     def _unflatten_primitive(aux_data, children):
         param, prims = children
-        return _PrimitiveClass(param, prims)
+        return PrimitiveClass(param, tuple(prims.values()))
 
+    return _flatten_primitive, _unflatten_primitive
+
+_PrimitiveClasses = [
+    Quadrilateral, Point, Line, Polygon
+]
+for _PrimitiveClass in _PrimitiveClasses:
+    _flatten_primitive, _unflatten_primitive = _make_flatten_unflatten(_PrimitiveClass)
     jax.tree_util.register_pytree_node(
         _PrimitiveClass,
         _flatten_primitive,
