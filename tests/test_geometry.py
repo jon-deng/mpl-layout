@@ -14,7 +14,7 @@ import numpy as np
 from mpllayout import geometry as geo
 
 
-class TestPrimitves:
+class TestPrimitives:
 
     def test_Quadrilateral(self):
         quad = geo.Quadrilateral()
