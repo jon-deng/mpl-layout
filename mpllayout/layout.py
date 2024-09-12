@@ -228,7 +228,7 @@ class Layout:
     def __init__(
         self,
         prim_tree: typ.Optional[PrimitiveTree] = None,
-        constraints: typ.Optional[ConstraintLabelledList] = None,
+        constraints: typ.Optional[typ.List[geo.Constraint]] = None,
         constraint_graph: typ.Optional[StrGraph] = None,
     ):
 
@@ -240,7 +240,7 @@ class Layout:
             constraint_graph = []
 
         self._primitive_tree = prim_tree
-        self._constraints = LabelledList(constraints)
+        self._constraints = constraints
         self._constraint_graph = constraint_graph
 
         self._prim_type_count = {}
@@ -299,8 +299,7 @@ class Layout:
     def add_constraint(
         self,
         constraint: geo.Constraint,
-        prim_labels: typ.Tuple[str, ...],
-        constraint_label: typ.Optional[str] = None,
+        prim_labels: typ.Tuple[str, ...]
     ) -> str:
         """
         Add a `Constraint` between `Primitive`s
@@ -321,10 +320,8 @@ class Layout:
         constraint_label: str
             The label for the added constraint
         """
-        constraint_label = self.constraints.append(constraint, label=constraint_label)
+        self.constraints.append(constraint)
         self.constraint_graph.append(prim_labels)
-        return constraint_label
-
 
 def build_tree(
     tree: PrimitiveTree,
