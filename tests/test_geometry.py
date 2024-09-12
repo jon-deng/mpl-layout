@@ -32,24 +32,23 @@ class TestPrimitives:
         # breakpoint()
         from jax import tree_util
 
-        points = [
-            geo.Point([0, 0]), geo.Point([1, 1]), geo.Point([2, 2])
-        ]
-        # tree_util.tree_map(lambda point: point.param + 1, points)
+        point = geo.Point()
+        line = geo.Line()
+        quad = geo.Quadrilateral()
 
-        lines = [
-            geo.Line(np.array([]), (point0, point1))
-            for point0, point1 in zip(points[:-1], points[1:])
-        ]
-        # tree_util.tree_map(lambda line: line.param + 1, lines)
+        for prim in (point, line, quad):
+            print(f"\nTesting primitive type {type(prim).__name__}")
+            leaves = tree_util.tree_leaves(prim)
+            print("Leaves:", leaves)
 
-        leaves = tree_util.tree_leaves(lines[0])
-        print(leaves)
-        print([type(leaf) for leaf in leaves])
+            value_flat, value_tree = tree_util.tree_flatten(prim)
+            reconstructed_prim = tree_util.tree_unflatten(value_tree, value_flat)
+            print("tree_util.tree_flatten:", value_flat, value_tree)
+            print("tree_util.tree_unflatten:", reconstructed_prim)
 
-        leaves = tree_util.tree_leaves([0, 1, 2, 3, [4, 5, [6, 7, [8]]]])
-        print(leaves)
-        print([type(leaf) for leaf in leaves])
+            leaves = tree_util.tree_leaves([0, 1, 2, 3, [4, 5, [6, 7, [8]]]])
+            print(leaves)
+            print([type(leaf) for leaf in leaves])
 
 
 class TestConstraints:
