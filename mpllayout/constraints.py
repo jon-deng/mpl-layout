@@ -72,6 +72,11 @@ class Constraint:
         """
         raise NotImplementedError()
 
+    def assem_jac(self, prims: typ.Tuple[Prim, ...]):
+        """
+        Return the Jacobian of the residual vector w.r.t any primitives
+        """
+        raise NotImplementedError()
 
 ## Constraints on points
 
