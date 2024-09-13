@@ -199,22 +199,6 @@ class Quadrilateral(Polygon):
     _PRIM_TYPES = (Line, Line, Line, Line)
 
 
-
-def _flatten_primitive(prim: Primitive):
-    children = (prim.param, prim.prims)
-    aux_data = None
-    return (children, None)
-
-def _unflatten_primitive(aux_data, children):
-    param, prims = children
-    return Primitive(param, tuple(prims.values()))
-
-jax.tree_util.register_pytree_node(
-    Primitive,
-    _flatten_primitive,
-    _unflatten_primitive
-)
-
 def _make_flatten_unflatten(PrimitiveClass):
 
     def _flatten_primitive(prim):
