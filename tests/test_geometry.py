@@ -28,27 +28,39 @@ class TestPrimitives:
     def test_Polygon(self):
         poly = geo.Polygon()
 
-    def test_Primitive_jax_pytree(self):
+    @pytest.fixture(params=[geo.Point, geo.Line, geo.Quadrilateral])
+    def prim(self, request):
+        return request.param()
+
+    def test_Primitive_jax_pytree(self, prim):
         # breakpoint()
         from jax import tree_util
 
-        point = geo.Point()
-        line = geo.Line()
-        quad = geo.Quadrilateral()
+        print(f"\nTesting primitive type {type(prim).__name__}")
+        leaves = tree_util.tree_leaves(prim)
+        print("Leaves:", leaves)
 
-        for prim in (point, line, quad):
-            print(f"\nTesting primitive type {type(prim).__name__}")
-            leaves = tree_util.tree_leaves(prim)
-            print("Leaves:", leaves)
+        value_flat, value_tree = tree_util.tree_flatten(prim)
+        reconstructed_prim = tree_util.tree_unflatten(value_tree, value_flat)
+        print("tree_util.tree_flatten:", value_flat, value_tree)
+        print("tree_util.tree_unflatten:", reconstructed_prim)
 
-            value_flat, value_tree = tree_util.tree_flatten(prim)
-            reconstructed_prim = tree_util.tree_unflatten(value_tree, value_flat)
-            print("tree_util.tree_flatten:", value_flat, value_tree)
-            print("tree_util.tree_unflatten:", reconstructed_prim)
+        leaves = tree_util.tree_leaves([0, 1, 2, 3, [4, 5, [6, 7, [8]]]])
+        print(leaves)
+        print([type(leaf) for leaf in leaves])
 
-            leaves = tree_util.tree_leaves([0, 1, 2, 3, [4, 5, [6, 7, [8]]]])
-            print(leaves)
-            print([type(leaf) for leaf in leaves])
+    def test_flatten_unflatten(self, prim):
+        print(f"\nTesting flattening of {type(prim).__name__}")
+        flat_prim_repr = geo.flatten(prim)
+
+        flat_struct, flat_param = flat_prim_repr
+        print("\nFlat structure:", flat_struct)
+        print("Flat param:", flat_param)
+        # breakpoint()
+        unflattened_prim = geo.unflatten(flat_struct, flat_param)
+
+        print("\nOriginal primitive:\n", prim)
+        print("Reconstructed primitive:\n", unflattened_prim)
 
 
 class TestConstraints:

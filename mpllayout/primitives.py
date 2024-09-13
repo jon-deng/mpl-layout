@@ -5,6 +5,8 @@ Geometry primitives
 import typing as typ
 from numpy.typing import NDArray
 
+import itertools
+
 import numpy as np
 import jax.numpy as jnp
 import jax
@@ -132,6 +134,43 @@ class Primitive:
 PrimList = typ.Tuple[Primitive, ...]
 PrimTuple = typ.Tuple[Primitive, ...]
 
+FlatPrimStruct = typ.List[typ.Tuple[typ.Type[Primitive], int]]
+FlatPrimParam = typ.List[NDArray]
+
+def flatten(prim: Primitive) -> typ.Tuple[FlatPrimStruct, FlatPrimParam]:
+    """Return a flattened `Primitive` representation"""
+    prim_struct = [(type(prim), len(prim.prims))]
+    prim_param = [prim.param]
+
+    for prim in prim.prims.values():
+        struct, param = flatten(prim)
+        prim_struct += struct
+        prim_param += param
+
+    return prim_struct, prim_param
+
+def unflatten(
+    flat_prim_struct: FlatPrimStruct, flat_prim_param: FlatPrimParam
+) -> Primitive:
+    """Return a `Primitive` from a flat representation"""
+    return _unflatten(flat_prim_struct, flat_prim_param)[0]
+
+def _unflatten(
+    flat_prim_struct: FlatPrimStruct, flat_prim_param: FlatPrimParam
+) -> Primitive:
+    PrimType, num_args = flat_prim_struct[0]
+    param = flat_prim_param[0]
+
+    _flat_prim_struct = flat_prim_struct[1:]
+    _flat_prim_param = flat_prim_param[1:]
+    child_prims = []
+    for _ in range(num_args):
+        child_prim, _flat_prim_struct, _flat_prim_param = _unflatten(
+            _flat_prim_struct, _flat_prim_param
+        )
+        child_prims.append(child_prim)
+
+    return PrimType(param, prims=child_prims), _flat_prim_struct, _flat_prim_param
 
 ## Actual primitive classes
 
