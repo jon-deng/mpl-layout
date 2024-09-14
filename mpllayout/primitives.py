@@ -119,7 +119,7 @@ class Primitive:
         prim_tuple_repr = (
             "(" + str.join(", ", [prim.__repr__() for prim in self.prims.values()]) + ")"
         )
-        return f"{type(self).__name__}({self.param}, {prim_tuple_repr})"
+        return f"{type(self).__name__}({self.param.__repr__()}, {prim_tuple_repr})"
 
     def __str__(self):
         return self.__repr__()
@@ -139,38 +139,36 @@ FlatPrimParam = typ.List[NDArray]
 
 def flatten(prim: Primitive) -> typ.Tuple[FlatPrimStruct, FlatPrimParam]:
     """Return a flattened `Primitive` representation"""
-    prim_struct = [(type(prim), len(prim.prims))]
-    prim_param = [prim.param]
+    fstruct = [(type(prim), len(prim.prims))]
+    fparam = [prim.param]
 
     for prim in prim.prims.values():
         struct, param = flatten(prim)
-        prim_struct += struct
-        prim_param += param
+        fstruct += struct
+        fparam += param
 
-    return prim_struct, prim_param
+    return fstruct, fparam
 
 def unflatten(
-    flat_prim_struct: FlatPrimStruct, flat_prim_param: FlatPrimParam
+    fstruct: FlatPrimStruct, fparam: FlatPrimParam
 ) -> Primitive:
     """Return a `Primitive` from a flat representation"""
-    return _unflatten(flat_prim_struct, flat_prim_param)[0]
+    return _unflatten(fstruct, fparam)[0]
 
 def _unflatten(
-    flat_prim_struct: FlatPrimStruct, flat_prim_param: FlatPrimParam
+    fstruct: FlatPrimStruct, fparam: FlatPrimParam
 ) -> Primitive:
-    PrimType, num_args = flat_prim_struct[0]
-    param = flat_prim_param[0]
+    PrimType, num_args = fstruct[0]
+    param = fparam[0]
 
-    _flat_prim_struct = flat_prim_struct[1:]
-    _flat_prim_param = flat_prim_param[1:]
+    _fstruct = fstruct[1:]
+    _fparam = fparam[1:]
     child_prims = []
     for _ in range(num_args):
-        child_prim, _flat_prim_struct, _flat_prim_param = _unflatten(
-            _flat_prim_struct, _flat_prim_param
-        )
+        child_prim, _fstruct, _fparam = _unflatten(_fstruct, _fparam)
         child_prims.append(child_prim)
 
-    return PrimType(param, prims=child_prims), _flat_prim_struct, _flat_prim_param
+    return PrimType(param, prims=child_prims), _fstruct, _fparam
 
 ## Actual primitive classes
 
