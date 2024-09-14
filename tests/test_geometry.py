@@ -82,6 +82,27 @@ class TestConstraints:
     def location(self):
         return np.array([5, 5], dtype=float)
 
+    @pytest.fixture(params=[
+        (geo.PointLocation(np.array([1, 1])), (geo.Point([0, 0]),)),
+        (geo.Length(5.5), (geo.Line(prims=(geo.Point([0, 0]), geo.Point([1, 1]))),)),
+        (geo.DirectedDistance(5.5, np.array([0, 1])), (geo.Point([0, 0]), geo.Point([1, 1])))
+    ])
+    def constraint_prims(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def constraint(self, constraint_prims):
+        return constraint_prims[0]
+
+    @pytest.fixture()
+    def prims(self, constraint_prims):
+        return constraint_prims[1]
+
+    def test_assem_jac(self, constraint, prims):
+        print(f"\nTesting {type(constraint).__name__}")
+        jac = constraint.assem_jac(prims)
+        print('Jacobian:', jac)
+
     def test_PointToPointAbsDistance(self, points, direction):
         point0, point1, *_ = points
         ans_ref = np.dot(point1.param - point0.param, direction)
