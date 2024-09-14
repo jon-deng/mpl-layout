@@ -1,6 +1,11 @@
 # My rule
 prototype.py
 
+# Benchmarking files
+*.prof
+*.profile
+*.lprof
+
 # Figures / images / video
 *.png
 *.svg
