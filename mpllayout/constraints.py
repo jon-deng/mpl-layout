@@ -9,6 +9,7 @@ import itertools
 
 import numpy as np
 import jax.numpy as jnp
+jnp = np
 
 from . import primitives as primitives
 
@@ -72,14 +73,51 @@ class Constraint:
         """
         raise NotImplementedError()
 
-    def assem_jac(self, prims: typ.Tuple[Prim, ...]):
+    def assem_jac(self, prims: typ.Tuple[Prim, ...], h=1e-6):
         """
         Return the Jacobian of the residual vector w.r.t any primitives
         """
-        raise NotImplementedError()
+        freprs = [primitives.flatten(prim) for prim in prims]
+        fstructs = tuple(frepr[0] for frepr in freprs)
+        fparams = tuple(frepr[1] for frepr in freprs)
+
+        dfparams = tuple(
+            [h*np.ones(param.size) for param in flat_param]
+            for flat_param in fparams
+        )
+        dfparams_null = tuple(
+            [h*np.zeros(param.size) for param in flat_param]
+            for flat_param in fparams
+        )
+
+        res = self(prims)
+        fjacs = []
+        for ii, (fstruct, fparam, dfparam, dfparam_null) in enumerate(zip(fstructs, fparams, dfparams, dfparams_null)):
+            prims_prefix, prims_post = prims[:ii], prims[ii+1:]
+
+            fjac = []
+            for jj, dparam in enumerate(dfparam):
+                dfparam_pre, dfparam_post = dfparam_null[:jj], dfparam_null[jj+1:]
+                _dfparam = dfparam_pre + [np.diag(dparam)] + dfparam_post
+                fparam_h = [
+                    param + dparam for param, dparam in zip(fparam, _dfparam)
+                ]
+
+                prim_h = primitives.unflatten(fstruct, fparam_h)
+
+                prims_h = prims_prefix + (prim_h,) + prims_post
+                res_h = self(prims_h)
+                fjac.append((res_h - res)/dparam[:, None])
+            fjacs.append(primitives.unflatten(fstruct, fjac))
+
+        return fjacs
 
 ## Constraints on points
 
+NP_REDUCE_KWARGS = {
+    'axis': -1,
+    'keepdims': True
+}
 
 class DirectedDistance(Constraint):
     """
@@ -104,8 +142,9 @@ class DirectedDistance(Constraint):
         specified direction.
         """
         point0, point1 = prims
-        distance = jnp.dot(
-            point1.param - point0.param, self._res_kwargs["direction"]
+        distance = np.sum(
+            (point1.param - point0.param) * self._res_kwargs["direction"],
+            **NP_REDUCE_KWARGS
         )
         return distance - self._res_kwargs["distance"]
 
@@ -175,7 +214,7 @@ class Length(Constraint):
         # This sets the length of a line
         (line,) = prims
         vec = line_vector(line)
-        return jnp.sum(vec**2) - self._res_kwargs["length"] ** 2
+        return jnp.sum(vec**2, **NP_REDUCE_KWARGS) - self._res_kwargs["length"] ** 2
 
 
 class RelativeLength(Constraint):
@@ -195,7 +234,7 @@ class RelativeLength(Constraint):
         line0, line1 = prims
         vec_a = line_vector(line0)
         vec_b = line_vector(line1)
-        return jnp.sum(vec_a**2) - self._res_kwargs["length"] ** 2 * jnp.sum(vec_b**2)
+        return jnp.sum(vec_a**2, **NP_REDUCE_KWARGS) - self._res_kwargs["length"] ** 2 * jnp.sum(vec_b**2, **NP_REDUCE_KWARGS)
 
 
 class Orthogonal(Constraint):
@@ -214,7 +253,7 @@ class Orthogonal(Constraint):
         line0, line1 = prims
         dir0 = line_vector(line0)
         dir1 = line_vector(line1)
-        return jnp.dot(dir0, dir1)
+        return jnp.sum(dir0*dir1, **NP_REDUCE_KWARGS)
 
 
 class Parallel(Constraint):
@@ -233,7 +272,7 @@ class Parallel(Constraint):
         line0, line1 = prims
         dir0 = line_vector(line0)
         dir1 = line_vector(line1)
-        return jnp.cross(dir0, dir1)
+        return jnp.cross(dir0, dir1, **NP_REDUCE_KWARGS)
 
 
 class Vertical(Constraint):
@@ -251,7 +290,7 @@ class Vertical(Constraint):
         """
         (line0,) = prims
         dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([1, 0]))
+        return jnp.sum(dir0*np.array([1, 0]), **NP_REDUCE_KWARGS)
 
 
 class Horizontal(Constraint):
@@ -269,7 +308,7 @@ class Horizontal(Constraint):
         """
         (line0,) = prims
         dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([0, 1]))
+        return jnp.sum(dir0*np.array([0, 1]), **NP_REDUCE_KWARGS)
 
 
 class Angle(Constraint):
@@ -291,7 +330,7 @@ class Angle(Constraint):
 
         dir0 = dir0 / jnp.linalg.norm(dir0)
         dir1 = dir1 / jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - self._res_kwargs["angle"]
+        return jnp.arccos(jnp.sum(dir0*dir1, **NP_REDUCE_KWARGS)) - self._res_kwargs["angle"]
 
 
 class Collinear(Constraint):
