@@ -9,6 +9,7 @@ import itertools
 
 import numpy as np
 import jax.numpy as jnp
+import jax
 
 from . import primitives as primitives
 
@@ -47,13 +48,16 @@ class Constraint:
         self._res_args = args
         self._res_kwargs = kwargs
 
+        def assem_res(prims):
+            return jnp.atleast_1d(self.assem_res(prims))
+        self._jit_assem_res = jax.jit(assem_res)
+
     def __call__(self, prims: typ.Tuple[Prim, ...]):
         # Check the input primitives are valid
         # assert len(prims) == len(self._PRIMITIVE_TYPES)
         # for prim, prim_type in zip(prims, self._PRIMITIVE_TYPES):
         #     assert issubclass(type(prim), prim_type)
-
-        return jnp.atleast_1d(self.assem_res(prims))
+        return self._jit_assem_res(prims)
 
     def assem_res(self, prims: typ.Tuple[Prim, ...]) -> NDArray:
         """
