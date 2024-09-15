@@ -5,6 +5,7 @@ Test `solver`
 import pytest
 
 import time
+from timeit import timeit
 from pprint import pprint
 
 import numpy as np
@@ -110,7 +111,8 @@ class TestPrimitiveTree:
         )
         return layout
 
-    def test_assem_constraint_residual(self, layout_grid: lay.Layout):
+    @pytest.fixture()
+    def cresidual_args(self, layout_grid: lay.Layout):
         layout = layout_grid
 
         prims = layout_grid.prims()
@@ -120,46 +122,34 @@ class TestPrimitiveTree:
         prim_graph = prim_tree.prim_graph()
         constraints = layout.constraints
         constraint_graph_int = layout.constraint_graph_int
+        return prim_params, prim_tree, prim_graph, constraints, constraint_graph_int
 
-        # Plain call
+    @pytest.fixture(params=[False, True])
+    def use_global_jit(self, request):
+        return request.param
 
-        t0 = time.time()
-        for i in range(50):
-            solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints, constraint_graph_int
-            )
-        t1 = time.time()
-        print(f"Duration {t1-t0:.2e} s")
+    def test_assem_constraint_residual(self, cresidual_args, use_global_jit: bool):
+        print(f"Testing with global jit: {use_global_jit}")
 
-        # `jax.jit` individual constraint functions
-        import jax
-        constraints_jit = [jax.jit(constraint) for constraint in constraints]
-        solver.assem_constraint_residual(
-            prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_int
+        prim_params, *_ = cresidual_args
+
+        def _assem_res(prim_params):
+            return solver.assem_constraint_residual(prim_params, *cresidual_args[1:])
+
+        if use_global_jit:
+            import jax
+            _assem_res = jax.jit(_assem_res)
+
+        # call `run()` once to avoid measuring jit complication
+        def run():
+            return _assem_res(prim_params)
+        run()
+
+        num_it = 100
+        duration = timeit(
+            '_assem_res(prim_params)', globals={**globals(), **locals()}, number=num_it
         )
-
-        t0 = time.time()
-        for i in range(50):
-            solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_int
-            )
-        t1 = time.time()
-        print(f"Duration {t1-t0:.2e} s")
-
-        # `jax.jit` the overall function
-
-        @jax.jit
-        def assem_constraint_residual(prim_params):
-            return solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints, constraint_graph_int
-            )
-
-        assem_constraint_residual(prim_params)
-        t0 = time.time()
-        for i in range(50):
-            assem_constraint_residual(prim_params)
-        t1 = time.time()
-        print(f"Duration {t1-t0:.2e} s")
+        print(f"Duration {duration/num_it:.2e} s")
 
     def test_solve(self, layout: lay.Layout):
         prim_tree_n, solve_info = solver.solve(
