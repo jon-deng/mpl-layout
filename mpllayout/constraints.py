@@ -272,7 +272,7 @@ class Parallel(Constraint):
         line0, line1 = prims
         dir0 = line_vector(line0)
         dir1 = line_vector(line1)
-        return jnp.cross(dir0, dir1, **NP_REDUCE_KWARGS)
+        return jnp.cross(dir0, dir1, axis=-1)
 
 
 class Vertical(Constraint):
