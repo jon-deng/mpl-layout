@@ -9,7 +9,6 @@ import itertools
 
 import numpy as np
 import jax.numpy as jnp
-jnp = np
 
 from . import primitives as primitives
 
