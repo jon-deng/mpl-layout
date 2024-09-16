@@ -33,7 +33,7 @@ from jax import numpy as jnp
 import numpy as np
 
 from . import geometry as geo
-from .array import LabelledList
+from .containers import LabelledList
 
 from . import layout
 

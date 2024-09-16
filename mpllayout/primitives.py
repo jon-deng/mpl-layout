@@ -9,7 +9,7 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 
-from .array import LabelledTuple
+from .containers import LabelledTuple
 
 
 ArrayShape = typ.Tuple[int, ...]

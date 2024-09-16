@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 from mpllayout import geometry as geo
-from mpllayout.array import LabelledList
+from mpllayout.containers import LabelledList
 
 
 def subplots(

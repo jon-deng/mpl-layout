@@ -28,7 +28,7 @@ import typing as typ
 import numpy as np
 
 from . import geometry as geo
-from .array import LabelledList
+from .containers import LabelledList
 
 Prim = geo.Primitive
 PrimLabelledList = LabelledList[geo.Primitive]

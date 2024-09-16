@@ -8,7 +8,7 @@ import matplotlib as mpl
 import numpy as np
 
 from . import geometry as geo
-from .array import LabelledList
+from .containers import LabelledList
 
 ## Functions for plotting geometric primitives
 
