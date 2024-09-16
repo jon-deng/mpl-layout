@@ -15,6 +15,159 @@ import typing as typ
 
 T = typ.TypeVar("T")
 
+class Node(typ.Generic[T]):
+    """
+    Tree structure with labelled child nodes
+
+    Parameters
+    ----------
+    value: T
+        A value associated with the node
+    children: typ.Tuple[Node, ...]
+        Child nodes
+    labels: typ.Tuple[str, ...]
+        Child node labels
+    """
+
+    def __init__(
+        self,
+        value: typ.Union[None, T],
+        keys: typ.Tuple[str, ...],
+        children: typ.Tuple["Node", ...]
+    ):
+        self._value = value
+        self._children = children
+
+        if len(children) == len(keys):
+            self._key_to_child = {
+                label: cnode for label, cnode in zip(keys, children)
+            }
+        else:
+            raise ValueError(
+                f"Number of child nodes {len(children)} must equal number of keys {len(keys)}"
+            )
+
+    @property
+    def children(self):
+        """
+        Return any children
+        """
+        return self._children
+
+    @property
+    def children_map(self):
+        """
+        Return any children
+        """
+        return self._key_to_child
+
+    @property
+    def value(self):
+        """
+        Return the value
+        """
+        return self._value
+
+    ## Flattened interface
+
+    ## Dict-like interface
+
+    def __len__(self):
+        return len(self.children)
+
+    def keys(self) -> typ.List[str]:
+        """
+        Return child keys
+
+        Parameters
+        ----------
+        flat:
+            Toggle whether to recursively flatten keys
+
+            Child keys are separated using '/'
+        """
+        return self.children_map.keys()
+
+    def values(self, flat: bool = False) -> typ.List[T]:
+        """
+        Return child primitives
+
+        Parameters
+        ----------
+        flat:
+            Toggle whether to recursively flatten child primitives
+        """
+        return self.children_map.values()
+
+    def items(self, flat: bool = False) -> typ.List[typ.Tuple[str, T]]:
+        """
+        Return paired child keys and associated trees
+
+        Parameters
+        ----------
+        flat:
+            Toggle whether to recursively flatten keys and trees
+        """
+        return self.children_map.items()
+
+    def __getitem__(self, key: str) -> "Node":
+        """
+        Return the value indexed by a slash-separated key
+
+        Parameters
+        ----------
+        key: str
+            A slash-separated key, for example 'Box/Line0/Point2'
+        """
+        if isinstance(key, int):
+            return self.getitem_from_int(key)
+        elif isinstance(key, str):
+            return self.getitem_from_str(key)
+        else:
+            raise TypeError("")
+
+    def getitem_from_int(self, key: int) -> T:
+        return self.children[key]
+
+    def getitem_from_str(self, key: str) -> T:
+        split_key = key.split("/")
+        parent_key = split_key[0]
+        child_key = "/".join(split_key[1:])
+
+        try:
+            if len(split_key) == 1:
+                return self.children_map[parent_key].value
+            else:
+                return self.children_map[parent_key][child_key]
+        except KeyError as err:
+            raise KeyError(f"{key}") from err
+
+    def __setitem__(self, key: str, value: "Node"):
+        """
+        Add a primitive indexed by a slash-separated key
+
+        Parameters
+        ----------
+        key: str
+            A slash-separated key, for example 'Box/Line0/Point2'
+        """
+        split_key = key.split("/")
+        parent_key = split_key[0]
+        child_keys = split_key[1:]
+        child_key = "/".join(child_keys)
+
+        try:
+            if len(child_keys) > 0:
+                self.children_map[parent_key][child_key] = value
+            elif len(child_keys) == 0:
+                self._children.append(value)
+                self.children_map[key] = value
+            else:
+                assert False
+
+        except KeyError as err:
+            raise KeyError(f"{key}") from err
+
 
 class LabelledContainer(typ.Generic[T]):
     """
