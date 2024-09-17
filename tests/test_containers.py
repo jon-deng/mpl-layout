@@ -20,6 +20,9 @@ class TestNode:
     def test_repr(self, node: cn.Node):
         print(node)
 
+    def test_iter_flat(self, node: cn.Node):
+        print([{key: _node} for key, _node in cn.iter_flat('', node)])
+
     def test_flatten_unflatten(self, node: cn.Node):
         fnode_structs = cn.flatten('root', node)
 

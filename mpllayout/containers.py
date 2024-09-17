@@ -188,32 +188,33 @@ class Node(tp.Generic[T]):
 NodeType = tp.Type[Node]
 FlatNodeStructure = tp.Tuple[NodeType, str, T, int]
 
-def flatten(
+def iter_flat(
     key: str, node: Node
-) -> tp.List[FlatNodeStructure]:
-    fnode = iter_flatten(key, node)
-    return [struct for struct in fnode]
-
-def iter_flatten(
-    key: str, node: Node
-) -> tp.Iterable[FlatNodeStructure]:
+) -> tp.Iterable[tp.Tuple[str, Node]]:
     """
-    Return a flat iterator of a node
+    Return a flat iterator over all nodes
     """
-    pnode_structs = [(type(node), key, node.value, len(node))]
-
     num_child = len(node)
 
     if num_child == 0:
-        node_structs = pnode_structs
+        nodes = [(key, node)]
     else:
-        cnode_structs = [
-            flatten('/'.join((key, ckey)), cnode)
+        cnodes = [
+            iter_flat('/'.join((key, ckey)), cnode)
             for ckey, cnode in zip(node.keys(), node.values())
         ]
-        cnode_structs = itertools.chain(cnode_structs)
+        cnodes = itertools.chain(cnodes)
 
-        node_structs = itertools.chain(pnode_structs, *cnode_structs)
+        nodes = itertools.chain([(key, node)], *cnodes)
+    return nodes
+
+def flatten(
+    key: str, node: Node
+) -> tp.List[FlatNodeStructure]:
+    node_structs = [
+        (type(_node), _key, _node.value, len(_node))
+        for _key, _node in iter_flat(key, node)
+    ]
     return node_structs
 
 def unflatten(
