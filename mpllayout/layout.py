@@ -29,8 +29,6 @@ import numpy as np
 from . import geometry as geo
 from .containers import Node
 
-Primitive = geo.Primitive
-
 IntGraph = typ.List[typ.Tuple[int, ...]]
 StrGraph = typ.List[typ.Tuple[str, ...]]
 
@@ -45,7 +43,7 @@ class Layout:
     Parameters
     ----------
     prims:
-        A `Node` container of `Primitive`s
+        A `Node` container of `geo.Primitive`s
     constraints:
         A list of constraints
     constraint_graph:
@@ -90,7 +88,7 @@ class Layout:
 
     def add_prim(self, prim: geo.Primitive, key: typ.Optional[str] = None) -> str:
         """
-        Add a `Primitive` to the `Layout`
+        Add a `geo.Primitive` to the `Layout`
 
         The primitive will be added `self.prims` under the given `label`.
 
@@ -118,7 +116,7 @@ class Layout:
         prim_labels: typ.Tuple[str, ...]
     ) -> None:
         """
-        Add a `Constraint` between `Primitive`s
+        Add a `geo.Constraint` between `geo.Primitive`s
 
         Parameters
         ----------
@@ -130,6 +128,13 @@ class Layout:
         self.constraints.append(constraint)
         self.constraint_graph.append(prim_labels)
 
+def build_prim_graph(prim: geo.Primitive) -> typ.Mapping[geo.Primitive, int]:
+    """
+    Return a mapping from primitives to integer indices in `self.prims()`
+    """
+    _graph = {tree.value: None for tree in prim.values(flat=True)}
+    return {prim: ii for ii, prim in enumerate(_graph)}
+
 def build_constraint_graph_int(self) -> IntGraph:
     prim_graph = self.prims.prim_graph()
     return [
@@ -137,25 +142,18 @@ def build_constraint_graph_int(self) -> IntGraph:
         for prim_labels in self.constraint_graph
     ]
 
-def build_prim_graph(prim) -> typ.Mapping[Primitive, int]:
-    """
-    Return a mapping from primitives to integer indices in `self.prims()`
-    """
-    _graph = {tree.value: None for tree in prim.values(flat=True)}
-    return {prim: ii for ii, prim in enumerate(_graph)}
-
-def prims(self) -> typ.List[Primitive]:
+def prims(self) -> typ.List[geo.Primitive]:
     """
     Return a list of all unique primitives in the tree
     """
     return list(self.prim_graph().keys())
 
 def build_tree(
-    prim: Primitive,
-    prim_to_idx: typ.Mapping[Primitive, int],
+    prim: geo.Primitive,
+    prim_to_idx: typ.Mapping[geo.Primitive, int],
     params: typ.List[np.typing.NDArray],
-    prim_to_newprim: typ.Mapping[Primitive, Primitive],
-) -> Primitive:
+    prim_to_newprim: typ.Mapping[geo.Primitive, geo.Primitive],
+) -> geo.Primitive:
     """
     Return a new `PrimitiveTree` using new primitives for given parameter values
 
@@ -164,14 +162,14 @@ def build_tree(
     tree:
         The old `PrimitiveTree` instance
     prim_to_idx:
-        A mapping from `Primitive` in `tree` to corresponding parameters in `params`
+        A mapping from `geo.Primitive` in `tree` to corresponding parameters in `params`
 
         If `params` is a list with parameters in order from `tree.prims()`, then this
         corresponds to `tree.prim_graph()`.
     params:
         A list of parameter values to build a new `PrimitiveTree` with
     prim_to_newprim:
-        A mapping from `Primitive`s in `tree` to replacement `Primitives` in the new tree
+        A mapping from `geo.Primitive`s in `tree` to replacement `Primitives` in the new tree
 
         This should be an empty dictionary in the root `build_tree` call. As
         `build_tree` builds the new tree, it will populate this dictionary to preserve
@@ -205,4 +203,4 @@ def build_tree(
         )
         prim_to_newprim[oldprim] = newprim
 
-    return Primitive(newprim, children)
+    return geo.Primitive(newprim, children)
