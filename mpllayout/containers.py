@@ -13,6 +13,8 @@ and build matrices.
 
 import typing as tp
 
+import itertools
+
 T = tp.TypeVar("T")
 
 class Node(tp.Generic[T]):
@@ -37,6 +39,7 @@ class Node(tp.Generic[T]):
     ):
         self._value = value
         self._children = children
+        self._keys = keys
 
         if len(children) == len(keys):
             self._key_to_child = {
@@ -86,7 +89,7 @@ class Node(tp.Generic[T]):
 
             Child keys are separated using '/'
         """
-        return self.children_map.keys()
+        return list(self.children_map.keys())
 
     def values(self, flat: bool = False) -> tp.List[T]:
         """
@@ -97,7 +100,7 @@ class Node(tp.Generic[T]):
         flat:
             Toggle whether to recursively flatten child primitives
         """
-        return self.children_map.values()
+        return list(self.children_map.values())
 
     def items(self, flat: bool = False) -> tp.List[tp.Tuple[str, T]]:
         """
@@ -170,11 +173,54 @@ class Node(tp.Generic[T]):
 
 NodeType = tp.Type[Node]
 
-def flatten(node: Node, key: str) -> tp.Tuple[tp.List[NodeType], tp.List[str], tp.List[Node]]:
-    return None
+FlatNodeStructure = tp.Tuple[NodeType, str, Node, int]
 
-def unflatten(NodeTypes: tp.List[NodeType], keys: tp.List[str], nodes: tp.List[Node]) -> Node:
-    return None
+def flatten(
+    key: str, node: Node
+) -> tp.List[FlatNodeStructure]:
+    fnode = iter_flatten(key, node)
+    return [struct for struct in fnode]
+
+def iter_flatten(
+    key: str, node: Node
+) -> tp.List[FlatNodeStructure]:
+    """
+    Return a flat description of a node
+    """
+    pnode_structs = [(type(node), key, node.value, len(node))]
+
+    num_child = len(node)
+
+    if num_child == 0:
+        node_structs = pnode_structs
+    else:
+        cnode_structs = [
+            flatten('/'.join((key, ckey)), cnode)
+            for ckey, cnode in zip(node.keys(), node.values())
+        ]
+        cnode_structs = itertools.chain(cnode_structs)
+
+        node_structs = itertools.chain(pnode_structs, *cnode_structs)
+    return node_structs
+
+def unflatten(
+    node_structs: tp.List[FlatNodeStructure]
+) -> tp.Tuple[Node, tp.List[FlatNodeStructure]]:
+    NodeType, pkey, value, num_child = node_structs[0]
+
+    if num_child == 0:
+        node = NodeType(value, (), ())
+    else:
+        ckeys = [struct[1][len(pkey)+1:] for struct in node_structs[1:num_child+1]]
+        children = []
+        node_structs = node_structs[1:]
+        for _ in range(num_child):
+            child, node_structs = unflatten(node_structs)
+            children.append(child)
+
+        node = NodeType(value, ckeys, children)
+
+    return node, node_structs
 
 class LabelledContainer(tp.Generic[T]):
     """
