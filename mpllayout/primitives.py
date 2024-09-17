@@ -9,7 +9,7 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 
-from .containers import LabelledTuple
+from .containers import Node
 
 
 ArrayShape = typ.Tuple[int, ...]
@@ -19,7 +19,7 @@ ArrayShape = typ.Tuple[int, ...]
 # defining appropriate class attributes
 
 
-class Primitive:
+class Primitive(Node[NDArray]):
     """
     A representation of a geometric primitive
 
@@ -73,21 +73,20 @@ class Primitive:
         param: typ.Optional[NDArray] = None,
         prims: typ.Optional[typ.List["Primitive"]] = None,
     ):
-        # Create default `param` if it's undefined
+        # Create default `param` if unspecified
         if param is None:
             param = np.zeros(self._PARAM_SHAPE, dtype=float)
-        elif not isinstance(param, (np.ndarray, jnp.ndarray)):
+        else:
             param = np.array(param, dtype=float)
 
-        self._param: NDArray = param
-
-        # Create default `prims` if it's undefined
+        # Create default `prims` if unspecified
         if prims is None:
             if isinstance(self._PRIM_TYPES, tuple):
                 prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
             else:
                 prims = ()
 
+        # Create keys from class primitive labels
         if self._PRIM_LABELS is None:
             keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(prims)]
         elif isinstance(self._PRIM_LABELS, str):
@@ -97,36 +96,21 @@ class Primitive:
         else:
             raise TypeError(f"{self._PRIM_LABELS}")
 
-        self._prims = {key: prim for key, prim in zip(keys, prims)}
+        super().__init__(param, prims, keys)
 
     @property
     def param(self):
         """
         Return the primitive's parameter vector
         """
-        return self._param
+        return self._value
 
     @property
     def prims(self):
         """
         Return the primitive's child primitives
         """
-        return self._prims
-
-    def __repr__(self):
-        prim_tuple_repr = (
-            "(" + str.join(", ", [prim.__repr__() for prim in self.prims.values()]) + ")"
-        )
-        return f"{type(self).__name__}({self.param}, {prim_tuple_repr})"
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __len__(self) -> int:
-        return len(self.prims)
-
-    def __getitem__(self, key: str) -> "Primitive":
-        return self.prims[key]
+        return self._children
 
 
 PrimList = typ.Tuple[Primitive, ...]
@@ -202,13 +186,13 @@ class Quadrilateral(Polygon):
 def _make_flatten_unflatten(PrimitiveClass):
 
     def _flatten_primitive(prim):
-        children = (prim.param, prim.prims)
+        flat_prim = (prim.value, prim.children)
         aux_data = None
-        return (children, None)
+        return (flat_prim, None)
 
-    def _unflatten_primitive(aux_data, children):
-        param, prims = children
-        return PrimitiveClass(param, tuple(prims.values()))
+    def _unflatten_primitive(aux_data, flat_prim):
+        value, children = flat_prim
+        return PrimitiveClass(value, children)
 
     return _flatten_primitive, _unflatten_primitive
 
