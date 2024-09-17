@@ -123,7 +123,7 @@ class Node(tp.Generic[T]):
         """
         return self.children_map.items()
 
-    def __getitem__(self, key: str) -> "Node":
+    def __getitem__(self, key: tp.Union[str, int]) -> T:
         """
         Return the value indexed by a slash-separated key
 
@@ -132,30 +132,33 @@ class Node(tp.Generic[T]):
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
+        return self.get_child(key).value
+
+    def get_child(self, key: tp.Union[str, int]) -> "Node":
         if isinstance(key, int):
-            return self.getitem_from_int(key)
+            return self.get_child_from_int(key)
         elif isinstance(key, str):
-            return self.getitem_from_str(key)
+            return self.get_child_from_str(key)
         else:
             raise TypeError("")
 
-    def getitem_from_int(self, key: int) -> T:
+    def get_child_from_int(self, key: int) -> "Node":
         return self.children[key]
 
-    def getitem_from_str(self, key: str) -> T:
+    def get_child_from_str(self, key: str) -> "Node":
         split_key = key.split("/")
         parent_key = split_key[0]
         child_key = "/".join(split_key[1:])
 
         try:
             if len(split_key) == 1:
-                return self.children_map[parent_key].value
+                return self.children_map[parent_key]
             else:
                 return self.children_map[parent_key][child_key]
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def __setitem__(self, key: str, value: "Node"):
+    def add_child(self, key: str, child: "Node"):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -180,6 +183,7 @@ class Node(tp.Generic[T]):
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
+
 
 NodeType = tp.Type[Node]
 FlatNodeStructure = tp.Tuple[NodeType, str, T, int]
