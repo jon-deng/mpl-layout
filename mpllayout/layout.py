@@ -8,7 +8,7 @@ lists representing a system of non-linear equations:
 
         These represent the unknowns parameters of the geometric system and is
         represented as a tree.
-    `constraints: typ.List[geo.Constraint]`
+    `constraints: tp.List[geo.Constraint]`
         A list of `geo.Constraint` instances representing the non-linear
         equations
 
@@ -22,15 +22,15 @@ The class `Layout` handles construction of these three things while functions
 `solve` and `solve_linear` use the layout to solve the system of constraints.
 """
 
-import typing as typ
+import typing as tp
 
 import numpy as np
 
 from . import geometry as geo
 from .containers import Node
 
-IntGraph = typ.List[typ.Tuple[int, ...]]
-StrGraph = typ.List[typ.Tuple[str, ...]]
+IntGraph = tp.List[tp.Tuple[int, ...]]
+StrGraph = tp.List[tp.Tuple[str, ...]]
 
 class Layout:
     """
@@ -52,9 +52,9 @@ class Layout:
 
     def __init__(
         self,
-        prims: typ.Optional[Node] = None,
-        constraints: typ.Optional[typ.List[geo.Constraint]] = None,
-        constraint_graph: typ.Optional[StrGraph] = None,
+        prims: tp.Optional[Node] = None,
+        constraints: tp.Optional[tp.List[geo.Constraint]] = None,
+        constraint_graph: tp.Optional[StrGraph] = None,
     ):
 
         if prims is None:
@@ -86,7 +86,7 @@ class Layout:
     def constraint_graph(self) -> StrGraph:
         return self._constraint_graph
 
-    def add_prim(self, prim: geo.Primitive, key: typ.Optional[str] = None) -> str:
+    def add_prim(self, prim: geo.Primitive, key: tp.Optional[str] = None) -> str:
         """
         Add a `geo.Primitive` to the `Layout`
 
@@ -96,7 +96,7 @@ class Layout:
         ----------
         prim: geo.Primitive
             The primitive to add
-        label: typ.Optional[str]
+        label: tp.Optional[str]
             An optional label for the primitive
 
             If not provided, an automatic name based on the primitive class will
@@ -113,7 +113,7 @@ class Layout:
     def add_constraint(
         self,
         constraint: geo.Constraint,
-        prim_labels: typ.Tuple[str, ...]
+        prim_labels: tp.Tuple[str, ...]
     ) -> None:
         """
         Add a `geo.Constraint` between `geo.Primitive`s
@@ -128,7 +128,7 @@ class Layout:
         self.constraints.append(constraint)
         self.constraint_graph.append(prim_labels)
 
-def build_prim_graph(prim: geo.Primitive) -> typ.Mapping[geo.Primitive, int]:
+def build_prim_graph(prim: geo.Primitive) -> tp.Mapping[geo.Primitive, int]:
     """
     Return a mapping from primitives to integer indices in `self.prims()`
     """
@@ -142,7 +142,7 @@ def build_constraint_graph_int(self) -> IntGraph:
         for prim_labels in self.constraint_graph
     ]
 
-def prims(self) -> typ.List[geo.Primitive]:
+def prims(self) -> tp.List[geo.Primitive]:
     """
     Return a list of all unique primitives in the tree
     """
@@ -150,9 +150,9 @@ def prims(self) -> typ.List[geo.Primitive]:
 
 def build_tree(
     prim: geo.Primitive,
-    prim_to_idx: typ.Mapping[geo.Primitive, int],
-    params: typ.List[np.typing.NDArray],
-    prim_to_newprim: typ.Mapping[geo.Primitive, geo.Primitive],
+    prim_to_idx: tp.Mapping[geo.Primitive, int],
+    params: tp.List[np.typing.NDArray],
+    prim_to_newprim: tp.Mapping[geo.Primitive, geo.Primitive],
 ) -> geo.Primitive:
     """
     Return a new `PrimitiveTree` using new primitives for given parameter values
