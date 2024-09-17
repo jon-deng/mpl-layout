@@ -38,8 +38,8 @@ class Node(tp.Generic[T]):
         keys: tp.List[str]
     ):
         self._value = value
-        self._children = children
-        self._keys = keys
+        self._children = list(children)
+        self._keys = list(keys)
 
         if len(children) == len(keys):
             self._key_to_child = {
@@ -123,7 +123,7 @@ class Node(tp.Generic[T]):
         """
         return self.children_map.items()
 
-    def __getitem__(self, key: tp.Union[str, int]) -> "Node":
+    def __getitem__(self, key: tp.Union[str, int]) -> "Node[T]":
         """
         Return the value indexed by a slash-separated key
 
@@ -134,7 +134,7 @@ class Node(tp.Generic[T]):
         """
         return self.get_child(key)
 
-    def get_child(self, key: tp.Union[str, int]) -> "Node":
+    def get_child(self, key: tp.Union[str, int]) -> "Node[T]":
         if isinstance(key, int):
             return self.get_child_from_int(key)
         elif isinstance(key, str):
@@ -142,10 +142,10 @@ class Node(tp.Generic[T]):
         else:
             raise TypeError("")
 
-    def get_child_from_int(self, key: int) -> "Node":
+    def get_child_from_int(self, key: int) -> "Node[T]":
         return self.children[key]
 
-    def get_child_from_str(self, key: str) -> "Node":
+    def get_child_from_str(self, key: str) -> "Node[T]":
         split_key = key.split("/")
         parent_key = split_key[0]
         child_key = "/".join(split_key[1:])
@@ -158,7 +158,7 @@ class Node(tp.Generic[T]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def add_child(self, key: str, child: "Node"):
+    def add_child(self, key: str, child: "Node[T]"):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -174,10 +174,10 @@ class Node(tp.Generic[T]):
 
         try:
             if len(child_keys) > 0:
-                self.children_map[parent_key][child_key] = value
+                self.children_map[parent_key][child_key] = child
             elif len(child_keys) == 0:
-                self._children.append(value)
-                self.children_map[key] = value
+                self._children.append(child)
+                self.children_map[key] = child
             else:
                 assert False
 
