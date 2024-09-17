@@ -100,7 +100,7 @@ class DirectedDistance(Constraint):
         """
         point0, point1 = prims
         distance = jnp.dot(
-            point1.param - point0.param, self._res_kwargs["direction"]
+            point1.value - point0.value, self._res_kwargs["direction"]
         )
         return distance - self._res_kwargs["distance"]
 
@@ -131,7 +131,7 @@ class PointLocation(Constraint):
         Return the location error for a point
         """
         (point,) = prims
-        return point.param - self._res_kwargs["location"]
+        return point.value - self._res_kwargs["location"]
 
 
 class CoincidentPoints(Constraint):
@@ -148,7 +148,7 @@ class CoincidentPoints(Constraint):
         Return the coincident error between two points
         """
         point0, point1 = prims
-        return point0.param - point1.param
+        return point0.value - point1.value
 
 
 ## Line constraints
@@ -304,7 +304,7 @@ class Collinear(Constraint):
         """
         res_parallel = Parallel()
         line0, line1 = prims
-        line2 = primitives.Line(prims=(line1['Point0'], line0['Point0']))
+        line2 = primitives.Line(prims=(line1[0], line0[0]))
         # line3 = primitives.Line(prims=(line1['Point0'], line0['Point1']))
 
         return jnp.concatenate(
@@ -333,10 +333,10 @@ class Box(Constraint):
         vertical = Vertical()
         res = jnp.concatenate(
             [
-                horizontal((quad['Line0'],)),
-                horizontal((quad['Line2'],)),
-                vertical((quad['Line1'],)),
-                vertical((quad['Line3'],)),
+                horizontal((quad[0],)),
+                horizontal((quad[2],)),
+                vertical((quad[1],)),
+                vertical((quad[3],)),
             ]
         )
         return res
@@ -386,7 +386,7 @@ class Grid(Constraint):
 
             res_arrays.append(
                 DirectedDistance(margin, direction=np.array([0, -1]))(
-                    (box_a['Line0']['Point0'], box_b['Line2']['Point1'])
+                    (box_a['Line0/Point0'], box_b['Line2/Point1'])
                 )
             )
 
@@ -422,7 +422,7 @@ class Grid(Constraint):
 
             res_arrays.append(
                 DirectedDistance(margin, direction=np.array([1, 0]))(
-                    (box_a['Line0']['Point1'], box_b['Line0']['Point0'])
+                    (box_a['Line0/Point1'], box_b['Line0/Point0'])
                 )
             )
 
@@ -452,4 +452,4 @@ class Grid(Constraint):
         return jnp.concatenate(res_arrays)
 
 def line_vector(line: primitives.Line):
-    return line['Point1'].param - line['Point0'].param
+    return line[1].value - line[0].value
