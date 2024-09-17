@@ -14,7 +14,7 @@ class TestNode:
 
     @pytest.fixture()
     def node(self):
-        node = cn.Node(0, ('a', 'b', 'c'), (cn.Node(1, (), ()), cn.Node(2, (), ()), cn.Node(3, (), ())))
+        node = cn.Node(0, (cn.Node(1, (), ()), cn.Node(2, (), ()), cn.Node(3, (), ())), ('a', 'b', 'c'))
         return node
 
     def test_flatten_unflatten(self, node: cn.Node):

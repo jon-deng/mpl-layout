@@ -34,8 +34,8 @@ class Node(tp.Generic[T]):
     def __init__(
         self,
         value: tp.Union[None, T],
-        keys: tp.Tuple[str, ...],
-        children: tp.Tuple["Node", ...]
+        children: tp.List["Node"],
+        keys: tp.List[str]
     ):
         self._value = value
         self._children = children
@@ -172,8 +172,7 @@ class Node(tp.Generic[T]):
             raise KeyError(f"{key}") from err
 
 NodeType = tp.Type[Node]
-
-FlatNodeStructure = tp.Tuple[NodeType, str, Node, int]
+FlatNodeStructure = tp.Tuple[NodeType, str, T, int]
 
 def flatten(
     key: str, node: Node
@@ -183,9 +182,9 @@ def flatten(
 
 def iter_flatten(
     key: str, node: Node
-) -> tp.List[FlatNodeStructure]:
+) -> tp.Iterable[FlatNodeStructure]:
     """
-    Return a flat description of a node
+    Return a flat iterator of a node
     """
     pnode_structs = [(type(node), key, node.value, len(node))]
 
@@ -218,7 +217,7 @@ def unflatten(
             child, node_structs = unflatten(node_structs)
             children.append(child)
 
-        node = NodeType(value, ckeys, children)
+        node = NodeType(value, children, ckeys)
 
     return node, node_structs
 
