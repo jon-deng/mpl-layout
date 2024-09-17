@@ -11,11 +11,11 @@ constraints to while integer indices are needed to solve systems of equations
 and build matrices.
 """
 
-import typing as typ
+import typing as tp
 
-T = typ.TypeVar("T")
+T = tp.TypeVar("T")
 
-class Node(typ.Generic[T]):
+class Node(tp.Generic[T]):
     """
     Tree structure with labelled child nodes
 
@@ -23,17 +23,17 @@ class Node(typ.Generic[T]):
     ----------
     value: T
         A value associated with the node
-    children: typ.Tuple[Node, ...]
+    children: tp.Tuple[Node, ...]
         Child nodes
-    labels: typ.Tuple[str, ...]
+    labels: tp.Tuple[str, ...]
         Child node labels
     """
 
     def __init__(
         self,
-        value: typ.Union[None, T],
-        keys: typ.Tuple[str, ...],
-        children: typ.Tuple["Node", ...]
+        value: tp.Union[None, T],
+        keys: tp.Tuple[str, ...],
+        children: tp.Tuple["Node", ...]
     ):
         self._value = value
         self._children = children
@@ -75,7 +75,7 @@ class Node(typ.Generic[T]):
     def __len__(self):
         return len(self.children)
 
-    def keys(self) -> typ.List[str]:
+    def keys(self) -> tp.List[str]:
         """
         Return child keys
 
@@ -88,7 +88,7 @@ class Node(typ.Generic[T]):
         """
         return self.children_map.keys()
 
-    def values(self, flat: bool = False) -> typ.List[T]:
+    def values(self, flat: bool = False) -> tp.List[T]:
         """
         Return child primitives
 
@@ -99,7 +99,7 @@ class Node(typ.Generic[T]):
         """
         return self.children_map.values()
 
-    def items(self, flat: bool = False) -> typ.List[typ.Tuple[str, T]]:
+    def items(self, flat: bool = False) -> tp.List[tp.Tuple[str, T]]:
         """
         Return paired child keys and associated trees
 
@@ -168,23 +168,30 @@ class Node(typ.Generic[T]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
+NodeType = tp.Type[Node]
 
-class LabelledContainer(typ.Generic[T]):
+def flatten(node: Node, key: str) -> tp.Tuple[tp.List[NodeType], tp.List[str], tp.List[Node]]:
+    return None
+
+def unflatten(NodeTypes: tp.List[NodeType], keys: tp.List[str], nodes: tp.List[Node]) -> Node:
+    return None
+
+class LabelledContainer(tp.Generic[T]):
     """
     A generic container with both string and integer indices
 
     Parameters
     ----------
-    items: typ.Optional[typ.List[T]]
+    items: tp.Optional[tp.List[T]]
         A list of items in the container
-    keys: typ.Optional[typ.List[str]]
+    keys: tp.Optional[tp.List[str]]
         A list of keys for each item
     """
 
     def __init__(
         self,
-        items: typ.Optional[typ.List[T]] = None,
-        keys: typ.Optional[typ.List[str]] = None,
+        items: tp.Optional[tp.List[T]] = None,
+        keys: tp.Optional[tp.List[str]] = None,
     ):
         # This stores the count of items of each type in the container,
         # which is used for automatically generating names.
@@ -220,7 +227,7 @@ class LabelledContainer(typ.Generic[T]):
     def __len__(self):
         return len(self._items)
 
-    def __getitem__(self, key: typ.Union[str, int]) -> T:
+    def __getitem__(self, key: tp.Union[str, int]) -> T:
         key = self.key_to_idx(key)
         return self._items[key]
 
@@ -233,7 +240,7 @@ class LabelledContainer(typ.Generic[T]):
     def items(self):
         return [(key, self[key]) for key in self.keys()]
 
-    def key_to_idx(self, key: typ.Union[str, int, slice]):
+    def key_to_idx(self, key: tp.Union[str, int, slice]):
         """
         Return the integer index (indices) corresponding to a string label
         """
@@ -251,23 +258,23 @@ class LabelledList(LabelledContainer[T]):
 
     Parameters
     ----------
-    items: typ.Optional[typ.List[T]]
+    items: tp.Optional[tp.List[T]]
         A list of items in the container
-    keys: typ.Optional[typ.List[str]]
+    keys: tp.Optional[tp.List[str]]
         A list of keys for each item
     """
 
     def __init__(
         self,
-        items: typ.Optional[typ.List[T]] = None,
-        keys: typ.Optional[typ.List[str]] = None,
+        items: tp.Optional[tp.List[T]] = None,
+        keys: tp.Optional[tp.List[str]] = None,
     ):
 
         super().__init__(items, keys)
 
         self._items = list(self._items)
 
-    def append(self, item: T, label: typ.Optional[str] = None) -> str:
+    def append(self, item: T, label: tp.Optional[str] = None) -> str:
         label, *_ = append(
             self._items, self._label_to_idx, item, self._type_to_count, label
         )
@@ -280,16 +287,16 @@ class LabelledTuple(LabelledContainer[T]):
 
     Parameters
     ----------
-    items: typ.Optional[typ.List[T]]
+    items: tp.Optional[tp.List[T]]
         A list of items in the container
-    keys: typ.Optional[typ.List[str]]
+    keys: tp.Optional[tp.List[str]]
         A list of keys for each item
     """
 
     def __init__(
         self,
-        items: typ.Optional[typ.List[T]] = None,
-        keys: typ.Optional[typ.List[str]] = None,
+        items: tp.Optional[tp.List[T]] = None,
+        keys: tp.Optional[tp.List[str]] = None,
     ):
 
         super().__init__(items, keys)
@@ -306,7 +313,7 @@ class Counter:
     """
 
     def __init__(self):
-        self._count: typ.Mapping[str, int] = {}
+        self._count: tp.Mapping[str, int] = {}
 
     @property
     def count(self):
@@ -336,12 +343,12 @@ class Counter:
 
 
 def append(
-    items: typ.List[T],
-    label_to_idx: typ.Mapping[str, int],
+    items: tp.List[T],
+    label_to_idx: tp.Mapping[str, int],
     item: T,
     counter: Counter,
-    label: typ.Optional[str] = None,
-) -> typ.Tuple[str, typ.List[T], typ.Mapping[str, int]]:
+    label: tp.Optional[str] = None,
+) -> tp.Tuple[str, tp.List[T], tp.Mapping[str, int]]:
     """
     Add an item to a labelled list with unique string labels
 
@@ -349,9 +356,9 @@ def append(
 
     Parameters
     ----------
-    items: typ.List[T]
+    items: tp.List[T]
         The list of items to append to
-    label_to_idx: typ.Mapping[str, int]
+    label_to_idx: tp.Mapping[str, int]
         A dictionary of string labels for each integer index in `items`
     item: T
         The item to add to `items`
@@ -365,7 +372,7 @@ def append(
         were in `counter`, then an automatic string label of `ClassA0` would
         be created. If 5 other `ClassA` instances had been added and tracked in
         `counter`, then an automatic string label of `ClassA5` would be created.
-    label: typ.Optional[str]
+    label: tp.Optional[str]
         The string label for the added item
 
         If not provided, an automatic label will be created based on category
@@ -375,9 +382,9 @@ def append(
     -------
     label: str
         The string label for the added item
-    items: typ.List[T]
+    items: tp.List[T]
         The new list of items
-    label_to_idx: typ.Mapping[str, int]
+    label_to_idx: tp.Mapping[str, int]
         The new dictionary of string labels for each integer index in `items`
     """
     item_class_name = item.__class__.__name__
