@@ -123,7 +123,7 @@ class Node(tp.Generic[T]):
         """
         return self.children_map.items()
 
-    def __getitem__(self, key: tp.Union[str, int]) -> T:
+    def __getitem__(self, key: tp.Union[str, int]) -> "Node":
         """
         Return the value indexed by a slash-separated key
 
@@ -132,7 +132,7 @@ class Node(tp.Generic[T]):
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        return self.get_child(key).value
+        return self.get_child(key)
 
     def get_child(self, key: tp.Union[str, int]) -> "Node":
         if isinstance(key, int):
