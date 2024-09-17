@@ -33,7 +33,7 @@ from jax import numpy as jnp
 import numpy as np
 
 from . import geometry as geo
-from .containers import LabelledList
+from .containers import LabelledList, Node
 
 from . import layout
 
@@ -47,13 +47,13 @@ SolverInfo = typ.Mapping[str, typ.Any]
 
 
 def solve(
-    prim_tree: layout.PrimitiveTree,
+    prims: Node[NDArray],
     constraints: typ.List[geo.Constraint],
-    constraint_graph: IntGraph,
+    constraint_graph: StrGraph,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> typ.Tuple[layout.PrimitiveTree, SolverInfo]:
+) -> typ.Tuple[Node[NDArray], SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -101,11 +101,12 @@ def solve(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
-    prims = prim_tree.prims()
-    prim_idx_bounds = np.cumsum([0] + [prim.param.size for prim in prims])
+    fprims, prim_graph = layout.build_prim_graph(prims)
+    prim_idx_bounds = np.cumsum([0] + [prim.value.size for prim in prims])
 
-    global_param_n = np.concatenate([prim.param for prim in prims])
-    prim_graph = prim_tree.prim_graph()
+    constraint_graph_int = layout.build_constraint_graph_int(constraint_graph, fprims, prim_graph)
+
+    global_param_n = np.concatenate([prim.value for prim in prims])
 
     @jax.jit
     def assem_global_res(global_param):
@@ -114,7 +115,7 @@ def solve(
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
         residuals = assem_constraint_residual(
-            new_prim_params, prim_tree, prim_graph, constraints, constraint_graph
+            new_prim_params, fprims, prim_graph, constraints, constraint_graph_int
         )
         return jnp.concatenate(residuals)
 
@@ -154,14 +155,14 @@ def solve(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     prim_tree_n = layout.build_tree(
-        prim_tree, prim_graph, prim_params_n, {}
+        prims, prim_graph, prim_params_n, {}
     )
 
     return prim_tree_n, nonlinear_solve_info
 
 def assem_constraint_residual(
     prim_params: typ.List[NDArray],
-    prim_tree: layout.PrimitiveTree,
+    prim: geo.Primitive,
     prim_graph: typ.Mapping[geo.Primitive, int],
     constraints: typ.List[geo.Constraint],
     constraint_graph: IntGraph
@@ -187,8 +188,8 @@ def assem_constraint_residual(
     constraint_residuals: typ.List[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
-    new_tree = layout.build_tree(
-        prim_tree, prim_graph, prim_params, {}
+    new_tree, oldprim_to_newprim = layout.build_tree(
+        prim, prim_graph, prim_params, {}
     )
     new_prims = new_tree.prims()
     constraint_residuals = [

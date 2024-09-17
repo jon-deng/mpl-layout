@@ -27,7 +27,7 @@ import typing as tp
 import numpy as np
 
 from . import geometry as geo
-from .containers import Node
+from .containers import Node, iter_flat, flatten, unflatten
 
 IntGraph = tp.List[tp.Tuple[int, ...]]
 StrGraph = tp.List[tp.Tuple[str, ...]]
@@ -128,25 +128,25 @@ class Layout:
         self.constraints.append(constraint)
         self.constraint_graph.append(prim_labels)
 
-def build_prim_graph(prim: geo.Primitive) -> tp.Mapping[geo.Primitive, int]:
+def build_prim_graph(
+    prim: Node
+) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[geo.Primitive, int]]:
     """
     Return a mapping from primitives to integer indices in `self.prims()`
     """
-    _graph = {tree.value: None for tree in prim.values(flat=True)}
-    return {prim: ii for ii, prim in enumerate(_graph)}
+    flat_prims = list(set(prim for _, prim in iter_flat('', prim)))
 
-def build_constraint_graph_int(self) -> IntGraph:
-    prim_graph = self.prims.prim_graph()
-    return [
-        tuple(prim_graph[self.prims[prim_label]] for prim_label in prim_labels)
-        for prim_labels in self.constraint_graph
+    prim_to_idx = {prim: ii for ii, prim in enumerate(flat_prims)}
+
+    return flat_prims, prim_to_idx
+
+def build_constraint_graph_int(constraint_graph_str, prims, prim_graph) -> IntGraph:
+
+    constraint_graph_int = [
+        tuple(prim_graph[prims[prim_label]] for prim_label in prim_labels)
+        for prim_labels in constraint_graph_str
     ]
-
-def prims(self) -> tp.List[geo.Primitive]:
-    """
-    Return a list of all unique primitives in the tree
-    """
-    return list(self.prim_graph().keys())
+    return constraint_graph_int
 
 def build_tree(
     prim: geo.Primitive,
@@ -180,17 +180,17 @@ def build_tree(
     PrimitiveTree
         The new `PrimitiveTree` with parameters from `params`
     """
-    oldprim = prim.value
+    oldprim = prim
 
     # If the tree has no children, we simply create the primitive with no children
     # If the tree has children, we need to recursively create all child trees
     if len(prim.children) == 0:
-        children = {}
+        children = ()
     else:
-        children = {
-            key: build_tree(childtree, prim_to_idx, params, prim_to_newprim)
-            for key, childtree in prim.children.items()
-        }
+        children = (
+            build_tree(childtree, prim_to_idx, params, prim_to_newprim)
+            for childtree in prim.children
+        )
 
     if oldprim is None:
         newprim = None
@@ -198,9 +198,7 @@ def build_tree(
         newprim = prim_to_newprim[oldprim]
     else:
         param = params[prim_to_idx[oldprim]]
-        newprim = type(oldprim)(
-            param, tuple(child_tree.value for child_tree in children.values())
-        )
+        newprim = type(oldprim)(param, children)
         prim_to_newprim[oldprim] = newprim
 
-    return geo.Primitive(newprim, children)
+    return type(prim)(newprim, children), prim_to_newprim

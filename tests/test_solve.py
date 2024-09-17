@@ -113,13 +113,13 @@ class TestPrimitiveTree:
     def test_assem_constraint_residual(self, layout_grid: lay.Layout):
         layout = layout_grid
 
-        prims = layout_grid.prims()
-        prim_params = [prim.param for prim in prims]
+        prims, prim_graph = lay.build_prim_graph(layout_grid.prims)
+        prim_params = [prim.value for prim in prims]
 
-        prim_tree = layout.prim_tree
-        prim_graph = prim_tree.prim_graph()
+        prim_tree = layout.prims
+        # prim_graph = prim_tree.prim_graph()
         constraints = layout.constraints
-        constraint_graph_int = layout.constraint_graph_int
+        constraint_graph_int = lay.build_constraint_graph_int(layout_grid.constraint_graph, layout_grid.prims, prim_graph)
 
         # Plain call
 
@@ -163,7 +163,7 @@ class TestPrimitiveTree:
 
     def test_solve(self, layout: lay.Layout):
         prim_tree_n, solve_info = solver.solve(
-            layout.prim_tree, layout.constraints, layout.constraint_graph_int
+            layout.prims, layout.constraints, layout.constraint_graph
         )
         pprint(prim_tree_n.keys(flat=True))
         pprint(solve_info)
