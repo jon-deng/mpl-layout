@@ -154,7 +154,7 @@ class Node(tp.Generic[T]):
             if len(split_key) == 1:
                 return self.children_map[parent_key]
             else:
-                return self.children_map[parent_key][child_key]
+                return self.children_map[parent_key].get_child_from_str(child_key)
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
