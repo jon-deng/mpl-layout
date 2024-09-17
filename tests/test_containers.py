@@ -17,6 +17,9 @@ class TestNode:
         node = cn.Node(0, (cn.Node(1, (), ()), cn.Node(2, (), ()), cn.Node(3, (), ())), ('a', 'b', 'c'))
         return node
 
+    def test_repr(self, node: cn.Node):
+        print(node)
+
     def test_flatten_unflatten(self, node: cn.Node):
         fnode_structs = cn.flatten('root', node)
 

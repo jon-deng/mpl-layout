@@ -73,6 +73,16 @@ class Node(tp.Generic[T]):
 
     ## Flattened interface
 
+    ## String
+
+    def __repr__(self):
+        keys_repr = ', '.join(self.keys())
+        children_repr = ', '.join([node.__repr__() for node in self.children])
+        return f"{type(self).__name__}({self.value}, ({children_repr}), ({keys_repr}))"
+
+    def __str__(self):
+        return self.__repr__()
+
     ## Dict-like interface
 
     def __len__(self):
