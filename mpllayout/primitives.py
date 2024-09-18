@@ -77,8 +77,8 @@ class Primitive(Node[NDArray]):
         # Create default `param` if unspecified
         if value is None:
             value = np.zeros(self._PARAM_SHAPE, dtype=float)
-        else:
-            value = np.array(value, dtype=float)
+        elif isinstance(value, (list, tuple)):
+            value = np.array(value)
 
         # Create default `prims` if unspecified
         if children is None:
