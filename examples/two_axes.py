@@ -16,7 +16,7 @@ from mpllayout import (
 
 def plot_layout(layout: lay.Layout, fig_path: str):
     prim_tree_n, info = solver.solve(
-        layout.prim_tree,
+        layout.root_prim,
         layout.constraints,
         layout.constraint_graph_int,
         max_iter=40,
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     ## Solve for the constrained positions of the primitives
     prims, info = solver.solve(
-        layout.prim_tree,
+        layout.root_prim,
         layout.constraints,
         layout.constraint_graph_int,
         max_iter=40,

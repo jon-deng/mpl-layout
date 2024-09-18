@@ -75,7 +75,7 @@ class TestLayout:
 
         layout.add_constraint(geo.PointLocation((0, 0)), ("MyBox/Line0/Point0",))
 
-        pprint(layout.prims)
+        pprint(layout.root_prim)
         pprint(layout.constraints)
         pprint(layout.constraint_graph)
         # pprint(layout.constraint_graph_int)
@@ -94,7 +94,7 @@ class TestUtilities:
         return layout
 
     def test_build_constraint_graph_int(self, layout: lat.Layout):
-        cgraph_str, root_prim = layout.constraint_graph, layout.prims
+        cgraph_str, root_prim = layout.constraint_graph, layout.root_prim
         prims, prim_graph = lat.build_prim_graph(root_prim)
 
         cgraph_int = lat.build_constraint_graph_int(cgraph_str, root_prim, prim_graph)

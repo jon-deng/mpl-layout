@@ -52,19 +52,19 @@ class Layout:
 
     def __init__(
         self,
-        prims: tp.Optional[Node] = None,
+        root_prim: tp.Optional[Node] = None,
         constraints: tp.Optional[tp.List[geo.Constraint]] = None,
         constraint_graph: tp.Optional[StrGraph] = None,
     ):
 
-        if prims is None:
-            prims = Node(np.array([]), [], [])
+        if root_prim is None:
+            root_prim = Node(np.array([]), [], [])
         if constraints is None:
             constraints = []
         if constraint_graph is None:
             constraint_graph = []
 
-        self._prims = prims
+        self._root_prim = root_prim
         self._constraints = constraints
         self._constraint_graph = constraint_graph
 
@@ -75,8 +75,8 @@ class Layout:
         self._label_to_constraintidx = {}
 
     @property
-    def prims(self):
-        return self._prims
+    def root_prim(self):
+        return self._root_prim
 
     @property
     def constraints(self):
@@ -107,7 +107,7 @@ class Layout:
         label: str
             The label for the added primitive
         """
-        self.prims.add_child(key, prim)
+        self.root_prim.add_child(key, prim)
         return key
 
     def add_constraint(
