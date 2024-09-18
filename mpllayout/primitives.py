@@ -21,7 +21,7 @@ ArrayShape = tp.Tuple[int, ...]
 
 class Primitive(Node[NDArray]):
     """
-    A representation of a geometric primitive
+    A geometric primitive
 
     A `Primitive` can be parameterized by a parameter vector as well as
     other geometric primitives. For example, a point in 2D is parameterized by a
@@ -34,18 +34,19 @@ class Primitive(Node[NDArray]):
 
     Parameters
     ----------
-    param: NDArray with shape (n,)
+    value: NDArray with shape (n,)
         A parameter vector for the primitive
-    prims: PrimList
+    children: PrimList
         A tuple of primitives parameterizing the primitive
 
     Attributes
     ----------
-    param: NDArray[float] with shape (n,)
+    value: NDArray[float] with shape (n,)
         A parameter vector for the primitive
-    prims: LabelledTuple['Primitive']
+    children: tp.List[Primitive]
         If non-empty, the primitive contains child geometric primitives in
-        `self.prims`
+        `self.children`
+    keys: tp.List[str]
 
     _PARAM_SHAPE: ArrayShape
         The shape of the parameter vector parameterizing the `Primitive`
@@ -74,13 +75,16 @@ class Primitive(Node[NDArray]):
         children: tp.Optional[tp.List["Primitive"]] = None,
         keys: tp.Optional[tp.List[str]] = None
     ):
-        # Create default `param` if unspecified
+        # NOTE: `Primitive` classes specify keys through `Primitive._PRIM_LABELS`
+        # This is unlike `Node`, so `keys` is basically ignored!
+
+        # Create default `value` if unspecified
         if value is None:
             value = np.zeros(self._PARAM_SHAPE, dtype=float)
         elif isinstance(value, (list, tuple)):
             value = np.array(value)
 
-        # Create default `prims` if unspecified
+        # Create default `children` if unspecified
         if children is None:
             if isinstance(self._PRIM_TYPES, tuple):
                 children = tuple(PrimType() for PrimType in self._PRIM_TYPES)
@@ -99,23 +103,8 @@ class Primitive(Node[NDArray]):
 
         super().__init__(value, children, keys)
 
-    @property
-    def param(self):
-        """
-        Return the primitive's parameter vector
-        """
-        return self._value
 
-    @property
-    def prims(self):
-        """
-        Return the primitive's child primitives
-        """
-        return self._children
-
-
-PrimList = tp.Tuple[Primitive, ...]
-PrimTuple = tp.Tuple[Primitive, ...]
+PrimList = tp.List[Primitive]
 
 
 ## Actual primitive classes
@@ -157,7 +146,7 @@ class Polygon(Primitive):
         if not isinstance(children, (tuple, list)):
             super().__init__(value, children)
         else:
-            # This allows you to input `prims` as a series of points rather than lines
+            # This allows you to input `children` as a series of points rather than lines
             if all((isinstance(prim, Point) for prim in children)):
                 lines = self._points_to_lines(children)
             else:
@@ -166,13 +155,13 @@ class Polygon(Primitive):
             super().__init__(value, lines)
 
     @staticmethod
-    def _points_to_lines(prims: PrimList):
+    def _points_to_lines(children: tp.List[Point]) -> tp.List[Line]:
         """
         Return a sequence of joined lines through a set of points
         """
         lines = [
             Line(np.array([]), [pointa, pointb])
-            for pointa, pointb in zip(prims[:], prims[1:] + prims[:1])
+            for pointa, pointb in zip(children[:], children[1:] + children[:1])
         ]
 
         return lines
@@ -187,7 +176,7 @@ class Quadrilateral(Polygon):
     _PRIM_TYPES = (Line, Line, Line, Line)
 
 
-def _make_flatten_unflatten(PrimitiveClass):
+def _make_flatten_unflatten(PrimitiveClass: tp.Type[Primitive]):
 
     def _flatten_primitive(prim):
         flat_prim = (prim.value, prim.children)
