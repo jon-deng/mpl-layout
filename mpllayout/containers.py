@@ -65,7 +65,7 @@ class Node(tp.Generic[T]):
         return self._key_to_child
 
     @property
-    def value(self):
+    def value(self) -> T:
         """
         Return the value
         """
@@ -75,17 +75,17 @@ class Node(tp.Generic[T]):
 
     ## String
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         keys_repr = ', '.join(self.keys())
         children_repr = ', '.join([node.__repr__() for node in self.children])
         return f"{type(self).__name__}({self.value}, ({children_repr}), ({keys_repr}))"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
     ## Dict-like interface
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.children)
 
     def keys(self) -> tp.List[str]:
@@ -112,7 +112,7 @@ class Node(tp.Generic[T]):
         """
         return list(self.children_map.values())
 
-    def items(self, flat: bool = False) -> tp.List[tp.Tuple[str, T]]:
+    def items(self, flat: bool = False) -> tp.List[tp.Tuple[str, "Node[T]"]]:
         """
         Return paired child keys and associated trees
 
