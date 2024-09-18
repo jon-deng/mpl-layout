@@ -152,7 +152,7 @@ def solve(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     prim_tree_n = layout.build_tree(
-        root_prim, prim_graph, prim_params_n, {}
+        root_prim, prim_graph, prim_params_n
     )
 
     return prim_tree_n, nonlinear_solve_info
@@ -160,7 +160,7 @@ def solve(
 def assem_constraint_residual(
     prim_params: typ.List[NDArray],
     root_prim: geo.Primitive,
-    prim_graph: typ.Mapping[geo.Primitive, int],
+    prim_graph: typ.Mapping[str, int],
     constraints: typ.List[geo.Constraint],
     constraint_graph: StrGraph
 ) -> typ.List[NDArray]:
@@ -173,7 +173,7 @@ def assem_constraint_residual(
         A list of parameter vectors for each unique primitive in `prim_tree`
     prim_tree: layout.PrimitiveTree
         A primitive tree
-    prim_graph: typ.Mapping[geo.Primitive, int]
+    prim_graph: typ.Mapping[str, int]
         A mapping from each primitive in `prim_tree` to a parameter vector in `prim_params`
     constraints: typ.List[geo.Constraint]
         A list of constraints
@@ -185,7 +185,7 @@ def assem_constraint_residual(
     residuals: typ.List[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
-    root_prim = layout.build_tree(root_prim, prim_graph, prim_params, {})
+    root_prim = layout.build_tree(root_prim, prim_graph, prim_params)
     residuals = [
         constraint(tuple(root_prim[key] for key in prim_keys))
         for constraint, prim_keys in zip(constraints, constraint_graph)

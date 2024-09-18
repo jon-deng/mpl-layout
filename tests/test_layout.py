@@ -35,7 +35,7 @@ class TestPrimitiveTree:
         params = [prim.value for prim in prims]
 
         new_params = [np.random.rand(*param.shape) for param in params]
-        new_prim_node = lat.build_tree(prim_node, prim_graph, new_params, {})
+        new_prim_node = lat.build_tree(prim_node, prim_graph, new_params)
         # breakpoint()
 
         # rng = np.random.default_rng()

@@ -137,10 +137,7 @@ def build_prim_graph(
     prims = list(set(prim for _, prim in iter_flat('', root_prim)))
     prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
 
-    # `key[1:]` removes the initial forward slash from the flat keys
-    # This initial forward slash would make the keys invalid for indexing from
-    # `root_prim`
-    key_to_idx = {key[1:]: prim_to_idx[prim] for key, prim in iter_flat(root_prim)}
+    key_to_idx = {key: prim_to_idx[prim] for key, prim in iter_flat('', root_prim)}
 
     return prims, key_to_idx
 
@@ -154,9 +151,8 @@ def build_constraint_graph_int(constraint_graph_str, root_prim, prim_graph) -> I
 
 def build_tree(
     root_prim: geo.Primitive,
-    prim_to_idx: tp.Mapping[geo.Primitive, int],
-    params: tp.List[np.typing.NDArray],
-    prim_to_newprim: tp.Mapping[geo.Primitive, geo.Primitive],
+    key_to_idx: tp.Mapping[str, int],
+    params: tp.List[np.typing.NDArray]
 ) -> geo.Primitive:
     """
     Return a new `PrimitiveTree` using new primitives for given parameter values
@@ -165,16 +161,10 @@ def build_tree(
     ----------
     tree:
         The old `PrimitiveTree` instance
-    prim_to_idx:
-        A mapping from `geo.Primitive` in `tree` to corresponding parameters in `params`
+    key_to_idx:
+        A mapping from keys in `root_prim` to corresponding parameters in `params`
     params:
         A list of parameter values to build a new `PrimitiveTree` with
-    prim_to_newprim:
-        A mapping from `geo.Primitive`s in `tree` to replacement `Primitives` in the new tree
-
-        This should be an empty dictionary in the root `build_tree` call. As
-        `build_tree` builds the new tree, it will populate this dictionary to preserve
-        the mapping of primitives.
 
     Returns
     -------
@@ -183,8 +173,8 @@ def build_tree(
     """
     old_prim_structs = flatten('', root_prim)
 
-    new_prim_values = [params[prim_to_idx[prim]] for _, prim in iter_flat('', root_prim)]
-
+    # `key[1:]` remove the initial forward slash from the flat keys
+    new_prim_values = [params[key_to_idx[key]] for key, _ in iter_flat('', root_prim)]
 
     new_prim_structs = [
         (*old_struct[:2], new_value, *old_struct[3:])
