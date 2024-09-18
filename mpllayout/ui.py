@@ -3,6 +3,7 @@ Utilities for a user interface/visualization of the plot layout
 """
 
 import typing as tp
+from matplotlib.axes import Axes
 
 import matplotlib as mpl
 import numpy as np
@@ -13,26 +14,26 @@ from .containers import LabelledList
 ## Functions for plotting geometric primitives
 
 
-def plot_point(ax: mpl.axes.Axes, point: geo.Point, label=None, **kwargs):
+def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     """
-    Plot a `Point` primitive to an axes
+    Plot a `Point`
     """
     x, y = point.value
     ax.plot([x], [y], marker=".", **kwargs)
 
 
-def plot_line_segment(ax: mpl.axes.Axes, line_segment: geo.Line, label=None, **kwargs):
+def plot_line_segment(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
     """
-    Plot a `LineSegment` primitive in an axes
+    Plot a `LineSegment`
     """
     xs = np.array([point.value[0] for point in line_segment.children])
     ys = np.array([point.value[1] for point in line_segment.children])
     ax.plot(xs, ys, **kwargs)
 
 
-def plot_polygon(ax: mpl.axes.Axes, polygon: geo.Polygon, label=None, **kwargs):
+def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
     """
-    Plot a `ClosedPolyline` primitive in an axes
+    Plot a `Polygon`
     """
     points = [polygon[f'Line0']['Point0']] + [polygon[f'Line{ii}']['Point1'] for ii in range(len(polygon))]
     xs = np.array([point.value[0] for point in points])
@@ -56,7 +57,7 @@ def plot_polygon(ax: mpl.axes.Axes, polygon: geo.Polygon, label=None, **kwargs):
 ## Functions for plotting arbitrary geometric primitives
 def make_plot(
     prim: geo.Primitive,
-) -> tp.Callable[[mpl.axes.Axes, tp.Tuple[geo.Primitive, ...]], None]:
+) -> tp.Callable[[Axes, tp.Tuple[geo.Primitive, ...]], None]:
     """
     Return a function that can plot a `geo.Primitive` object
     """
@@ -71,11 +72,11 @@ def make_plot(
         raise ValueError(f"No plotting function for primitive of type {type(prim)}")
 
 
-def plot_prims(ax: mpl.axes.Axes, prims: LabelledList[geo.Primitive]):
+def plot_prims(ax: Axes, root_prim: geo.Primitive):
     """
-    Plot a collection of `geo.Primitive` objects
+    Plot all the child primitives in a `geo.Primitive` tree
     """
 
-    for label, prim in prims.items():
+    for label, prim in root_prim.items():
         plot = make_plot(prim)
         plot(ax, prim, label=label)
