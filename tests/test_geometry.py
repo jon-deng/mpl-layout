@@ -72,14 +72,14 @@ class TestConstraints:
 
     def test_PointToPointAbsDistance(self, points, direction):
         point0, point1, *_ = points
-        ans_ref = np.dot(point1.param - point0.param, direction)
+        ans_ref = np.dot(point1.value - point0.value, direction)
 
         dist = geo.DirectedDistance(0)
         ans_com = dist(points[:2])
         assert np.isclose(ans_ref, ans_com)
 
     def test_PointLocation(self, points, location):
-        ans_ref = points[0].param - location
+        ans_ref = points[0].value - location
 
         constraint = geo.PointLocation(location)
         ans_com = constraint(points[:1])
@@ -127,7 +127,7 @@ class TestConstraints:
         print(res)
 
     # def test_CoincidentPoint(self, points):
-    #     ans_ref = points[0].param
+    #     ans_ref = points[0].value
 
     #     dist = geo.PointToPointAbsDistance(0)
     #     ans_com = dist(points[:2])
