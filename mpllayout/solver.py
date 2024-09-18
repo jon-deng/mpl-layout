@@ -47,13 +47,13 @@ SolverInfo = tp.Mapping[str, tp.Any]
 
 
 def solve(
-    root_prim: Node[NDArray],
+    root_prim: geo.Primitive,
     constraints: tp.List[geo.Constraint],
     constraint_graph: StrGraph,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> tp.Tuple[Node[NDArray], SolverInfo]:
+) -> tp.Tuple[geo.Primitive, SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -62,15 +62,15 @@ def solve(
 
     Parameters
     ----------
-    prim_tree: layout.PrimitiveTree
-        The tree of primitives
-    constraints: tp.List[geo.Constraint]
-        The list of constraints
-    constraint_graph: IntGraph
+    root_prim:
+        The primitive tree
+    constraints:
+        The constraint list
+    constraint_graph:
         A mapping from each constraint to the primitives it applies to
 
-        For example, `constraint_graph[0] == (0, 5, 8)` means the first
-        constraint applies to primitives `(prims[0], prims[5], prims[8])`.
+        For example, `constraint_graph[0] == ('Point1', 'Line2')` means the first
+        constraint applies to primitives `(root_prim['Point1'], root_prim['Line2'])`.
     abs_tol, rel_tol: float
         The absolute and relative tolerance for the iterative solution
     max_iter: int
@@ -78,8 +78,8 @@ def solve(
 
     Returns
     -------
-    layout.PrimitiveTree
-        The tree of primitives satisfying the constraints
+    geo.Primitive
+        A primitive tree satisfying the constraints
     SolverInfo
         Information about the solve
 
@@ -151,14 +151,15 @@ def solve(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    prim_tree_n = layout.build_tree(
+    root_prim_n = layout.build_tree(
         root_prim, prim_graph, prim_params_n
     )
 
-    return prim_tree_n, nonlinear_solve_info
+    return root_prim_n, nonlinear_solve_info
 
+# TODO: Make the parameter order consistent
 def assem_constraint_residual(
-    prim_params: tp.List[NDArray],
+    prim_values: tp.List[NDArray],
     root_prim: geo.Primitive,
     prim_graph: tp.Mapping[str, int],
     constraints: tp.List[geo.Constraint],
@@ -169,23 +170,23 @@ def assem_constraint_residual(
 
     Parameters
     ----------
-    prim_params: tp.List[NDArray]
-        A list of parameter vectors for each unique primitive in `prim_tree`
-    prim_tree: layout.PrimitiveTree
-        A primitive tree
-    prim_graph: tp.Mapping[str, int]
-        A mapping from each primitive in `prim_tree` to a parameter vector in `prim_params`
-    constraints: tp.List[geo.Constraint]
+    prim_values:
+        A list of new primitive vectors
+    root_prim:
+        The root primitive tree
+    prim_graph:
+        A mapping from primitives keys to indices in `prim_values`
+    constraints:
         A list of constraints
-    constraint_graph: IntGraph
-        A list of integer tuples indicating primitive arguments for each constraint
+    constraint_graph:
+        A list of key tuples indicating primitive arguments for each constraint
 
     Returns
     -------
     residuals: tp.List[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
-    root_prim = layout.build_tree(root_prim, prim_graph, prim_params)
+    root_prim = layout.build_tree(root_prim, prim_graph, prim_values)
     residuals = [
         constraint(tuple(root_prim[key] for key in prim_keys))
         for constraint, prim_keys in zip(constraints, constraint_graph)
