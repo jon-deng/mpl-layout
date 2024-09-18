@@ -226,10 +226,15 @@ def unflatten(
     if num_child == 0:
         node = NodeType(value, (), ())
     else:
-        ckeys = [struct[1].split('/')[-1] for struct in node_structs[:num_child]]
+        ckeys = []
         children = []
         for _ in range(num_child):
+            child_struct = node_structs[0]
+
+            ckey = child_struct[1][len(pkey)+1:]
             child, node_structs = unflatten(node_structs)
+
+            ckeys.append(ckey)
             children.append(child)
 
         node = NodeType(value, children, ckeys)

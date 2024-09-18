@@ -34,9 +34,14 @@ class TestNode:
         fnode_structs = cn.flatten('root', node)
 
         _node, _ = cn.unflatten(fnode_structs)
-        print()
-        print(fnode_structs)
+        print("\nOriginal Node")
+        print(node)
+        print("\nReconstructed Node")
         print(_node)
+
+        print(fnode_structs)
+
+        assert str(node) == str(_node)
 
         N = int(1e4)
         duration = timeit("cn.flatten('root', node)", globals={**globals(), **locals()}, number=N)
