@@ -18,7 +18,7 @@ class TestPrimitiveTree:
     def layout(self):
         layout = lay.Layout()
 
-        verts = [[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]]
+        verts = np.array([[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]])
 
         layout.add_prim(geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]), "MyFavouriteBox")
         layout.add_constraint(geo.Box(), ("MyFavouriteBox",))
@@ -42,7 +42,7 @@ class TestPrimitiveTree:
         layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
 
         ## Create the figure box
-        verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
+        verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         layout.add_prim(
             geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
             "Figure",
@@ -59,7 +59,7 @@ class TestPrimitiveTree:
         # axes_shape = (3, 4)
         num_row, num_col = axes_shape
         num_axes = int(np.prod(axes_shape))
-        verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
+        verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         for n in range(num_axes):
             layout.add_prim(
                 geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
@@ -113,20 +113,21 @@ class TestPrimitiveTree:
     def test_assem_constraint_residual(self, layout_grid: lay.Layout):
         layout = layout_grid
 
-        prims, prim_graph = lay.build_prim_graph(layout_grid.prims)
+        prims, prim_graph = lay.build_prim_graph(layout.prims)
         prim_params = [prim.value for prim in prims]
 
         prim_tree = layout.prims
         # prim_graph = prim_tree.prim_graph()
         constraints = layout.constraints
-        constraint_graph_int = lay.build_constraint_graph_int(layout_grid.constraint_graph, layout_grid.prims, prim_graph)
+        constraint_graph_str = layout.constraint_graph
+        constraint_graph_int = lay.build_constraint_graph_int(constraint_graph_str, layout.prims, prim_graph)
 
         # Plain call
 
         t0 = time.time()
         for i in range(50):
             solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints, constraint_graph_int
+                prim_params, prim_tree, prim_graph, constraints, constraint_graph_str
             )
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
@@ -135,13 +136,13 @@ class TestPrimitiveTree:
         import jax
         constraints_jit = [jax.jit(constraint) for constraint in constraints]
         solver.assem_constraint_residual(
-            prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_int
+            prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_str
         )
 
         t0 = time.time()
         for i in range(50):
             solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_int
+                prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_str
             )
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
@@ -151,7 +152,7 @@ class TestPrimitiveTree:
         @jax.jit
         def assem_constraint_residual(prim_params):
             return solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints, constraint_graph_int
+                prim_params, prim_tree, prim_graph, constraints, constraint_graph_str
             )
 
         assem_constraint_residual(prim_params)

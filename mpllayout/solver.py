@@ -162,10 +162,10 @@ def solve(
 
 def assem_constraint_residual(
     prim_params: typ.List[NDArray],
-    prim: geo.Primitive,
+    root_prim: geo.Primitive,
     prim_graph: typ.Mapping[geo.Primitive, int],
     constraints: typ.List[geo.Constraint],
-    constraint_graph: IntGraph
+    constraint_graph: StrGraph
 ) -> typ.List[NDArray]:
     """
     Return a list of constraint residual vectors
@@ -185,15 +185,12 @@ def assem_constraint_residual(
 
     Returns
     -------
-    constraint_residuals: typ.List[NDArray]
+    residuals: typ.List[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
-    new_tree, oldprim_to_newprim = layout.build_tree(
-        prim, prim_graph, prim_params, {}
-    )
-    new_prims = new_tree.prims()
-    constraint_residuals = [
-        constraints[constraint_idx](tuple(new_prims[idx] for idx in prim_idxs))
-        for constraint_idx, prim_idxs in enumerate(constraint_graph)
+    root_prim = layout.build_tree(root_prim, prim_graph, prim_params, {})
+    residuals = [
+        constraint(tuple(root_prim[key] for key in prim_keys))
+        for constraint, prim_keys in zip(constraints, constraint_graph)
     ]
-    return constraint_residuals
+    return residuals
