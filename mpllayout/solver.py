@@ -7,7 +7,7 @@ lists representing a system of non-linear equations:
         A list of `geo.Primitive` instances representing the unknowns of the
         non-linear equations
 
-        Each `geo.Primitive.param' attribute represents the unknown(s) that must
+        Each `geo.Primitive.value' attribute represents the unknown(s) that must
         be solved for to satisfy the constraints.
     `constraints: ConstraintLabelledList`
         A list of `geo.Constraint` instances representing the non-linear

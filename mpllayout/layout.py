@@ -90,7 +90,7 @@ class Layout:
         """
         Add a `geo.Primitive` to the `Layout`
 
-        The primitive will be added `self.prims` under the given `label`.
+        The primitive will be added `self.root_prim` under the given `label`.
 
         Parameters
         ----------
@@ -123,7 +123,7 @@ class Layout:
         constraint:
             The constraint to apply
         prim_labels:
-            A tuple of strings referencing primitives (`self.prims`) to apply the constraint
+            A tuple of strings referencing primitives (`self.root_prim`) to apply the constraint
         """
         self.constraints.append(constraint)
         self.constraint_graph.append(prim_labels)
@@ -132,7 +132,7 @@ def build_prim_graph(
     root_prim: Node
 ) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[geo.Primitive, int]]:
     """
-    Return a mapping from primitives to integer indices in `self.prims()`
+    Return a mapping from primitives to integer indices
     """
     prims = list(set(prim for _, prim in iter_flat('', root_prim)))
 
@@ -163,9 +163,6 @@ def build_tree(
         The old `PrimitiveTree` instance
     prim_to_idx:
         A mapping from `geo.Primitive` in `tree` to corresponding parameters in `params`
-
-        If `params` is a list with parameters in order from `tree.prims()`, then this
-        corresponds to `tree.prim_graph()`.
     params:
         A list of parameter values to build a new `PrimitiveTree` with
     prim_to_newprim:

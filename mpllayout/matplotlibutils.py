@@ -42,7 +42,7 @@ def subplots(
 
     fig = plt.Figure((width, height))
     axs = {
-        key: fig.add_axes(rect_from_box(prim.data, (width, height)))
+        key: fig.add_axes(rect_from_box(prim, (width, height)))
         for key, prim in prim_tree.items()
         if "Axes" in key and key.count(".") == 0
     }
@@ -64,12 +64,12 @@ def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
     """
 
     point_bottomleft = box['Line0']['Point0']
-    xmin = point_bottomleft.param[0]
-    ymin = point_bottomleft.param[1]
+    xmin = point_bottomleft.value[0]
+    ymin = point_bottomleft.value[1]
 
     point_topright = box['Line1']['Point1']
-    xmax = point_topright.param[0]
-    ymax = point_topright.param[1]
+    xmax = point_topright.value[0]
+    ymax = point_topright.value[1]
 
     return (xmax - xmin), (ymax - ymin)
 
@@ -96,13 +96,13 @@ def rect_from_box(
     """
     fig_w, fig_h = fig_size
 
-    point_bottomleft = box['Line0']['Point0']
-    xmin = point_bottomleft.param[0] / fig_w
-    ymin = point_bottomleft.param[1] / fig_h
+    point_bottomleft = box['Line0/Point0']
+    xmin = point_bottomleft.value[0] / fig_w
+    ymin = point_bottomleft.value[1] / fig_h
 
-    point_topright = box['Line1']['Point1']
-    xmax = point_topright.param[0] / fig_w
-    ymax = point_topright.param[1] / fig_h
+    point_topright = box['Line1/Point1']
+    xmax = point_topright.value[0] / fig_w
+    ymax = point_topright.value[1] / fig_h
     width = xmax - xmin
     height = ymax - ymin
 

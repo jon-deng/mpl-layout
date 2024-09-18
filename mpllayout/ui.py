@@ -17,7 +17,7 @@ def plot_point(ax: mpl.axes.Axes, point: geo.Point, label=None, **kwargs):
     """
     Plot a `Point` primitive to an axes
     """
-    x, y = point.param
+    x, y = point.value
     ax.plot([x], [y], marker=".", **kwargs)
 
 
@@ -25,8 +25,8 @@ def plot_line_segment(ax: mpl.axes.Axes, line_segment: geo.Line, label=None, **k
     """
     Plot a `LineSegment` primitive in an axes
     """
-    xs = np.array([point.param[0] for point in line_segment.prims.values()])
-    ys = np.array([point.param[1] for point in line_segment.prims.values()])
+    xs = np.array([point.value[0] for point in line_segment.children])
+    ys = np.array([point.value[1] for point in line_segment.children])
     ax.plot(xs, ys, **kwargs)
 
 
@@ -35,8 +35,8 @@ def plot_polygon(ax: mpl.axes.Axes, polygon: geo.Polygon, label=None, **kwargs):
     Plot a `ClosedPolyline` primitive in an axes
     """
     points = [polygon[f'Line0']['Point0']] + [polygon[f'Line{ii}']['Point1'] for ii in range(len(polygon))]
-    xs = np.array([point.param[0] for point in points])
-    ys = np.array([point.param[1] for point in points])
+    xs = np.array([point.value[0] for point in points])
+    ys = np.array([point.value[1] for point in points])
 
     (line,) = ax.plot(xs, ys, **kwargs)
     if label is not None:
@@ -77,5 +77,5 @@ def plot_prims(ax: mpl.axes.Axes, prims: LabelledList[geo.Primitive]):
     """
 
     for label, prim in prims.items():
-        plot = make_plot(prim.data)
-        plot(ax, prim.data, label=label)
+        plot = make_plot(prim)
+        plot(ax, prim, label=label)

@@ -18,7 +18,7 @@ def plot_layout(layout: lay.Layout, fig_path: str):
     prim_tree_n, info = solver.solve(
         layout.root_prim,
         layout.constraints,
-        layout.constraint_graph_int,
+        layout.constraint_graph,
         max_iter=40,
         rel_tol=1e-9,
     )
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     prims, info = solver.solve(
         layout.root_prim,
         layout.constraints,
-        layout.constraint_graph_int,
+        layout.constraint_graph,
         max_iter=40,
         rel_tol=1e-9,
     )
