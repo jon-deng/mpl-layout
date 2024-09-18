@@ -141,14 +141,6 @@ def build_prim_graph(
 
     return prims, key_to_idx
 
-def build_constraint_graph_int(constraint_graph_str, root_prim, prim_graph) -> IntGraph:
-
-    constraint_graph_int = [
-        tuple(prim_graph[root_prim[prim_label]] for prim_label in prim_labels)
-        for prim_labels in constraint_graph_str
-    ]
-    return constraint_graph_int
-
 def build_tree(
     root_prim: geo.Primitive,
     key_to_idx: tp.Mapping[str, int],

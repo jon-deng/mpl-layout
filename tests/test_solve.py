@@ -120,7 +120,6 @@ class TestPrimitiveTree:
         # prim_graph = prim_tree.prim_graph()
         constraints = layout.constraints
         constraint_graph_str = layout.constraint_graph
-        constraint_graph_int = lay.build_constraint_graph_int(constraint_graph_str, layout.root_prim, prim_graph)
 
         # Plain call
 
