@@ -23,6 +23,7 @@ The class `Layout` handles construction of these three things while functions
 """
 
 import typing as tp
+from numpy.typing import NDArray
 
 import numpy as np
 
@@ -34,20 +35,19 @@ StrGraph = tp.List[tp.Tuple[str, ...]]
 
 class Layout:
     """
-    Class used to handle a collection of primitives and associated constraints
+    A constrained layout of primitives
 
-    The class contains functions to add primitives to the collection, add
-    constraints on those primitives, and create the associated graph between
-    constraints and primitives.
+    The class holds a collection of primitives, constraints on those primitives, and the
+    graph between constraints and primitives they apply to.
 
     Parameters
     ----------
-    prims:
+    root_prim:
         A `Node` container of `geo.Primitive`s
     constraints:
         A list of constraints
     constraint_graph:
-        A constraint graph
+        A list of keys indicating which primitives each constraint applies to
     """
 
     def __init__(
@@ -86,50 +86,41 @@ class Layout:
     def constraint_graph(self) -> StrGraph:
         return self._constraint_graph
 
-    def add_prim(self, prim: geo.Primitive, key: tp.Optional[str] = None) -> str:
+    def add_prim(self, prim: geo.Primitive, key: str):
         """
-        Add a `geo.Primitive` to the `Layout`
+        Add a primitive to the layout
 
-        The primitive will be added `self.root_prim` under the given `label`.
+        The primitive will be added to `self.root_prim` under the given `key`.
 
         Parameters
         ----------
         prim: geo.Primitive
             The primitive to add
-        label: tp.Optional[str]
-            An optional label for the primitive
-
-            If not provided, an automatic name based on the primitive class will
-            be used.
-
-        Returns
-        -------
-        label: str
-            The label for the added primitive
+        key: str
+            The key for the primitive
         """
         self.root_prim.add_child(key, prim)
-        return key
 
     def add_constraint(
         self,
         constraint: geo.Constraint,
-        prim_labels: tp.Tuple[str, ...]
-    ) -> None:
+        prim_keys: tp.Tuple[str, ...]
+    ):
         """
-        Add a `geo.Constraint` between `geo.Primitive`s
+        Add a constraint between primitives
 
         Parameters
         ----------
         constraint:
             The constraint to apply
         prim_labels:
-            A tuple of strings referencing primitives (`self.root_prim`) to apply the constraint
+            A tuple of strings referencing primitives (`self.root_prim`)
         """
         self.constraints.append(constraint)
-        self.constraint_graph.append(prim_labels)
+        self.constraint_graph.append(prim_keys)
 
 def build_prim_graph(
-    root_prim: Node
+    root_prim: geo.Primitive
 ) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[str, int]]:
     """
     Return a map from flat keys to indices in a list of unique primitives
@@ -144,29 +135,29 @@ def build_prim_graph(
 def build_tree(
     root_prim: geo.Primitive,
     key_to_idx: tp.Mapping[str, int],
-    params: tp.List[np.typing.NDArray]
+    values: tp.List[NDArray]
 ) -> geo.Primitive:
     """
-    Return a new `PrimitiveTree` using new primitives for given parameter values
+    Return a new tree where child node values have been updated
 
     Parameters
     ----------
-    tree:
-        The old `PrimitiveTree` instance
+    root_prim:
+        The old tree
     key_to_idx:
-        A mapping from keys in `root_prim` to corresponding parameters in `params`
-    params:
-        A list of parameter values to build a new `PrimitiveTree` with
+        A mapping from keys in `root_prim` to corresponding new values in `values`
+    values:
+        A list of new parameter values to build a new tree with
 
     Returns
     -------
-    PrimitiveTree
-        The new `PrimitiveTree` with parameters from `params`
+    Node
+        The new tree with values from `values`
     """
     old_prim_structs = flatten('', root_prim)
 
     # `key[1:]` remove the initial forward slash from the flat keys
-    new_prim_values = [params[key_to_idx[key]] for key, _ in iter_flat('', root_prim)]
+    new_prim_values = [values[key_to_idx[key]] for key, _ in iter_flat('', root_prim)]
 
     new_prim_structs = [
         (*old_struct[:2], new_value, *old_struct[3:])
