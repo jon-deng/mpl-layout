@@ -47,7 +47,7 @@ SolverInfo = typ.Mapping[str, typ.Any]
 
 
 def solve(
-    prims: Node[NDArray],
+    root_prim: Node[NDArray],
     constraints: typ.List[geo.Constraint],
     constraint_graph: StrGraph,
     abs_tol: float = 1e-10,
@@ -101,11 +101,8 @@ def solve(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
-    fprims, prim_graph = layout.build_prim_graph(prims)
+    prims, prim_graph = layout.build_prim_graph(root_prim)
     prim_idx_bounds = np.cumsum([0] + [prim.value.size for prim in prims])
-
-    constraint_graph_int = layout.build_constraint_graph_int(constraint_graph, fprims, prim_graph)
-
     global_param_n = np.concatenate([prim.value for prim in prims])
 
     @jax.jit
@@ -115,7 +112,7 @@ def solve(
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
         residuals = assem_constraint_residual(
-            new_prim_params, fprims, prim_graph, constraints, constraint_graph_int
+            new_prim_params, root_prim, prim_graph, constraints, constraint_graph
         )
         return jnp.concatenate(residuals)
 
@@ -155,7 +152,7 @@ def solve(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     prim_tree_n = layout.build_tree(
-        prims, prim_graph, prim_params_n, {}
+        root_prim, prim_graph, prim_params_n, {}
     )
 
     return prim_tree_n, nonlinear_solve_info

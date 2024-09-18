@@ -9,7 +9,7 @@ from pprint import pprint
 
 import numpy as np
 
-from mpllayout import geometry as geo, layout as lay, solver
+from mpllayout import geometry as geo, layout as lay, solver, containers as cn
 
 
 class TestPrimitiveTree:
@@ -166,5 +166,6 @@ class TestPrimitiveTree:
         prim_tree_n, solve_info = solver.solve(
             layout.root_prim, layout.constraints, layout.constraint_graph
         )
-        pprint(prim_tree_n.keys(flat=True))
+        prim_keys_to_value = {key: prim.value for key, prim in cn.iter_flat('', prim_tree_n)}
+        pprint(prim_keys_to_value)
         pprint(solve_info)
