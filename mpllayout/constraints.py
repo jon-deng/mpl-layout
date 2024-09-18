@@ -304,8 +304,8 @@ class Collinear(Constraint):
         """
         res_parallel = Parallel()
         line0, line1 = prims
-        line2 = primitives.Line(prims=(line1[0], line0[0]))
-        # line3 = primitives.Line(prims=(line1['Point0'], line0['Point1']))
+        line2 = primitives.Line(children=(line1[0], line0[0]))
+        # line3 = primitives.Line(children=(line1['Point0'], line0['Point1']))
 
         return jnp.concatenate(
             [res_parallel((line0, line1)), res_parallel((line0, line2))]

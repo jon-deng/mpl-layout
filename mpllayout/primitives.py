@@ -70,34 +70,34 @@ class Primitive(Node[NDArray]):
 
     def __init__(
         self,
-        param: typ.Optional[NDArray] = None,
-        prims: typ.Optional[typ.List["Primitive"]] = None,
+        value: typ.Optional[NDArray] = None,
+        children: typ.Optional[typ.List["Primitive"]] = None,
         keys: typ.Optional[typ.List[str]] = None
     ):
         # Create default `param` if unspecified
-        if param is None:
-            param = np.zeros(self._PARAM_SHAPE, dtype=float)
+        if value is None:
+            value = np.zeros(self._PARAM_SHAPE, dtype=float)
         else:
-            param = np.array(param, dtype=float)
+            value = np.array(value, dtype=float)
 
         # Create default `prims` if unspecified
-        if prims is None:
+        if children is None:
             if isinstance(self._PRIM_TYPES, tuple):
-                prims = tuple(PrimType() for PrimType in self._PRIM_TYPES)
+                children = tuple(PrimType() for PrimType in self._PRIM_TYPES)
             else:
-                prims = ()
+                children = ()
 
         # Create keys from class primitive labels
         if self._PRIM_LABELS is None:
-            keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(prims)]
+            keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(children)]
         elif isinstance(self._PRIM_LABELS, str):
-            keys = [f'{self._PRIM_LABELS}{n}' for n in range(len(prims))]
+            keys = [f'{self._PRIM_LABELS}{n}' for n in range(len(children))]
         elif isinstance(self._PRIM_LABELS, tuple):
             keys = self._PRIM_LABELS
         else:
             raise TypeError(f"{self._PRIM_LABELS}")
 
-        super().__init__(param, prims, keys)
+        super().__init__(value, children, keys)
 
     @property
     def param(self):
@@ -149,18 +149,21 @@ class Polygon(Primitive):
     _PRIM_TYPES = Line
 
     def __init__(
-        self, param: typ.Optional[NDArray] = None, prims: typ.Optional[PrimList] = None
+        self,
+        value: typ.Optional[NDArray] = None,
+        children: typ.Optional[typ.List["Primitive"]] = None,
+        keys: typ.Optional[typ.List[str]] = None
     ):
-        if not isinstance(prims, (tuple, list)):
-            super().__init__(param, prims)
+        if not isinstance(children, (tuple, list)):
+            super().__init__(value, children)
         else:
             # This allows you to input `prims` as a series of points rather than lines
-            if all((isinstance(prim, Point) for prim in prims)):
-                lines = self._points_to_lines(prims)
+            if all((isinstance(prim, Point) for prim in children)):
+                lines = self._points_to_lines(children)
             else:
-                lines = prims
+                lines = children
 
-            super().__init__(param, lines)
+            super().__init__(value, lines)
 
     @staticmethod
     def _points_to_lines(prims: PrimList):

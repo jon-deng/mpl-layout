@@ -50,7 +50,7 @@ if __name__ == "__main__":
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     layout.add_prim(
-        geo.Quadrilateral(prims=[geo.Point(vert_coords) for vert_coords in verts]),
+        geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
         "Figure",
     )
     layout.add_constraint(geo.Box(), ("Figure",))
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     for n in range(num_axes):
         layout.add_prim(
-            geo.Quadrilateral(prims=[geo.Point(vert_coords) for vert_coords in verts]),
+            geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
             f"Axes{n}",
         )
         layout.add_constraint(geo.Box(), (f"Axes{n}",))

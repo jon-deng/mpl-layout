@@ -20,7 +20,7 @@ class TestPrimitiveTree:
 
         verts = [[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]]
 
-        layout.add_prim(geo.Quadrilateral(prims=[geo.Point(vert) for vert in verts]), "MyFavouriteBox")
+        layout.add_prim(geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]), "MyFavouriteBox")
         layout.add_constraint(geo.Box(), ("MyFavouriteBox",))
         layout.add_constraint(
             geo.PointLocation(np.array([0, 0])), ("MyFavouriteBox/Line0/Point0",)
@@ -44,7 +44,7 @@ class TestPrimitiveTree:
         ## Create the figure box
         verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
         layout.add_prim(
-            geo.Quadrilateral(prims=[geo.Point(vert_coords) for vert_coords in verts]),
+            geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
             "Figure",
         )
         layout.add_constraint(geo.Box(), ("Figure",))
@@ -62,7 +62,7 @@ class TestPrimitiveTree:
         verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
         for n in range(num_axes):
             layout.add_prim(
-                geo.Quadrilateral(prims=[geo.Point(vert_coords) for vert_coords in verts]),
+                geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
                 f"Axes{n}",
             )
             layout.add_constraint(geo.Box(), (f"Axes{n}",))
