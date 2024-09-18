@@ -14,7 +14,14 @@ class TestNode:
 
     @pytest.fixture()
     def node(self):
-        node = cn.Node(0, (cn.Node(1, (), ()), cn.Node(2, (), ()), cn.Node(3, (), ())), ('a', 'b', 'c'))
+        childd = cn.Node(99, (), ())
+        childe = cn.Node(9, (), ())
+        childb = cn.Node(2, (childd, childe), ('d', 'e'))
+
+
+        childa = cn.Node(1, (), ())
+        childc = cn.Node(3, (), ())
+        node = cn.Node(0, (childa, childb, childc), ('a', 'b', 'c'))
         return node
 
     def test_repr(self, node: cn.Node):
@@ -27,6 +34,9 @@ class TestNode:
         fnode_structs = cn.flatten('root', node)
 
         _node, _ = cn.unflatten(fnode_structs)
+        print()
+        print(fnode_structs)
+        print(_node)
 
         N = int(1e4)
         duration = timeit("cn.flatten('root', node)", globals={**globals(), **locals()}, number=N)

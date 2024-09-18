@@ -221,13 +221,13 @@ def unflatten(
     node_structs: tp.List[FlatNodeStructure]
 ) -> tp.Tuple[Node, tp.List[FlatNodeStructure]]:
     NodeType, pkey, value, num_child = node_structs[0]
+    node_structs = node_structs[1:]
 
     if num_child == 0:
         node = NodeType(value, (), ())
     else:
-        ckeys = [struct[1][len(pkey)+1:] for struct in node_structs[1:num_child+1]]
+        ckeys = [struct[1][len(pkey)+1:] for struct in node_structs[:num_child]]
         children = []
-        node_structs = node_structs[1:]
         for _ in range(num_child):
             child, node_structs = unflatten(node_structs)
             children.append(child)
