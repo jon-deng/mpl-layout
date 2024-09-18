@@ -1,26 +1,5 @@
 """
 Routines for solving collections of primitives and constraints
-
-The strategy to solve a collection of constraints is to use three labelled
-lists representing a system of non-linear equations:
-    `primitives: PrimLabelledList`
-        A list of `geo.Primitive` instances representing the unknowns of the
-        non-linear equations
-
-        Each `geo.Primitive.value' attribute represents the unknown(s) that must
-        be solved for to satisfy the constraints.
-    `constraints: ConstraintLabelledList`
-        A list of `geo.Constraint` instances representing the non-linear
-        equations
-
-        Each `geo.Constraint.assem_res' represents the non-linear equation(s)
-        that must be satisfied for the constraint.
-    `constraint_graph: StrGraph`
-        A graph linking each constraint to the primitives in `primitives`
-        (through string labels) the constraint applies to
-
-The class `Layout` handles construction of these three lists while functions
-`solve` and `solve_linear` use these lists to solve the system of constraints.
 """
 
 import typing as tp
@@ -33,12 +12,8 @@ from jax import numpy as jnp
 import numpy as np
 
 from . import geometry as geo
-from .containers import LabelledList, Node
 
 from . import layout
-
-PrimLabelledList = LabelledList[geo.Primitive]
-ConstraintLabelledList = LabelledList[geo.Constraint]
 
 IntGraph = tp.List[tp.Tuple[int, ...]]
 StrGraph = tp.List[tp.Tuple[str, ...]]
