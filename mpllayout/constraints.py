@@ -10,44 +10,50 @@ import itertools
 import numpy as np
 import jax.numpy as jnp
 
-from . import primitives as primitives
+from . import primitives as pr
 
-Prim = primitives.Primitive
+Primitive = pr.Primitive
 
 
 class Constraint:
     """
-    A representation of a constraint on primitives
+    A geometric constraint on primitives
 
-    A constraint represents a condition on the parameters of geometric
-    primitive(s). The condition is specified through a residual function
-    `assem_res`, specified with the `jax` library. Usage of `jax` in specifying
-    the constraints allows automatic differentiation of constraint conditions,
-    which is used for solving constraints.
+    A constraint represents a condition on the parameter vectors of geometric
+    primitive(s) that they should satisfy.
+
+    The condition is implemented through a residual function `assem_res` which returns
+     the error in the constraint satisfaction. The constraint is satisfied when
+     `assem_res` returns 0.
+
+    The constraint residual should be implemented using `jax`. This allows automatic
+    differentiation of constraint conditions which is important for numerical solution
+    of constraints.
 
     Parameters
     ----------
     *args, **kwargs :
-        Specific parameters that control a constraint, for example, an angle or
-        distance
+        Parameters for the constraint
+
+        These control aspects of the constraint, for example, an angle or distance.
 
         See `Constraint` subclasses for specific examples.
 
     Attributes
     ----------
-    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Prim], ...]
-        The types of primitives accepted by `assem_res`
+    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
+        The primitive types accepted by `assem_res`
 
-        This is used for type checking.
+        These are the primitive types the constraint applies on.
     """
 
-    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Prim], ...]
+    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
 
     def __init__(self, *args, **kwargs):
         self._res_args = args
         self._res_kwargs = kwargs
 
-    def __call__(self, prims: tp.Tuple[Prim, ...]):
+    def __call__(self, prims: tp.Tuple[Primitive, ...]):
         # Check the input primitives are valid
         # assert len(prims) == len(self._PRIMITIVE_TYPES)
         # for prim, prim_type in zip(prims, self._PRIMITIVE_TYPES):
@@ -55,13 +61,13 @@ class Constraint:
 
         return jnp.atleast_1d(self.assem_res(prims))
 
-    def assem_res(self, prims: tp.Tuple[Prim, ...]) -> NDArray:
+    def assem_res(self, prims: tp.Tuple[Primitive, ...]) -> NDArray:
         """
         Return a residual vector representing the constraint satisfaction
 
         Parameters
         ----------
-        prims: Tuple[Prim, ...]
+        prims: Tuple[Primitive, ...]
             A tuple of primitives the constraint applies to
 
         Returns
@@ -83,7 +89,7 @@ class DirectedDistance(Constraint):
 
     def __init__(self, distance: float, direction: tp.Optional[NDArray] = None):
 
-        self._PRIMITIVE_TYPES = (primitives.Point, primitives.Point)
+        self._PRIMITIVE_TYPES = (pr.Point, pr.Point)
 
         if direction is None:
             direction = np.array([1, 0])
@@ -123,7 +129,7 @@ class PointLocation(Constraint):
     """
 
     def __init__(self, location: NDArray):
-        self._PRIMITIVE_TYPES = (primitives.Point,)
+        self._PRIMITIVE_TYPES = (pr.Point,)
         super().__init__(location=location)
 
     def assem_res(self, prims):
@@ -140,7 +146,7 @@ class CoincidentPoints(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Point, primitives.Point)
+        self._PRIMITIVE_TYPES = (pr.Point, pr.Point)
         super().__init__()
 
     def assem_res(self, prims):
@@ -160,7 +166,7 @@ class Length(Constraint):
     """
 
     def __init__(self, length: float):
-        self._PRIMITIVE_TYPES = (primitives.Line,)
+        self._PRIMITIVE_TYPES = (pr.Line,)
         super().__init__(length=length)
 
     def assem_res(self, prims):
@@ -179,7 +185,7 @@ class RelativeLength(Constraint):
     """
 
     def __init__(self, length: float):
-        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
+        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
         super().__init__(length=length)
 
     def assem_res(self, prims):
@@ -199,10 +205,10 @@ class Orthogonal(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
+        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
         super().__init__()
 
-    def assem_res(self, prims: tp.Tuple[primitives.Line, primitives.Line]):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the orthogonal error
         """
@@ -218,10 +224,10 @@ class Parallel(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
+        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
         super().__init__()
 
-    def assem_res(self, prims: tp.Tuple[primitives.Line, primitives.Line]):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the parallel error
         """
@@ -237,10 +243,10 @@ class Vertical(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Line,)
+        self._PRIMITIVE_TYPES = (pr.Line,)
         super().__init__()
 
-    def assem_res(self, prims: tp.Tuple[primitives.Line]):
+    def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
         Return the vertical error
         """
@@ -255,10 +261,10 @@ class Horizontal(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Line,)
+        self._PRIMITIVE_TYPES = (pr.Line,)
         super().__init__()
 
-    def assem_res(self, prims: tp.Tuple[primitives.Line]):
+    def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
         Return the horizontal error
         """
@@ -273,7 +279,7 @@ class Angle(Constraint):
     """
 
     def __init__(self, angle: NDArray):
-        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
+        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
         super().__init__(angle=angle)
 
     def assem_res(self, prims):
@@ -295,16 +301,16 @@ class Collinear(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Line, primitives.Line)
+        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
         super().__init__()
 
-    def assem_res(self, prims: tp.Tuple[primitives.Line, primitives.Line]):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the collinearity error
         """
         res_parallel = Parallel()
         line0, line1 = prims
-        line2 = primitives.Line(children=(line1[0], line0[0]))
+        line2 = pr.Line(children=(line1[0], line0[0]))
         # line3 = primitives.Line(children=(line1['Point0'], line0['Point1']))
 
         return jnp.concatenate(
@@ -321,7 +327,7 @@ class Box(Constraint):
     """
 
     def __init__(self):
-        self._PRIMITIVE_TYPES = (primitives.Quadrilateral,)
+        self._PRIMITIVE_TYPES = (pr.Quadrilateral,)
         super().__init__()
 
     def assem_res(self, prims):
@@ -356,7 +362,7 @@ class Grid(Constraint):
         heights: tp.Union[float, NDArray[float]],
     ):
 
-        self._PRIMITIVE_TYPES = (primitives.Quadrilateral,) * int(np.prod(shape))
+        self._PRIMITIVE_TYPES = (pr.Quadrilateral,) * int(np.prod(shape))
 
         self._shape = shape
         self._vertical_margins = vertical_margins
@@ -451,5 +457,5 @@ class Grid(Constraint):
 
         return jnp.concatenate(res_arrays)
 
-def line_vector(line: primitives.Line):
+def line_vector(line: pr.Line):
     return line[1].value - line[0].value
