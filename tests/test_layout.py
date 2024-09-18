@@ -79,3 +79,23 @@ class TestLayout:
         pprint(layout.constraints)
         pprint(layout.constraint_graph)
         # pprint(layout.constraint_graph_int)
+
+
+class TestUtilities:
+
+    @pytest.fixture()
+    def layout(self):
+        layout = lat.Layout()
+
+        layout.add_prim(geo.Quadrilateral(), "MyBox")
+        layout.add_constraint(geo.Box(), ("MyBox",))
+
+        layout.add_constraint(geo.PointLocation((0, 0)), ("MyBox/Line0/Point0",))
+        return layout
+
+    def test_build_constraint_graph_int(self, layout: lat.Layout):
+        cgraph_str, root_prim = layout.constraint_graph, layout.prims
+        prims, prim_graph = lat.build_prim_graph(root_prim)
+
+        cgraph_int = lat.build_constraint_graph_int(cgraph_str, root_prim, prim_graph)
+        breakpoint()

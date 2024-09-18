@@ -140,10 +140,10 @@ def build_prim_graph(
 
     return flat_prims, prim_to_idx
 
-def build_constraint_graph_int(constraint_graph_str, prims, prim_graph) -> IntGraph:
+def build_constraint_graph_int(constraint_graph_str, root_prim, prim_graph) -> IntGraph:
 
     constraint_graph_int = [
-        tuple(prim_graph[prims[prim_label]] for prim_label in prim_labels)
+        tuple(prim_graph[root_prim[prim_label]] for prim_label in prim_labels)
         for prim_labels in constraint_graph_str
     ]
     return constraint_graph_int
