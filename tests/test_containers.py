@@ -28,11 +28,11 @@ class TestNode:
 
         _node, _ = cn.unflatten(fnode_structs)
 
-        N = int(1e6)
+        N = int(1e4)
         duration = timeit("cn.flatten('root', node)", globals={**globals(), **locals()}, number=N)
         print(f"Flattening duration: {duration/N: .2e} s")
 
-        N = int(1e6)
+        N = int(1e4)
         duration = timeit("cn.unflatten(fnode_structs)", globals={**globals(), **locals()}, number=N)
         print(f"Unflattening duration: {duration/N: .2e} s")
 

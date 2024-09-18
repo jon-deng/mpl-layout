@@ -8,33 +8,38 @@ from pprint import pprint
 
 import numpy as np
 
-from mpllayout import geometry as geo, layout as lat, containers
+from mpllayout import geometry as geo, layout as lat, containers as cn
 
 
 class TestPrimitiveTree:
 
     @pytest.fixture()
-    def prims(self):
-        return containers.Node(None, [], [])
+    def prim_node(self):
+        return cn.Node(np.array([]), [], [])
 
-    def test_set_prim(self, prims):
-        prims.add_child("MyBox", geo.Quadrilateral())
+    def test_set_prim(self, prim_node):
+        prim_node.add_child("MyBox", geo.Quadrilateral())
 
         pprint(f"Keys:")
-        pprint(prims["MyBox"].keys())
+        pprint(prim_node["MyBox"].keys())
 
-    def test_build_primtree(self, prims):
+    def test_build_primtree(self, prim_node):
         point_a = geo.Point([0, 0])
         point_b = geo.Point([1, 1])
-        prims.add_child("PointA", point_a)
-        prims.add_child("LineA", geo.Line([], (point_a, point_b)))
-        prims.add_child("MySpecialBox", geo.Quadrilateral())
+        prim_node.add_child("PointA", point_a)
+        prim_node.add_child("LineA", geo.Line([], (point_a, point_b)))
+        prim_node.add_child("MySpecialBox", geo.Quadrilateral())
 
-        # prim_graph = prim_tree.prim_graph()
+        prims, prim_graph = lat.build_prim_graph(prim_node)
+
+        params = [prim.value for prim in prims]
+
+        new_params = [np.random.rand(*param.shape) for param in params]
+        new_prim_node = lat.build_tree(prim_node, prim_graph, new_params, {})
+        # breakpoint()
 
         # rng = np.random.default_rng()
 
-        # new_params = [rng.random(prim.param.shape) for prim in prim_tree.prims()]
 
         # new_tree = lat.build_tree(prim_tree, prim_graph, new_params, {})
 

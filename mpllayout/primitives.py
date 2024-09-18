@@ -72,6 +72,7 @@ class Primitive(Node[NDArray]):
         self,
         param: typ.Optional[NDArray] = None,
         prims: typ.Optional[typ.List["Primitive"]] = None,
+        keys: typ.Optional[typ.List[str]] = None
     ):
         # Create default `param` if unspecified
         if param is None:

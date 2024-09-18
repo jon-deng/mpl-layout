@@ -38,8 +38,8 @@ class Node(tp.Generic[T]):
         keys: tp.List[str]
     ):
         self._value = value
-        self._children = list(children)
-        self._keys = list(keys)
+        self._children = children
+        self._keys = keys
 
         if len(children) == len(keys):
             self._key_to_child = {

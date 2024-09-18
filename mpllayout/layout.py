@@ -180,25 +180,13 @@ def build_tree(
     PrimitiveTree
         The new `PrimitiveTree` with parameters from `params`
     """
-    oldprim = prim
+    old_prim_structs = flatten('', prim)
 
-    # If the tree has no children, we simply create the primitive with no children
-    # If the tree has children, we need to recursively create all child trees
-    if len(prim.children) == 0:
-        children = ()
-    else:
-        children = (
-            build_tree(childtree, prim_to_idx, params, prim_to_newprim)
-            for childtree in prim.children
-        )
+    new_prim_values = [params[prim_to_idx[prim]] for _, prim in iter_flat('', prim)]
 
-    if oldprim is None:
-        newprim = None
-    elif oldprim in prim_to_newprim:
-        newprim = prim_to_newprim[oldprim]
-    else:
-        param = params[prim_to_idx[oldprim]]
-        newprim = type(oldprim)(param, children)
-        prim_to_newprim[oldprim] = newprim
 
-    return type(prim)(newprim, children), prim_to_newprim
+    new_prim_structs = [
+        (*old_struct[:2], new_value, *old_struct[3:])
+        for old_struct, new_value in zip(old_prim_structs, new_prim_values)
+    ]
+    return unflatten(new_prim_structs)[0]
