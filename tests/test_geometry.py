@@ -4,7 +4,7 @@ Test geometric primitive and constraints
 
 import pytest
 
-import typing as typ
+import typing as tp
 
 import itertools
 from pprint import pprint
@@ -113,7 +113,7 @@ class TestConstraints:
 
         return quads
 
-    def test_Grid(self, quads: typ.List[geo.Quadrilateral], shape: typ.Tuple[int, ...]):
+    def test_Grid(self, quads: tp.List[geo.Quadrilateral], shape: tp.Tuple[int, ...]):
         num_row, num_col = shape
 
         res = geo.Grid(

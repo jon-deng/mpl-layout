@@ -2,7 +2,7 @@
 Geometry primitives
 """
 
-import typing as typ
+import typing as tp
 from numpy.typing import NDArray
 
 import numpy as np
@@ -12,7 +12,7 @@ import jax
 from .containers import Node
 
 
-ArrayShape = typ.Tuple[int, ...]
+ArrayShape = tp.Tuple[int, ...]
 
 ## Generic primitive class/interface
 # You can create specific primitive definitions by inheriting from these and
@@ -49,12 +49,12 @@ class Primitive(Node[NDArray]):
 
     _PARAM_SHAPE: ArrayShape
         The shape of the parameter vector parameterizing the `Primitive`
-    _PRIM_TYPES: typ.Union[
-            typ.Tuple[typ.Type['Primitive'], ...],
-            typ.Type['Primitive']
+    _PRIM_TYPES: tp.Union[
+            tp.Tuple[tp.Type['Primitive'], ...],
+            tp.Type['Primitive']
         ]
         The types of child primitives parameterizing the `Primitive`
-    _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]]
+    _PRIM_LABELS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]]
         Optional labels for the child primitives
     """
 
@@ -63,16 +63,16 @@ class Primitive(Node[NDArray]):
     # `_PRIM_TYPES` can either be a tuple of types, or a single type.
     # If it's a single type, then this implies a variable number of child primitives of that type
     # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
-    _PRIM_TYPES: typ.Union[
-        typ.Tuple[typ.Type["Primitive"], ...], typ.Type["Primitive"]
+    _PRIM_TYPES: tp.Union[
+        tp.Tuple[tp.Type["Primitive"], ...], tp.Type["Primitive"]
     ] = ()
-    _PRIM_LABELS: typ.Optional[typ.Union[typ.Tuple[str, ...], str]] = None
+    _PRIM_LABELS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]] = None
 
     def __init__(
         self,
-        value: typ.Optional[NDArray] = None,
-        children: typ.Optional[typ.List["Primitive"]] = None,
-        keys: typ.Optional[typ.List[str]] = None
+        value: tp.Optional[NDArray] = None,
+        children: tp.Optional[tp.List["Primitive"]] = None,
+        keys: tp.Optional[tp.List[str]] = None
     ):
         # Create default `param` if unspecified
         if value is None:
@@ -114,8 +114,8 @@ class Primitive(Node[NDArray]):
         return self._children
 
 
-PrimList = typ.Tuple[Primitive, ...]
-PrimTuple = typ.Tuple[Primitive, ...]
+PrimList = tp.Tuple[Primitive, ...]
+PrimTuple = tp.Tuple[Primitive, ...]
 
 
 ## Actual primitive classes
@@ -150,9 +150,9 @@ class Polygon(Primitive):
 
     def __init__(
         self,
-        value: typ.Optional[NDArray] = None,
-        children: typ.Optional[typ.List["Primitive"]] = None,
-        keys: typ.Optional[typ.List[str]] = None
+        value: tp.Optional[NDArray] = None,
+        children: tp.Optional[tp.List["Primitive"]] = None,
+        keys: tp.Optional[tp.List[str]] = None
     ):
         if not isinstance(children, (tuple, list)):
             super().__init__(value, children)

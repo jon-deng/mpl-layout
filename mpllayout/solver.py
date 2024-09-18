@@ -23,7 +23,7 @@ The class `Layout` handles construction of these three lists while functions
 `solve` and `solve_linear` use these lists to solve the system of constraints.
 """
 
-import typing as typ
+import typing as tp
 from numpy.typing import NDArray
 
 import warnings
@@ -40,20 +40,20 @@ from . import layout
 PrimLabelledList = LabelledList[geo.Primitive]
 ConstraintLabelledList = LabelledList[geo.Constraint]
 
-IntGraph = typ.List[typ.Tuple[int, ...]]
-StrGraph = typ.List[typ.Tuple[str, ...]]
+IntGraph = tp.List[tp.Tuple[int, ...]]
+StrGraph = tp.List[tp.Tuple[str, ...]]
 
-SolverInfo = typ.Mapping[str, typ.Any]
+SolverInfo = tp.Mapping[str, tp.Any]
 
 
 def solve(
     root_prim: Node[NDArray],
-    constraints: typ.List[geo.Constraint],
+    constraints: tp.List[geo.Constraint],
     constraint_graph: StrGraph,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> typ.Tuple[Node[NDArray], SolverInfo]:
+) -> tp.Tuple[Node[NDArray], SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -64,7 +64,7 @@ def solve(
     ----------
     prim_tree: layout.PrimitiveTree
         The tree of primitives
-    constraints: typ.List[geo.Constraint]
+    constraints: tp.List[geo.Constraint]
         The list of constraints
     constraint_graph: IntGraph
         A mapping from each constraint to the primitives it applies to
@@ -158,31 +158,31 @@ def solve(
     return prim_tree_n, nonlinear_solve_info
 
 def assem_constraint_residual(
-    prim_params: typ.List[NDArray],
+    prim_params: tp.List[NDArray],
     root_prim: geo.Primitive,
-    prim_graph: typ.Mapping[str, int],
-    constraints: typ.List[geo.Constraint],
+    prim_graph: tp.Mapping[str, int],
+    constraints: tp.List[geo.Constraint],
     constraint_graph: StrGraph
-) -> typ.List[NDArray]:
+) -> tp.List[NDArray]:
     """
     Return a list of constraint residual vectors
 
     Parameters
     ----------
-    prim_params: typ.List[NDArray]
+    prim_params: tp.List[NDArray]
         A list of parameter vectors for each unique primitive in `prim_tree`
     prim_tree: layout.PrimitiveTree
         A primitive tree
-    prim_graph: typ.Mapping[str, int]
+    prim_graph: tp.Mapping[str, int]
         A mapping from each primitive in `prim_tree` to a parameter vector in `prim_params`
-    constraints: typ.List[geo.Constraint]
+    constraints: tp.List[geo.Constraint]
         A list of constraints
     constraint_graph: IntGraph
         A list of integer tuples indicating primitive arguments for each constraint
 
     Returns
     -------
-    residuals: typ.List[NDArray]
+    residuals: tp.List[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
     root_prim = layout.build_tree(root_prim, prim_graph, prim_params)

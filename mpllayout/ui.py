@@ -2,7 +2,7 @@
 Utilities for a user interface/visualization of the plot layout
 """
 
-import typing as typ
+import typing as tp
 
 import matplotlib as mpl
 import numpy as np
@@ -56,7 +56,7 @@ def plot_polygon(ax: mpl.axes.Axes, polygon: geo.Polygon, label=None, **kwargs):
 ## Functions for plotting arbitrary geometric primitives
 def make_plot(
     prim: geo.Primitive,
-) -> typ.Callable[[mpl.axes.Axes, typ.Tuple[geo.Primitive, ...]], None]:
+) -> tp.Callable[[mpl.axes.Axes, tp.Tuple[geo.Primitive, ...]], None]:
     """
     Return a function that can plot a `geo.Primitive` object
     """

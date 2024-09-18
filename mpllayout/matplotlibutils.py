@@ -2,7 +2,7 @@
 Utilities for creating `matplotlib` plot objects from primitives
 """
 
-import typing as typ
+import typing as tp
 
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
@@ -14,7 +14,7 @@ from mpllayout.containers import LabelledList
 
 def subplots(
     prim_tree: LabelledList[geo.Primitive],
-) -> typ.Tuple[Figure, typ.Mapping[str, Axes]]:
+) -> tp.Tuple[Figure, tp.Mapping[str, Axes]]:
     """
     Create `Figure` and `Axes` objects from geometric primitives
 
@@ -33,7 +33,7 @@ def subplots(
 
     Returns
     -------
-    fig, axs: typ.Tuple[Figure, typ.Mapping[str, Axes]]
+    fig, axs: tp.Tuple[Figure, tp.Mapping[str, Axes]]
         A `Figure` instance and a mapping from axes labels to `Axes` instances
         using the `Axes` object names
     """
@@ -49,7 +49,7 @@ def subplots(
     return fig, axs
 
 
-def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
+def width_and_height_from_box(box: geo.Box) -> tp.Tuple[float, float]:
     """
     Return the width and height of a `Box`
 
@@ -59,7 +59,7 @@ def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
 
     Returns
     -------
-    typ.Tuple[float, float]
+    tp.Tuple[float, float]
         The `(width, height)` of the box
     """
 
@@ -75,8 +75,8 @@ def width_and_height_from_box(box: geo.Box) -> typ.Tuple[float, float]:
 
 
 def rect_from_box(
-    box: geo.Box, fig_size: typ.Optional[typ.Tuple[float, float]] = (1, 1)
-) -> typ.Tuple[float, float, float, float]:
+    box: geo.Box, fig_size: tp.Optional[tp.Tuple[float, float]] = (1, 1)
+) -> tp.Tuple[float, float, float, float]:
     """
     Return a `rect` tuple, `(left, bottom, width, height)`, from a `Box`
 
@@ -87,12 +87,12 @@ def rect_from_box(
     ----------
     box: geo.Box
         The box
-    fig_size: typ.Optional[typ.Tuple[float, float]]
+    fig_size: tp.Optional[tp.Tuple[float, float]]
         The width and height of the figure
 
     Returns
     -------
-    xmin, ymin, width, heigth: typ.Tuple[float, float, float, float]
+    xmin, ymin, width, heigth: tp.Tuple[float, float, float, float]
     """
     fig_w, fig_h = fig_size
 
