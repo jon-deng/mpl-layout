@@ -130,15 +130,19 @@ class Layout:
 
 def build_prim_graph(
     root_prim: Node
-) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[geo.Primitive, int]]:
+) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[str, int]]:
     """
-    Return a mapping from primitives to integer indices
+    Return a map from flat keys to indices in a list of unique primitives
     """
     prims = list(set(prim for _, prim in iter_flat('', root_prim)))
-
     prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
 
-    return prims, prim_to_idx
+    # `key[1:]` removes the initial forward slash from the flat keys
+    # This initial forward slash would make the keys invalid for indexing from
+    # `root_prim`
+    key_to_idx = {key[1:]: prim_to_idx[prim] for key, prim in iter_flat(root_prim)}
+
+    return prims, key_to_idx
 
 def build_constraint_graph_int(constraint_graph_str, root_prim, prim_graph) -> IntGraph:
 
