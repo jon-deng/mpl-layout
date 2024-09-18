@@ -129,16 +129,16 @@ class Layout:
         self.constraint_graph.append(prim_labels)
 
 def build_prim_graph(
-    prim: Node
+    root_prim: Node
 ) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[geo.Primitive, int]]:
     """
     Return a mapping from primitives to integer indices in `self.prims()`
     """
-    flat_prims = list(set(prim for _, prim in iter_flat('', prim)))
+    prims = list(set(prim for _, prim in iter_flat('', root_prim)))
 
-    prim_to_idx = {prim: ii for ii, prim in enumerate(flat_prims)}
+    prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
 
-    return flat_prims, prim_to_idx
+    return prims, prim_to_idx
 
 def build_constraint_graph_int(constraint_graph_str, root_prim, prim_graph) -> IntGraph:
 
