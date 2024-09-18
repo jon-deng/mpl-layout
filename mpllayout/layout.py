@@ -149,7 +149,7 @@ def build_constraint_graph_int(constraint_graph_str, root_prim, prim_graph) -> I
     return constraint_graph_int
 
 def build_tree(
-    prim: geo.Primitive,
+    root_prim: geo.Primitive,
     prim_to_idx: tp.Mapping[geo.Primitive, int],
     params: tp.List[np.typing.NDArray],
     prim_to_newprim: tp.Mapping[geo.Primitive, geo.Primitive],
@@ -180,9 +180,9 @@ def build_tree(
     PrimitiveTree
         The new `PrimitiveTree` with parameters from `params`
     """
-    old_prim_structs = flatten('', prim)
+    old_prim_structs = flatten('', root_prim)
 
-    new_prim_values = [params[prim_to_idx[prim]] for _, prim in iter_flat('', prim)]
+    new_prim_values = [params[prim_to_idx[prim]] for _, prim in iter_flat('', root_prim)]
 
 
     new_prim_structs = [
