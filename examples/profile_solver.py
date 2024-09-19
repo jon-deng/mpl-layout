@@ -5,6 +5,7 @@ Profile runtimes of key functions
 import typing as tp
 
 import cProfile
+import pstats
 
 import numpy as np
 
@@ -96,6 +97,20 @@ if __name__ == "__main__":
         prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph
     )
     stmt = (
-    "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph)"
+        "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph)"
     )
-    cProfile.run(stmt, 'profile.prof')
+    cProfile.run(stmt, 'profile_wo_jax.prof')
+    stats = pstats.Stats('profile_wo_jax.prof')
+    stats.sort_stats('cumtime').print_stats(20)
+
+    import jax
+    constraints_jit = [jax.jit(c) for c in layout.constraints]
+    solver.assem_constraint_residual(
+        prim_values, layout.root_prim, prim_graph, constraints_jit, layout.constraint_graph
+    )
+    stmt = (
+        "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, constraints_jit, layout.constraint_graph)"
+    )
+    cProfile.run(stmt, 'profile_w_jax.prof')
+    stats = pstats.Stats('profile_w_jax.prof')
+    stats.sort_stats('cumtime').print_stats(20)
