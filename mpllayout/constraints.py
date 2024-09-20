@@ -105,9 +105,7 @@ class DirectedDistance(Constraint):
         specified direction.
         """
         point0, point1 = prims
-        distance = jnp.dot(
-            point1.value - point0.value, self._res_kwargs["direction"]
-        )
+        distance = jnp.dot(point1.value - point0.value, self._res_kwargs["direction"])
         return distance - self._res_kwargs["distance"]
 
 
@@ -392,28 +390,30 @@ class Grid(Constraint):
 
             res_arrays.append(
                 DirectedDistance(margin, direction=np.array([0, -1]))(
-                    (box_a['Line0/Point0'], box_b['Line2/Point1'])
+                    (box_a["Line0/Point0"], box_b["Line2/Point1"])
                 )
             )
 
             # Set vertical widths
             length = self._heights[ii]
-            res_arrays.append(RelativeLength(length)((box_b['Line1'], box_topleft['Line1'])))
+            res_arrays.append(
+                RelativeLength(length)((box_b["Line1"], box_topleft["Line1"]))
+            )
 
             # Set vertical collinearity
             res_arrays.append(
                 Collinear()(
                     (
-                        box_a['Line1'],
-                        box_b['Line1'],
+                        box_a["Line1"],
+                        box_b["Line1"],
                     )
                 )
             )
             res_arrays.append(
                 Collinear()(
                     (
-                        box_a['Line3'],
-                        box_b['Line3'],
+                        box_a["Line3"],
+                        box_b["Line3"],
                     )
                 )
             )
@@ -428,34 +428,37 @@ class Grid(Constraint):
 
             res_arrays.append(
                 DirectedDistance(margin, direction=np.array([1, 0]))(
-                    (box_a['Line0/Point1'], box_b['Line0/Point0'])
+                    (box_a["Line0/Point1"], box_b["Line0/Point0"])
                 )
             )
 
             # Set horizontal widths
             length = self._widths[jj]
             # breakpoint()
-            res_arrays.append(RelativeLength(length)((box_b['Line0'], box_topleft['Line0'])))
+            res_arrays.append(
+                RelativeLength(length)((box_b["Line0"], box_topleft["Line0"]))
+            )
 
             # Set horizontal collinearity
             res_arrays.append(
                 Collinear()(
                     (
-                        box_a['Line0'],
-                        box_b['Line0'],
+                        box_a["Line0"],
+                        box_b["Line0"],
                     )
                 )
             )
             res_arrays.append(
                 Collinear()(
                     (
-                        box_a['Line2'],
-                        box_b['Line2'],
+                        box_a["Line2"],
+                        box_b["Line2"],
                     )
                 )
             )
 
         return jnp.concatenate(res_arrays)
+
 
 def line_vector(line: pr.Line):
     return line[1].value - line[0].value

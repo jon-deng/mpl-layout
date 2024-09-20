@@ -72,7 +72,7 @@ class Primitive(Node[NDArray]):
         self,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None
+        keys: tp.Optional[tp.List[str]] = None,
     ):
         # NOTE: `Primitive` classes specify keys through `Primitive._PRIM_LABELS`
         # This is unlike `Node`, so `keys` is basically ignored!
@@ -93,9 +93,9 @@ class Primitive(Node[NDArray]):
         # Create keys from class primitive labels if they aren't supplied
         if keys is None:
             if self._PRIM_LABELS is None:
-                keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(children)]
+                keys = [f"{type(prim).__name__}{n}" for n, prim in enumerate(children)]
             elif isinstance(self._PRIM_LABELS, str):
-                keys = [f'{self._PRIM_LABELS}{n}' for n in range(len(children))]
+                keys = [f"{self._PRIM_LABELS}{n}" for n in range(len(children))]
             elif isinstance(self._PRIM_LABELS, tuple):
                 keys = self._PRIM_LABELS
             else:
@@ -141,7 +141,7 @@ class Polygon(Primitive):
         self,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None
+        keys: tp.Optional[tp.List[str]] = None,
     ):
         if not isinstance(children, (tuple, list)):
             super().__init__(value, children)
@@ -175,10 +175,9 @@ class Quadrilateral(Polygon):
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (Line, Line, Line, Line)
 
+
 ## Register `Primitive` classes as `jax.pytree`
-_PrimitiveClasses = [
-    Primitive, Quadrilateral, Point, Line, Polygon
-]
+_PrimitiveClasses = [Primitive, Quadrilateral, Point, Line, Polygon]
 for _PrimitiveClass in _PrimitiveClasses:
     _flatten_primitive, _unflatten_primitive = _make_flatten_unflatten(_PrimitiveClass)
     jax.tree_util.register_pytree_node(

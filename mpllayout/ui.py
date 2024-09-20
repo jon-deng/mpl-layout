@@ -34,7 +34,9 @@ def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
     """
     Plot a `Polygon`
     """
-    points = [polygon[f'Line0']['Point0']] + [polygon[f'Line{ii}']['Point1'] for ii in range(len(polygon))]
+    points = [polygon[f"Line0"]["Point0"]] + [
+        polygon[f"Line{ii}"]["Point1"] for ii in range(len(polygon))
+    ]
     xs = np.array([point.value[0] for point in points])
     ys = np.array([point.value[1] for point in points])
 

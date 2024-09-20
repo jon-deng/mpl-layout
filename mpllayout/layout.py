@@ -33,6 +33,7 @@ from .containers import Node, iter_flat, flatten, unflatten
 IntGraph = tp.List[tp.Tuple[int, ...]]
 StrGraph = tp.List[tp.Tuple[str, ...]]
 
+
 class Layout:
     """
     A constrained layout of primitives
@@ -101,11 +102,7 @@ class Layout:
         """
         self.root_prim.add_child(key, prim)
 
-    def add_constraint(
-        self,
-        constraint: geo.Constraint,
-        prim_keys: tp.Tuple[str, ...]
-    ):
+    def add_constraint(self, constraint: geo.Constraint, prim_keys: tp.Tuple[str, ...]):
         """
         Add a constraint between primitives
 
@@ -119,23 +116,23 @@ class Layout:
         self.constraints.append(constraint)
         self.constraint_graph.append(prim_keys)
 
+
 def build_prim_graph(
-    root_prim: geo.Primitive
+    root_prim: geo.Primitive,
 ) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[str, int]]:
     """
     Return a map from flat keys to indices in a list of unique primitives
     """
-    prims = list(set(prim for _, prim in iter_flat('', root_prim)))
+    prims = list(set(prim for _, prim in iter_flat("", root_prim)))
     prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
 
-    key_to_idx = {key: prim_to_idx[prim] for key, prim in iter_flat('', root_prim)}
+    key_to_idx = {key: prim_to_idx[prim] for key, prim in iter_flat("", root_prim)}
 
     return prims, key_to_idx
 
+
 def build_tree(
-    root_prim: geo.Primitive,
-    key_to_idx: tp.Mapping[str, int],
-    values: tp.List[NDArray]
+    root_prim: geo.Primitive, key_to_idx: tp.Mapping[str, int], values: tp.List[NDArray]
 ) -> geo.Primitive:
     """
     Return a new tree where child node values have been updated
@@ -154,10 +151,10 @@ def build_tree(
     Node
         The new tree with values from `values`
     """
-    old_prim_structs = flatten('', root_prim)
+    old_prim_structs = flatten("", root_prim)
 
     # `key[1:]` remove the initial forward slash from the flat keys
-    new_prim_values = [values[key_to_idx[key]] for key, _ in iter_flat('', root_prim)]
+    new_prim_values = [values[key_to_idx[key]] for key, _ in iter_flat("", root_prim)]
 
     new_prim_structs = [
         (*old_struct[:2], new_value, *old_struct[3:])

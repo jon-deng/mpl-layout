@@ -62,11 +62,11 @@ def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float
         The width and height of the quadrilateral
     """
 
-    point_bottomleft = quad['Line0/Point0']
+    point_bottomleft = quad["Line0/Point0"]
     xmin = point_bottomleft.value[0]
     ymin = point_bottomleft.value[1]
 
-    point_topright = quad['Line1/Point1']
+    point_topright = quad["Line1/Point1"]
     xmax = point_topright.value[0]
     ymax = point_topright.value[1]
 
@@ -95,11 +95,11 @@ def rect_from_box(
     """
     fig_w, fig_h = fig_size
 
-    point_bottomleft = quad['Line0/Point0']
+    point_bottomleft = quad["Line0/Point0"]
     xmin = point_bottomleft.value[0] / fig_w
     ymin = point_bottomleft.value[1] / fig_h
 
-    point_topright = quad['Line1/Point1']
+    point_topright = quad["Line1/Point1"]
     xmax = point_topright.value[0] / fig_w
     ymax = point_topright.value[1] / fig_h
     width = xmax - xmin

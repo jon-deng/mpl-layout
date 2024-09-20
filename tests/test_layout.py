@@ -40,7 +40,6 @@ class TestPrimitiveTree:
 
         # rng = np.random.default_rng()
 
-
         # new_tree = lat.build_tree(prim_tree, prim_graph, new_params, {})
 
         # print("Old primitive graph:")

@@ -19,6 +19,7 @@ import jax
 
 T = tp.TypeVar("T")
 
+
 class Node(tp.Generic[T]):
     """
     Tree structure with labelled child nodes
@@ -34,19 +35,14 @@ class Node(tp.Generic[T]):
     """
 
     def __init__(
-        self,
-        value: tp.Union[None, T],
-        children: tp.List["Node"],
-        keys: tp.List[str]
+        self, value: tp.Union[None, T], children: tp.List["Node"], keys: tp.List[str]
     ):
         self._value = value
         self._children = children
         self._keys = keys
 
         if len(children) == len(keys):
-            self._key_to_child = {
-                label: cnode for label, cnode in zip(keys, children)
-            }
+            self._key_to_child = {label: cnode for label, cnode in zip(keys, children)}
         else:
             raise ValueError(
                 f"Number of child nodes {len(children)} must equal number of keys {len(keys)}"
@@ -78,8 +74,8 @@ class Node(tp.Generic[T]):
     ## String
 
     def __repr__(self) -> str:
-        keys_repr = ', '.join(self.keys())
-        children_repr = ', '.join([node.__repr__() for node in self.children])
+        keys_repr = ", ".join(self.keys())
+        children_repr = ", ".join([node.__repr__() for node in self.children])
         return f"{type(self).__name__}({self.value}, ({children_repr}), ({keys_repr}))"
 
     def __str__(self) -> str:
@@ -186,13 +182,13 @@ class Node(tp.Generic[T]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
+
 ## Manual flattening/unflattening implementation
 NodeType = tp.Type[Node]
 FlatNodeStructure = tp.Tuple[NodeType, str, T, int]
 
-def iter_flat(
-    key: str, node: Node
-) -> tp.Iterable[tp.Tuple[str, Node]]:
+
+def iter_flat(key: str, node: Node) -> tp.Iterable[tp.Tuple[str, Node]]:
     """
     Return a flat iterator over all nodes
     """
@@ -202,7 +198,7 @@ def iter_flat(
         nodes = [(key, node)]
     else:
         cnodes = [
-            iter_flat('/'.join((key, ckey)), cnode)
+            iter_flat("/".join((key, ckey)), cnode)
             for ckey, cnode in zip(node.keys(), node.values())
         ]
         cnodes = itertools.chain(cnodes)
@@ -210,17 +206,17 @@ def iter_flat(
         nodes = itertools.chain([(key, node)], *cnodes)
     return nodes
 
-def flatten(
-    key: str, node: Node
-) -> tp.List[FlatNodeStructure]:
+
+def flatten(key: str, node: Node) -> tp.List[FlatNodeStructure]:
     node_structs = [
         (type(_node), _key, _node.value, len(_node))
         for _key, _node in iter_flat(key, node)
     ]
     return node_structs
 
+
 def unflatten(
-    node_structs: tp.List[FlatNodeStructure]
+    node_structs: tp.List[FlatNodeStructure],
 ) -> tp.Tuple[Node, tp.List[FlatNodeStructure]]:
     NodeType, pkey, value, num_child = node_structs[0]
     node_structs = node_structs[1:]
@@ -233,7 +229,7 @@ def unflatten(
         for _ in range(num_child):
             child_struct = node_structs[0]
 
-            ckey = child_struct[1][len(pkey)+1:]
+            ckey = child_struct[1][len(pkey) + 1 :]
             child, node_structs = unflatten(node_structs)
 
             ckeys.append(ckey)
@@ -242,6 +238,7 @@ def unflatten(
         node = NodeType(value, children, ckeys)
 
     return node, node_structs
+
 
 ## pytree flattening/unflattening implementation
 # These functions register `Node` classes as a `jax.pytree` so jax can flatten/unflatten
@@ -252,6 +249,7 @@ FlatNode = tp.Tuple[T, Children]
 Keys = tp.List[str]
 AuxData = tp.Tuple[Keys]
 
+
 def _make_flatten_unflatten(NodeClass: tp.Type[Node[T]]):
 
     def _flatten_node(node: NodeClass) -> tp.Tuple[FlatNode, AuxData]:
@@ -261,10 +259,11 @@ def _make_flatten_unflatten(NodeClass: tp.Type[Node[T]]):
 
     def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeClass:
         value, children = flat_node
-        keys, = aux_data
+        (keys,) = aux_data
         return NodeClass(value, children, keys)
 
     return _flatten_node, _unflatten_node
+
 
 ## Register `Node` as `jax.pytree`
 _NodeClasses = [Node]

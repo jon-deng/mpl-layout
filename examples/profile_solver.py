@@ -11,7 +11,8 @@ import numpy as np
 
 from mpllayout import layout as lay, geometry as geo, solver
 
-def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]]=(3, 3)) -> lay.Layout:
+
+def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]] = (3, 3)) -> lay.Layout:
     layout = lay.Layout()
 
     ## Create an origin point
@@ -38,7 +39,9 @@ def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]]=(3, 3)) -> lay.Layout
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     for n in range(num_axes):
         layout.add_prim(
-            geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
+            geo.Quadrilateral(
+                children=[geo.Point(vert_coords) for vert_coords in verts]
+            ),
             f"Axes{n}",
         )
         layout.add_constraint(geo.Box(), (f"Axes{n}",))
@@ -48,18 +51,16 @@ def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]]=(3, 3)) -> lay.Layout
     layout.add_constraint(
         geo.Grid(
             axes_shape,
-            (num_col-1)*[1/16],
-            (num_row-1)*[1/16],
-            (num_col-1)*[1],
-            (num_row-1)*[1]
+            (num_col - 1) * [1 / 16],
+            (num_row - 1) * [1 / 16],
+            (num_col - 1) * [1],
+            (num_row - 1) * [1],
         ),
         tuple(f"Axes{n}" for n in range(num_axes)),
     )
 
     # Constrain the first axis aspect ratio
-    layout.add_constraint(
-        geo.RelativeLength(2), ('Axes0/Line0', 'Axes0/Line1')
-    )
+    layout.add_constraint(geo.RelativeLength(2), ("Axes0/Line0", "Axes0/Line1"))
 
     # Constrain top/bottom margins
     margin_top = 1.1
@@ -94,23 +95,28 @@ if __name__ == "__main__":
     prim_values = [prim.value for prim in prims]
 
     solver.assem_constraint_residual(
-        prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph
+        prim_values,
+        layout.root_prim,
+        prim_graph,
+        layout.constraints,
+        layout.constraint_graph,
     )
-    stmt = (
-        "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph)"
-    )
-    cProfile.run(stmt, 'profile_wo_jax.prof')
-    stats = pstats.Stats('profile_wo_jax.prof')
-    stats.sort_stats('cumtime').print_stats(20)
+    stmt = "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph)"
+    cProfile.run(stmt, "profile_wo_jax.prof")
+    stats = pstats.Stats("profile_wo_jax.prof")
+    stats.sort_stats("cumtime").print_stats(20)
 
     import jax
+
     constraints_jit = [jax.jit(c) for c in layout.constraints]
     solver.assem_constraint_residual(
-        prim_values, layout.root_prim, prim_graph, constraints_jit, layout.constraint_graph
+        prim_values,
+        layout.root_prim,
+        prim_graph,
+        constraints_jit,
+        layout.constraint_graph,
     )
-    stmt = (
-        "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, constraints_jit, layout.constraint_graph)"
-    )
-    cProfile.run(stmt, 'profile_w_jax.prof')
-    stats = pstats.Stats('profile_w_jax.prof')
-    stats.sort_stats('cumtime').print_stats(20)
+    stmt = "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, constraints_jit, layout.constraint_graph)"
+    cProfile.run(stmt, "profile_w_jax.prof")
+    stats = pstats.Stats("profile_w_jax.prof")
+    stats.sort_stats("cumtime").print_stats(20)

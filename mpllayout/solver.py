@@ -105,7 +105,9 @@ def solve(
         global_res = assem_global_res(global_param_n)
         global_jac = assem_global_jac(global_param_n)
 
-        dglobal_param, err, rank, s = np.linalg.lstsq(global_jac, -global_res, rcond=None)
+        dglobal_param, err, rank, s = np.linalg.lstsq(
+            global_jac, -global_res, rcond=None
+        )
         global_param_n = global_param_n + dglobal_param
 
         n += 1
@@ -116,21 +118,17 @@ def solve(
             rel_err = abs_errs[-1] / abs_errs[0]
         rel_errs.append(rel_err)
 
-    nonlinear_solve_info = {
-        "abs_errs": abs_errs,
-        "rel_errs": rel_errs
-    }
+    nonlinear_solve_info = {"abs_errs": abs_errs, "rel_errs": rel_errs}
 
     ## Build a new primitive tree from the global parameter vector
     prim_params_n = [
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    root_prim_n = layout.build_tree(
-        root_prim, prim_graph, prim_params_n
-    )
+    root_prim_n = layout.build_tree(root_prim, prim_graph, prim_params_n)
 
     return root_prim_n, nonlinear_solve_info
+
 
 # TODO: Make the parameter order consistent
 def assem_constraint_residual(
@@ -138,7 +136,7 @@ def assem_constraint_residual(
     root_prim: geo.Primitive,
     prim_graph: tp.Mapping[str, int],
     constraints: tp.List[geo.Constraint],
-    constraint_graph: StrGraph
+    constraint_graph: StrGraph,
 ) -> tp.List[NDArray]:
     """
     Return a list of constraint residual vectors

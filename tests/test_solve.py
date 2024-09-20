@@ -20,7 +20,10 @@ class TestPrimitiveTree:
 
         verts = np.array([[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]])
 
-        layout.add_prim(geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]), "MyFavouriteBox")
+        layout.add_prim(
+            geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]),
+            "MyFavouriteBox",
+        )
         layout.add_constraint(geo.Box(), ("MyFavouriteBox",))
         layout.add_constraint(
             geo.PointLocation(np.array([0, 0])), ("MyFavouriteBox/Line0/Point0",)
@@ -44,7 +47,9 @@ class TestPrimitiveTree:
         ## Create the figure box
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         layout.add_prim(
-            geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
+            geo.Quadrilateral(
+                children=[geo.Point(vert_coords) for vert_coords in verts]
+            ),
             "Figure",
         )
         layout.add_constraint(geo.Box(), ("Figure",))
@@ -62,7 +67,9 @@ class TestPrimitiveTree:
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         for n in range(num_axes):
             layout.add_prim(
-                geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
+                geo.Quadrilateral(
+                    children=[geo.Point(vert_coords) for vert_coords in verts]
+                ),
                 f"Axes{n}",
             )
             layout.add_constraint(geo.Box(), (f"Axes{n}",))
@@ -72,18 +79,16 @@ class TestPrimitiveTree:
         layout.add_constraint(
             geo.Grid(
                 axes_shape,
-                (num_col-1)*[1/16],
-                (num_row-1)*[1/16],
-                (num_col-1)*[1],
-                (num_row-1)*[1]
+                (num_col - 1) * [1 / 16],
+                (num_row - 1) * [1 / 16],
+                (num_col - 1) * [1],
+                (num_row - 1) * [1],
             ),
             tuple(f"Axes{n}" for n in range(num_axes)),
         )
 
         # Constrain the first axis aspect ratio
-        layout.add_constraint(
-            geo.RelativeLength(2), ('Axes0/Line0', 'Axes0/Line1')
-        )
+        layout.add_constraint(geo.RelativeLength(2), ("Axes0/Line0", "Axes0/Line1"))
 
         # Constrain top/bottom margins
         margin_top = 1.1
@@ -133,6 +138,7 @@ class TestPrimitiveTree:
 
         # `jax.jit` individual constraint functions
         import jax
+
         constraints_jit = [jax.jit(constraint) for constraint in constraints]
         solver.assem_constraint_residual(
             prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_str
@@ -141,7 +147,11 @@ class TestPrimitiveTree:
         t0 = time.time()
         for i in range(50):
             solver.assem_constraint_residual(
-                prim_params, prim_tree, prim_graph, constraints_jit, constraint_graph_str
+                prim_params,
+                prim_tree,
+                prim_graph,
+                constraints_jit,
+                constraint_graph_str,
             )
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
@@ -165,6 +175,8 @@ class TestPrimitiveTree:
         prim_tree_n, solve_info = solver.solve(
             layout.root_prim, layout.constraints, layout.constraint_graph
         )
-        prim_keys_to_value = {key: prim.value for key, prim in cn.iter_flat('', prim_tree_n)}
+        prim_keys_to_value = {
+            key: prim.value for key, prim in cn.iter_flat("", prim_tree_n)
+        }
         pprint(prim_keys_to_value)
         pprint(solve_info)

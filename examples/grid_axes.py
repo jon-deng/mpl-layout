@@ -68,7 +68,9 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     for n in range(num_axes):
         layout.add_prim(
-            geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
+            geo.Quadrilateral(
+                children=[geo.Point(vert_coords) for vert_coords in verts]
+            ),
             f"Axes{n}",
         )
         layout.add_constraint(geo.Box(), (f"Axes{n}",))
@@ -78,18 +80,16 @@ if __name__ == "__main__":
     layout.add_constraint(
         geo.Grid(
             axes_shape,
-            (num_col-1)*[1/16],
-            (num_row-1)*[1/16],
-            (num_col-1)*[1],
-            (num_row-1)*[1]
+            (num_col - 1) * [1 / 16],
+            (num_row - 1) * [1 / 16],
+            (num_col - 1) * [1],
+            (num_row - 1) * [1],
         ),
         tuple(f"Axes{n}" for n in range(num_axes)),
     )
 
     # Constrain the first axis aspect ratio
-    layout.add_constraint(
-        geo.RelativeLength(2), ('Axes0/Line0', 'Axes0/Line1')
-    )
+    layout.add_constraint(geo.RelativeLength(2), ("Axes0/Line0", "Axes0/Line1"))
 
     # Constrain top/bottom margins
     margin_top = 1.1
