@@ -30,26 +30,51 @@ class TestNode:
     def test_iter_flat(self, node: cn.Node):
         print([{key: _node} for key, _node in cn.iter_flat('', node)])
 
-    def test_flatten_unflatten(self, node: cn.Node):
+    def test_flatten_unflatten_python(self, node: cn.Node):
         fnode_structs = cn.flatten('root', node)
-
-        _node, _ = cn.unflatten(fnode_structs)
-        print("\nOriginal Node")
-        print(node)
-        print("\nReconstructed Node")
-        print(_node)
+        reconstructed_node, _ = cn.unflatten(fnode_structs)
 
         print(fnode_structs)
 
-        assert str(node) == str(_node)
+        assert str(node) == str(reconstructed_node)
+        print(node)
+        print(reconstructed_node)
 
-        N = int(1e4)
-        duration = timeit("cn.flatten('root', node)", globals={**globals(), **locals()}, number=N)
+
+        N = int(1e5)
+        timeit_kwargs = {
+            'globals': {**globals(), **locals()},
+            'number': N
+        }
+
+        duration = timeit("cn.flatten('root', node)", **timeit_kwargs)
         print(f"Flattening duration: {duration/N: .2e} s")
 
-        N = int(1e4)
-        duration = timeit("cn.unflatten(fnode_structs)", globals={**globals(), **locals()}, number=N)
+        duration = timeit("cn.unflatten(fnode_structs)", **timeit_kwargs)
         print(f"Unflattening duration: {duration/N: .2e} s")
 
+    def test_flatten_unflatten_jax(self, node: cn.Node):
+        import jax
+        flat_tree, flat_tree_def = jax.tree_util.tree_flatten(node)
+        reconstructed_node = jax.tree_util.tree_unflatten(flat_tree_def, flat_tree)
 
+        assert str(node) == str(reconstructed_node)
+        print(node)
+        print(reconstructed_node)
+
+        N = int(1e5)
+        timeit_kwargs = {
+            'globals': {**globals(), **locals()},
+            'number': N
+        }
+
+        duration = timeit(
+            "jax.tree_util.tree_flatten(node)", **timeit_kwargs
+        )
+        print(f"Flattening duration: {duration/N: .2e} s")
+
+        duration = timeit(
+            "jax.tree_util.tree_unflatten(flat_tree_def, flat_tree)", **timeit_kwargs
+        )
+        print(f"Unflattening duration: {duration/N: .2e} s")
 

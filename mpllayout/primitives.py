@@ -6,10 +6,9 @@ import typing as tp
 from numpy.typing import NDArray
 
 import numpy as np
-import jax.numpy as jnp
 import jax
 
-from .containers import Node
+from .containers import Node, _make_flatten_unflatten
 
 
 ArrayShape = tp.Tuple[int, ...]
@@ -175,27 +174,12 @@ class Quadrilateral(Polygon):
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = (Line, Line, Line, Line)
 
-
-def _make_flatten_unflatten(PrimitiveClass: tp.Type[Primitive]):
-
-    def _flatten_primitive(prim):
-        flat_prim = (prim.value, prim.children)
-        aux_data = None
-        return (flat_prim, None)
-
-    def _unflatten_primitive(aux_data, flat_prim):
-        value, children = flat_prim
-        return PrimitiveClass(value, children)
-
-    return _flatten_primitive, _unflatten_primitive
-
+## Register `Primitive` classes as `jax.pytree`
 _PrimitiveClasses = [
-    Quadrilateral, Point, Line, Polygon
+    Primitive, Quadrilateral, Point, Line, Polygon
 ]
 for _PrimitiveClass in _PrimitiveClasses:
     _flatten_primitive, _unflatten_primitive = _make_flatten_unflatten(_PrimitiveClass)
     jax.tree_util.register_pytree_node(
-        _PrimitiveClass,
-        _flatten_primitive,
-        _unflatten_primitive
+        _PrimitiveClass, _flatten_primitive, _unflatten_primitive
     )
