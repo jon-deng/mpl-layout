@@ -90,15 +90,16 @@ class Primitive(Node[NDArray]):
             else:
                 children = ()
 
-        # Create keys from class primitive labels
-        if self._PRIM_LABELS is None:
-            keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(children)]
-        elif isinstance(self._PRIM_LABELS, str):
-            keys = [f'{self._PRIM_LABELS}{n}' for n in range(len(children))]
-        elif isinstance(self._PRIM_LABELS, tuple):
-            keys = self._PRIM_LABELS
-        else:
-            raise TypeError(f"{self._PRIM_LABELS}")
+        # Create keys from class primitive labels if they aren't supplied
+        if keys is None:
+            if self._PRIM_LABELS is None:
+                keys = [f'{type(prim).__name__}{n}' for n, prim in enumerate(children)]
+            elif isinstance(self._PRIM_LABELS, str):
+                keys = [f'{self._PRIM_LABELS}{n}' for n in range(len(children))]
+            elif isinstance(self._PRIM_LABELS, tuple):
+                keys = self._PRIM_LABELS
+            else:
+                raise TypeError(f"{self._PRIM_LABELS}")
 
         super().__init__(value, children, keys)
 
