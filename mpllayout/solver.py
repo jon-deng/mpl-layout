@@ -76,7 +76,7 @@ def solve(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
-    prims, prim_graph = layout.build_prim_graph(root_prim)
+    prim_graph, prims = layout.build_prim_graph(root_prim)
     prim_idx_bounds = np.cumsum([0] + [prim.value.size for prim in prims])
     global_param_n = np.concatenate([prim.value for prim in prims])
 

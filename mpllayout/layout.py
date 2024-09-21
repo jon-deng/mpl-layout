@@ -119,7 +119,7 @@ class Layout:
 
 def build_prim_graph(
     root_prim: geo.Primitive,
-) -> tp.Tuple[tp.List[geo.Primitive], tp.Mapping[str, int]]:
+) -> tp.Tuple[tp.Mapping[str, int], tp.List[geo.Primitive]]:
     """
     Return a map from flat keys to indices in a list of unique primitives
     """
@@ -128,7 +128,7 @@ def build_prim_graph(
 
     key_to_idx = {key: prim_to_idx[prim] for key, prim in iter_flat("", root_prim)}
 
-    return prims, key_to_idx
+    return key_to_idx, prims
 
 
 def build_tree(

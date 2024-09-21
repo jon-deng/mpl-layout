@@ -91,7 +91,7 @@ def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]] = (3, 3)) -> lay.Layo
 if __name__ == "__main__":
     layout = gen_layout((12, 12))
 
-    prims, prim_graph = lay.build_prim_graph(layout.root_prim)
+    prim_graph, prims = lay.build_prim_graph(layout.root_prim)
     prim_values = [prim.value for prim in prims]
 
     solver.assem_constraint_residual(

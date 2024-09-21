@@ -30,7 +30,7 @@ class TestPrimitiveTree:
         prim_node.add_child("LineA", geo.Line([], (point_a, point_b)))
         prim_node.add_child("MySpecialBox", geo.Quadrilateral())
 
-        prims, prim_graph = lat.build_prim_graph(prim_node)
+        prim_graph, prims = lat.build_prim_graph(prim_node)
 
         params = [prim.value for prim in prims]
 

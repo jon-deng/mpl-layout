@@ -118,7 +118,7 @@ class TestPrimitiveTree:
     def test_assem_constraint_residual(self, layout_grid: lay.Layout):
         layout = layout_grid
 
-        prims, prim_graph = lay.build_prim_graph(layout.root_prim)
+        prim_graph, prims = lay.build_prim_graph(layout.root_prim)
         prim_params = [prim.value for prim in prims]
 
         prim_tree = layout.root_prim
