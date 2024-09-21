@@ -95,9 +95,9 @@ if __name__ == "__main__":
     prim_values = [prim.value for prim in prims]
 
     solver.assem_constraint_residual(
-        prim_values,
         layout.root_prim,
         prim_graph,
+        prim_values,
         layout.constraints,
         layout.constraint_graph,
     )
@@ -110,9 +110,9 @@ if __name__ == "__main__":
 
     constraints_jit = [jax.jit(c) for c in layout.constraints]
     solver.assem_constraint_residual(
-        prim_values,
         layout.root_prim,
         prim_graph,
+        prim_values,
         constraints_jit,
         layout.constraint_graph,
     )

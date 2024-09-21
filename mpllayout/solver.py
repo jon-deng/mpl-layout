@@ -87,7 +87,7 @@ def solve(
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
         residuals = assem_constraint_residual(
-            new_prim_params, root_prim, prim_graph, constraints, constraint_graph
+            root_prim, prim_graph, new_prim_params, constraints, constraint_graph
         )
         return jnp.concatenate(residuals)
 
@@ -129,12 +129,10 @@ def solve(
 
     return root_prim_n, nonlinear_solve_info
 
-
-# TODO: Make the parameter order consistent
 def assem_constraint_residual(
-    prim_values: tp.List[NDArray],
     root_prim: geo.Primitive,
     prim_graph: tp.Mapping[str, int],
+    prim_values: tp.List[NDArray],
     constraints: tp.List[geo.Constraint],
     constraint_graph: StrGraph,
 ) -> tp.List[NDArray]:
