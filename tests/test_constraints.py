@@ -15,60 +15,57 @@ from mpllayout import geometry as geo
 
 
 class GeometryFixtures:
+    """
+    Utilities to help create primitives
+    """
 
-    ## Point pairs
-    @pytest.fixture()
-    def distance_pointa_pointb(self):
-        return 2.4
+    ## Point creation
+    def make_point(self, coord):
+        """
+        Return a `geo.Point` at the given coordinates
+        """
+        return geo.Point(value=coord)
 
-    @pytest.fixture()
-    def unit_pointa_pointb(self):
-        vec = np.random.rand(2)
-        return vec / np.linalg.norm(vec)
+    def make_relative_point(self, point: geo.Point, displacement: NDArray):
+        """
+        Return a `geo.Point` displaced from a given point
+        """
+        return geo.Point(value=point.value + displacement)
 
-    @pytest.fixture()
-    def pointa(self):
-        return geo.Point(value=np.random.rand(2))
-
-    def make_point(self, pointa: geo.Point, distance: float, unit_vec: NDArray):
-        return geo.Point(value=pointa.value + distance * unit_vec)
-
-    ## Line pairs
-    @pytest.fixture()
-    def unit_linea(self, unit_pointa_pointb):
-        return unit_pointa_pointb
-
-    @pytest.fixture()
-    def length_linea(self):
-        return 5.5
-
-    @pytest.fixture()
-    def linea(self, pointa, unit_linea, length_linea):
-        return geo.Line(
-            children=(pointa, geo.Point(pointa.value + unit_linea * length_linea))
-        )
-
-    def make_rotation(self, theta):
+    ## Line creation
+    def make_rotation(self, theta: float):
         rot_mat = np.array(
             [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
         )
         return rot_mat
 
-    def make_line(self, linea, translation, rotation, scale):
-        lineb_origin = linea[0].value + translation
-        lineb_vec = linea[1].value - linea[0].value
-        lineb_vec = scale * self.make_rotation(rotation) @ lineb_vec
-        return geo.Line(
-            children=(geo.Point(lineb_origin), geo.Point(lineb_origin + lineb_vec))
-        )
+    def make_line(self, origin: NDArray, line_vec: NDArray):
+        """
+        Return a `geo.Line` with given origin and line vector
+        """
+        coords = (origin, origin + line_vec)
+        return geo.Line(value=[], children=tuple(geo.Point(x) for x in coords))
 
-    ## Quadrilaterals
-    def make_quad(self, translation, deformation):
+    def make_relative_line(
+        self, line: geo.Line, translation: NDArray, deformation: NDArray
+    ):
+        """
+        Return a `geo.Line` translated and deformed from a given line
+        """
+        lineb_origin = line[0].value + translation
+        lineb_vec = line[1].value - line[0].value
+        lineb_vec = deformation @ lineb_vec
+        return self.make_line(lineb_origin, lineb_vec)
 
+    ## Quadrilateral creation
+    def make_quad(self, displacement, deformation):
+        """
+        Return a `geo.Quadrilateral` translated and deformed from a unit quadrilateral
+        """
         # Specify vertices of a unit square, then deform it and translate it
         verts = np.array([[0, 0], [1, 0], [1, 1], [0, 1]])
         verts = np.tensordot(verts, deformation, axes=(-1, -1))
-        verts = verts + translation
+        verts = verts + displacement
 
         return geo.Quadrilateral(
             value=[], children=tuple(geo.Point(vert) for vert in verts)
@@ -126,29 +123,29 @@ class GeometryFixtures:
 class TestPointConstraints(GeometryFixtures):
 
     @pytest.fixture()
+    def point(self):
+        return self.make_point(np.random.rand(2))
+
+    @pytest.fixture()
     def direction(self):
         vec = np.random.rand(2)
         return vec / np.linalg.norm(vec)
 
     @pytest.fixture()
     def distance(self):
-        return 2.9
+        return np.random.rand()
 
     def test_DirectedDistance(
-        self, pointa: geo.Point, distance: float, direction: NDArray
+        self, point: geo.Point, distance: float, direction: NDArray
     ):
-        pointb = self.make_point(
-            pointa,
-            distance,
-            direction,
-        )
+        pointb = self.make_relative_point(point, distance * direction)
         constraint = geo.DirectedDistance(distance, direction)
-        res = constraint((pointa, pointb))
+        res = constraint((point, pointb))
         assert np.all(np.isclose(res, 0))
 
-    def test_PointLocation(self, pointa):
-        constraint = geo.PointLocation(pointa.value)
-        res = constraint((pointa,))
+    def test_PointLocation(self, point):
+        constraint = geo.PointLocation(point.value)
+        res = constraint((point,))
         assert np.all(np.isclose(res, 0))
 
 
@@ -156,13 +153,24 @@ class TestLineConstraints(GeometryFixtures):
 
     ## Constraints on line segments
     @pytest.fixture()
-    def translation(self):
+    def length(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def line(self, length):
+        origin = np.random.rand(2)
+        unit_vec = np.random.rand(2)
+        unit_vec = unit_vec / np.linalg.norm(unit_vec)
+        return self.make_line(origin, unit_vec * length)
+
+    @pytest.fixture()
+    def displacement(self):
         return np.random.rand(2)
 
     @pytest.fixture()
-    def parallel_lines(self, linea, translation):
-        lineb = self.make_line(linea, translation, 0, 1.0)
-        return (linea, lineb)
+    def parallel_lines(self, line, displacement):
+        lineb = self.make_relative_line(line, displacement, self.make_rotation(0))
+        return (line, lineb)
 
     def test_Parallel(self, parallel_lines):
         constraint = geo.Parallel()
@@ -170,28 +178,34 @@ class TestLineConstraints(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def orthogonal_lines(self, linea, translation):
-        lineb = self.make_line(linea, translation, np.pi / 2, 1.0)
-        return (linea, lineb)
+    def orthogonal_lines(self, line, displacement):
+        lineb = self.make_relative_line(
+            line, displacement, self.make_rotation(np.pi / 2)
+        )
+        return (line, lineb)
 
     def test_Orthogonal(self, orthogonal_lines):
         constraint = geo.Orthogonal()
         res = constraint(orthogonal_lines)
         assert np.all(np.isclose(res, 0))
 
-    def test_Length(self, linea, length_linea):
-        constraint = geo.Length(length_linea)
-        res = constraint((linea,))
+    def test_Length(self, line, length):
+        constraint = geo.Length(length)
+        res = constraint((line,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
     def relative_length(self):
-        return 1.3
+        return np.random.rand()
 
-    def test_RelativeLength(self, linea, translation, relative_length):
-        lineb = self.make_line(linea, translation, np.random.rand(), relative_length)
+    def test_RelativeLength(self, line, displacement, relative_length):
+        scale = relative_length * np.diag(np.ones(2))
+        theta = 2 * np.pi * np.random.rand()
+        rotate = self.make_rotation(theta)
+
+        lineb = self.make_relative_line(line, displacement, scale @ rotate)
         constraint = geo.RelativeLength(relative_length)
-        res = constraint((lineb, linea))
+        res = constraint((lineb, line))
         assert np.all(np.isclose(res, 0))
 
 
