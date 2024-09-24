@@ -82,6 +82,10 @@ class Primitive(Node[NDArray]):
             value = np.zeros(self._PARAM_SHAPE, dtype=float)
         elif isinstance(value, (list, tuple)):
             value = np.array(value)
+        elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
+            value = value
+        else:
+            raise TypeError(f"Invalid type {type(value)} for `value`")
 
         # Create default `children` if unspecified
         if children is None:
@@ -89,6 +93,30 @@ class Primitive(Node[NDArray]):
                 children = tuple(PrimType() for PrimType in self._PRIM_TYPES)
             else:
                 children = ()
+        else:
+            # Validate the number of child primitives
+            if isinstance(children, (list, tuple)) and isinstance(
+                self._PRIM_TYPES, tuple
+            ):
+                num_child = len(self._PRIM_TYPES)
+                if len(children) != num_child:
+                    raise ValueError(
+                        f"Expected {num_child} child primitives, got {len(children)}"
+                    )
+
+            # Validate child primitive types
+            child_types = tuple(type(prim) for prim in children)
+            if isinstance(self._PRIM_TYPES, Primitive):
+                ref_types = self._PRIM_TYPES
+            else:
+                ref_types = self._PRIM_TYPES
+
+            type_comparisons = (
+                child_type == ref_type
+                for child_type, ref_type in zip(child_types, ref_types)
+            )
+            if not all(type_comparisons):
+                raise TypeError(f"Expected child types {ref_types} got {child_types}")
 
         # Create keys from class primitive labels if they aren't supplied
         if keys is None:

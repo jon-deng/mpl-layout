@@ -129,6 +129,7 @@ def solve(
 
     return root_prim_n, nonlinear_solve_info
 
+
 def assem_constraint_residual(
     root_prim: geo.Primitive,
     prim_graph: tp.Mapping[str, int],
