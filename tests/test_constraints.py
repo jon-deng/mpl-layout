@@ -91,7 +91,7 @@ class GeometryFixtures:
         ----------
         col_margins, row_margins: NDArray (N-1,), (M-1,)
             Column and row margins
-        col_widths, col_heights: NDArray (N,), (M,)
+        col_widths, row_heights: NDArray (N,), (M,)
             Column and row dimensions
         """
         # Determine translations/transformations needed for each quad
