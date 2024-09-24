@@ -126,13 +126,13 @@ def build_prim_graph(
     prims = list(set(prim for _, prim in iter_flat("", root_prim)))
     prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
 
-    key_to_idx = {key: prim_to_idx[prim] for key, prim in iter_flat("", root_prim)}
+    prim_graph = {key: prim_to_idx[prim] for key, prim in iter_flat("", root_prim)}
 
-    return key_to_idx, prims
+    return prim_graph, prims
 
 
 def build_tree(
-    root_prim: geo.Primitive, key_to_idx: tp.Mapping[str, int], values: tp.List[NDArray]
+    root_prim: geo.Primitive, prim_graph: tp.Mapping[str, int], values: tp.List[NDArray]
 ) -> geo.Primitive:
     """
     Return a new tree where child node values have been updated
@@ -141,7 +141,7 @@ def build_tree(
     ----------
     root_prim:
         The old tree
-    key_to_idx:
+    prim_graph:
         A mapping from keys in `root_prim` to corresponding new values in `values`
     values:
         A list of new parameter values to build a new tree with
@@ -154,7 +154,7 @@ def build_tree(
     old_prim_structs = flatten("", root_prim)
 
     # `key[1:]` remove the initial forward slash from the flat keys
-    new_prim_values = [values[key_to_idx[key]] for key, _ in iter_flat("", root_prim)]
+    new_prim_values = [values[prim_graph[key]] for key, _ in iter_flat("", root_prim)]
 
     new_prim_structs = [
         (*old_struct[:2], new_value, *old_struct[3:])

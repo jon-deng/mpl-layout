@@ -142,12 +142,12 @@ def assem_constraint_residual(
 
     Parameters
     ----------
-    prim_values:
-        A list of new primitive vectors
     root_prim:
         The root primitive tree
     prim_graph:
         A mapping from primitives keys to indices in `prim_values`
+    prim_values:
+        A list of new primitive vectors
     constraints:
         A list of constraints
     constraint_graph:
