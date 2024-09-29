@@ -83,6 +83,16 @@ class Node(tp.Generic[T]):
 
     ## Dict-like interface
 
+    def __contains__(self, key: str):
+        split_keys = key.split("/")
+        parent_key = split_keys[0]
+        child_key = "/".join(split_keys[1:])
+
+        if child_key == "":
+            return parent_key in self.children_map
+        else:
+            return child_key in self[parent_key]
+
     def __len__(self) -> int:
         return len(self.children)
 
