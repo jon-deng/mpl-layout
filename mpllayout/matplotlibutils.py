@@ -58,7 +58,6 @@ def subplots(
             axis_label = f"{axis_key}AxisLabel"
             if axis_label in root_prim[key]:
                 label_coords = root_prim[f"{key}/{axis_label}"].value
-                print(label_coords)
                 axis.set_label("")
                 axis.set_label_coords(
                     *(label_coords / fig_dim), transform=fig.transFigure
