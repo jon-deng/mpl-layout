@@ -4,6 +4,8 @@ Utilities for creating `matplotlib` plot objects from primitives
 
 import typing as tp
 
+import numpy as np
+
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -13,6 +15,8 @@ from mpllayout import geometry as geo
 
 def subplots(
     root_prim: geo.Primitive,
+    fig_key: str = "Figure",
+    axs_keys: tp.Optional[tp.List[str]] = None,
 ) -> tp.Tuple[Figure, tp.Mapping[str, Axes]]:
     """
     Create `Figure` and `Axes` objects from geometric primitives
@@ -36,15 +40,29 @@ def subplots(
         A `Figure` instance and a mapping from axes labels to `Axes` instances
         using the `Axes` object names
     """
+    if axs_keys is None:
+        axs_keys = [key for key in root_prim.keys() if "Axes" in key]
 
-    width, height = width_and_height_from_quad(root_prim["Figure"])
+    width, height = width_and_height_from_quad(root_prim[fig_key])
 
     fig = plt.Figure((width, height))
     axs = {
-        key: fig.add_axes(rect_from_box(prim, (width, height)))
-        for key, prim in root_prim.items()
-        if "Axes" in key and key.count(".") == 0
+        key: fig.add_axes(rect_from_box(root_prim[f"{key}/Frame"], (width, height)))
+        for key in axs_keys
     }
+
+    # Set label positions
+    fig_dim = np.array((width, height))
+    for key, ax in axs.items():
+        for axis_key, axis in zip(("X", "Y"), (ax.xaxis, ax.yaxis)):
+            axis_label = f"{axis_key}AxisLabel"
+            if axis_label in root_prim[key]:
+                label_coords = root_prim[f"{key}/{axis_label}"].value
+                print(label_coords)
+                axis.set_label("")
+                axis.set_label_coords(
+                    *(label_coords / fig_dim), transform=fig.transFigure
+                )
     return fig, axs
 
 
