@@ -207,12 +207,12 @@ class Quadrilateral(Polygon):
 class Axes(Primitive):
 
     _PARAM_SHAPE = (0,)
-    # _PRIM_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
-    # _PRIM_LABELS = ("Axes", "XAxis", "YAxis", "XAxisLabel", "YAxisLabel")
-    _PRIM_TYPES = (Quadrilateral, Point, Point)
-    _PRIM_LABELS = ("Frame", "XAxisLabel", "YAxisLabel")
+    _PRIM_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
+    _PRIM_LABELS = ("Frame", "XAxis", "YAxis", "XAxisLabel", "YAxisLabel")
+    # _PRIM_TYPES = (Quadrilateral, Point, Point)
+    # _PRIM_LABELS = ("Frame", "XAxisLabel", "YAxisLabel")
     # _PRIM_TYPES = (Quadrilateral, )
-    # _PRIM_LABELS = ("Axes", )
+    # _PRIM_LABELS = ("Frame", )
 
 
 ## Register `Primitive` classes as `jax.pytree`
