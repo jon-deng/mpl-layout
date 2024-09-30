@@ -101,7 +101,7 @@ if __name__ == "__main__":
         layout.constraints,
         layout.constraint_graph,
     )
-    stmt = "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, layout.constraints, layout.constraint_graph)"
+    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, layout.constraints, layout.constraint_graph)"
     cProfile.run(stmt, "profile_wo_jax.prof")
     stats = pstats.Stats("profile_wo_jax.prof")
     stats.sort_stats("cumtime").print_stats(20)
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         constraints_jit,
         layout.constraint_graph,
     )
-    stmt = "solver.assem_constraint_residual(prim_values, layout.root_prim, prim_graph, constraints_jit, layout.constraint_graph)"
+    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, constraints_jit, layout.constraint_graph)"
     cProfile.run(stmt, "profile_w_jax.prof")
     stats = pstats.Stats("profile_w_jax.prof")
     stats.sort_stats("cumtime").print_stats(20)
