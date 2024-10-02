@@ -154,17 +154,19 @@ class Node(tp.Generic[T]):
         return self.children[key]
 
     def get_child_from_str(self, key: str) -> "Node[T]":
-        split_key = key.split("/")
-        parent_key = split_key[0]
-        child_key = "/".join(split_key[1:])
+        split_key = key.split("/", 1)
+        parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
-            if len(split_key) == 1:
-                return self.children_map[parent_key]
+            if len(child_keys) == 0:
+                return self.get_child_from_str_nonrecursive(parent_key)
             else:
-                return self.children_map[parent_key].get_child_from_str(child_key)
+                return self.children_map[parent_key].get_child_from_str(child_keys[0])
         except KeyError as err:
             raise KeyError(f"{key}") from err
+
+    def get_child_from_str_nonrecursive(self, key: str) -> "Node[T]":
+        return self.children_map[key]
 
     def add_child(self, key: str, child: "Node[T]"):
         """
@@ -175,22 +177,29 @@ class Node(tp.Generic[T]):
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        split_key = key.split("/")
-        parent_key = split_key[0]
-        child_keys = split_key[1:]
-        child_key = "/".join(child_keys)
+        split_key = key.split("/", 1)
+        parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
-            if len(child_keys) > 0:
-                self.children_map[parent_key][child_key] = child
-            elif len(child_keys) == 0:
-                self._children.append(child)
-                self.children_map[key] = child
+            if len(child_keys) == 0:
+                self.add_child_nonrecursive(parent_key, child)
             else:
-                assert False
+                self.children_map[parent_key][child_keys[0]] = child
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
+
+    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+        """
+        Add a primitive indexed by a key
+
+        Base case of recursive `add_child`
+        """
+        if key in self.children_map:
+            raise KeyError(f"{key}")
+        else:
+            self._children.append(child)
+            self.children_map[key] = child
 
 
 ## Manual flattening/unflattening implementation
