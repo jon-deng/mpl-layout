@@ -40,30 +40,53 @@ def subplots(
         A `Figure` instance and a mapping from axes labels to `Axes` instances
         using the `Axes` object names
     """
+    # Create the `Figure` instance
+    fig = plt.figure(figsize=(1, 1))
+
+    # Assume all axes are prefixed by "Axes" if there are no keys provided
     if axs_keys is None:
         axs_keys = [key for key in root_prim.keys() if "Axes" in key]
 
-    width, height = width_and_height_from_quad(root_prim[fig_key])
+    # Create all `Axes` instances
+    unit_rect = (0, 0, 1, 1)
+    key_to_ax = {key: fig.add_axes(unit_rect) for key in axs_keys}
 
-    fig = plt.Figure((width, height))
-    axs = {
-        key: fig.add_axes(rect_from_box(root_prim[f"{key}/Frame"], (width, height)))
-        for key in axs_keys
-    }
+    # Update positions figures and axes
+    fig, key_to_ax = update_subplots(root_prim, fig_key, fig, key_to_ax)
 
-    # Set label positions
-    fig_dim = np.array((width, height))
-    for key, ax in axs.items():
-        for axis_key, axis in zip(("X", "Y"), (ax.xaxis, ax.yaxis)):
-            axis_label = f"{axis_key}AxisLabel"
+    return fig, key_to_ax
+
+def update_subplots(
+    root_prim: geo.Primitive,
+    fig_key: str,
+    fig: Figure,
+    key_to_ax: tp.Mapping[str, Axes]
+):
+    # Set Figure position
+    quad = root_prim[fig_key]
+    fig_size = np.array(width_and_height_from_quad(quad))
+    fig.set_size_inches(fig_size)
+
+    # Set Axes properties/position
+    for key, ax in key_to_ax.items():
+        # Set Axes dimensions
+        quad = root_prim[f'{key}/Frame']
+        ax.set_position(rect_from_box(quad, fig_size))
+
+        # Set label positions for each axis
+        axis_prefixes = ("X", "Y")
+        axis_tuple = (ax.xaxis, ax.yaxis)
+
+        for axis_prefix, axis in zip(axis_prefixes, axis_tuple):
+            axis_label = f"{axis_prefix}AxisLabel"
             if axis_label in root_prim[key]:
-                label_coords = root_prim[f"{key}/{axis_label}"].value
-                axis.set_label("")
+                axis_label_point: geo.Point = root_prim[f"{key}/{axis_label}"]
+                label_coords = axis_label_point.value
                 axis.set_label_coords(
-                    *(label_coords / fig_dim), transform=fig.transFigure
+                    *(label_coords / fig_size), transform=fig.transFigure
                 )
-    return fig, axs
 
+    return fig, key_to_ax
 
 def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float]:
     """

@@ -152,12 +152,11 @@ if __name__ == "__main__":
     x = np.linspace(0, 1)
     axs["Axes1"].plot(x, x**2)
 
-    axs["Axes1"].xaxis.set_label_text("My x label")
-    axs["Axes1"].yaxis.set_label_text("My y label")
+    axs["Axes1"].xaxis.set_label_text("My x label", ha='left')
+    axs["Axes1"].yaxis.set_label_text("My y label", ha='left')
     # plt.draw()
 
     ax = axs["Axes1"]
-    # fig.savefig("out/complete_one_axes_temp.png")
 
     def get_axis_thickness(axis: mpl.axis.Axis):
         axes = axis.axes
@@ -216,17 +215,6 @@ if __name__ == "__main__":
     prim_tree_n, info = solver.solve(
         layout.root_prim, layout.constraints, layout.constraint_graph
     )
+    lplt.update_subplots(prim_tree_n, "Figure", fig, axs)
 
-    fig, axs = lplt.subplots(prim_tree_n)
-
-    x = np.linspace(0, 1)
-    axs["Axes1"].plot(x, x**2)
-
-    axs["Axes1"].xaxis.set_label_text("My x label", ha="left", va="top")
-    axs["Axes1"].yaxis.set_label_text("My y label", ha="left", va="bottom")
-
-    # fig_shape = fig.get_size_inches()
-    # fig.add_axes(lplt.rect_from_box(prim_tree_n[f"Axes1/XAxis"], fig_shape))
-    # fig.add_axes(lplt.rect_from_box(prim_tree_n[f"Axes1/YAxis"], fig_shape))
-
-    fig.savefig("out/complete_one_axes.png")
+    fig.savefig("out/complete_one_axes_2.png")
