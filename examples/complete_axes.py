@@ -32,7 +32,7 @@ if __name__ == "__main__":
     yaxis = geo.Quadrilateral.from_std(
         children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
     )
-    axes = geo.Axes.from_std(children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std()))
+    axes = geo.StandardAxes.from_std(children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std()))
     layout.add_prim(axes, "Axes1")
     layout.add_constraint(geo.Box(), ("Axes1/Frame",))
 
