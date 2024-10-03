@@ -37,6 +37,7 @@ class Node(tp.Generic[T]):
     def __init__(
         self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
     ):
+        assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
 
@@ -166,7 +167,6 @@ class Node(tp.Generic[T]):
             if len(child_keys) > 0:
                 self.children_map[parent_key][child_key] = child
             elif len(child_keys) == 0:
-                self._children.append(child)
                 self.children_map[key] = child
             else:
                 assert False
