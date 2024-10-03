@@ -59,7 +59,7 @@ class Layout:
     ):
 
         if root_prim is None:
-            root_prim = Node(np.array([]), [], [])
+            root_prim = Node(np.array([]), {})
         if constraints is None:
             constraints = []
         if constraint_graph is None:

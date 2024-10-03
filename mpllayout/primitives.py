@@ -129,16 +129,15 @@ class Primitive(Node[NDArray]):
             if not all(type_comparisons):
                 raise TypeError(f"Expected child types {ref_types} got {child_types}")
 
-        # Create keys from class primitive labels if they aren't supplied
-        if keys is None:
-            if cls._PRIM_LABELS is None:
-                keys = [f"{type(prim).__name__}{n}" for n, prim in enumerate(children)]
-            elif isinstance(cls._PRIM_LABELS, str):
-                keys = [f"{cls._PRIM_LABELS}{n}" for n in range(len(children))]
-            elif isinstance(cls._PRIM_LABELS, tuple):
-                keys = cls._PRIM_LABELS
-            else:
-                raise TypeError(f"{cls._PRIM_LABELS}")
+        # Create keys from class primitive labels
+        if cls._PRIM_LABELS is None:
+            keys = [f"{type(prim).__name__}{n}" for n, prim in enumerate(children)]
+        elif isinstance(cls._PRIM_LABELS, str):
+            keys = [f"{cls._PRIM_LABELS}{n}" for n in range(len(children))]
+        elif isinstance(cls._PRIM_LABELS, tuple):
+            keys = cls._PRIM_LABELS
+        else:
+            raise TypeError(f"{cls._PRIM_LABELS}")
 
         return cls(value, {key: prim for key, prim in zip(keys, children)})
 
@@ -184,7 +183,7 @@ class Polygon(Primitive):
         keys: tp.Optional[tp.List[str]] = None
     ):
         if not isinstance(children, (tuple, list)):
-            super().from_std(value, children)
+            return super().from_std(value, children)
         else:
             # This allows you to input `children` as a series of points rather than lines
             if all((isinstance(prim, Point) for prim in children)):
@@ -192,7 +191,7 @@ class Polygon(Primitive):
             else:
                 lines = children
 
-            super().from_std(value, lines)
+            return super().from_std(value, lines)
 
     @staticmethod
     def _points_to_lines(children: tp.List[Point]) -> tp.List[Line]:
@@ -200,7 +199,7 @@ class Polygon(Primitive):
         Return a sequence of joined lines through a set of points
         """
         lines = [
-            Line(np.array([]), [pointa, pointb])
+            Line.from_std(np.array([]), [pointa, pointb])
             for pointa, pointb in zip(children[:], children[1:] + children[:1])
         ]
 

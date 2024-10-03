@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     ## Create an origin point
 
-    layout.add_prim(geo.Point([0, 0]), "Origin")
+    layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     # Constrain the origin to be at (0, 0)
     layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     # Create the box with an initial size of 5 by 5 and call it 'Figure'
     layout.add_prim(
-        geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]), "Figure"
+        geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]), "Figure"
     )
     layout.add_constraint(geo.Box(), ("Figure",))
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     verts = [[1, 1], [4, 1], [4, 4], [1, 4]]
     # Call the box 'Axes1'
     layout.add_prim(
-        geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]), "Axes1"
+        geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]), "Axes1"
     )
     layout.add_constraint(geo.Box(), ("Axes1",))
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     verts = [[2, 2], [5, 2], [5, 5], [2, 5]]
     # Call the box 'Axes2'
     layout.add_prim(
-        geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]), "Axes2"
+        geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]), "Axes2"
     )
     layout.add_constraint(geo.Box(), ("Axes2",))
 
