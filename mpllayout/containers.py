@@ -124,6 +124,23 @@ class Node(tp.Generic[T]):
         """
         return self.children_map.items()
 
+    def __setitem__(self, key: tp.Union[str, int], node: "Node[T]"):
+        """
+        Set the node indexed by a slash-separated key
+
+        Parameters
+        ----------
+        key: str
+            A slash-separated key, for example 'Box/Line0/Point2'
+        """
+        split_keys = key.split('/')
+        parent_key = '/'.join(split_keys[:-1])
+        child_key = split_keys[-1]
+        if parent_key == '':
+            self.children_map[child_key] = node
+        else:
+            self[parent_key].children_map[child_key] = node
+
     def __getitem__(self, key: tp.Union[str, int]) -> "Node[T]":
         """
         Return the value indexed by a slash-separated key
