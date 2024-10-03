@@ -56,11 +56,12 @@ def subplots(
 
     return fig, key_to_ax
 
+
 def update_subplots(
     root_prim: geo.Primitive,
     fig_key: str,
     fig: Figure,
-    key_to_ax: tp.Mapping[str, Axes]
+    key_to_ax: tp.Mapping[str, Axes],
 ):
     # Set Figure position
     quad = root_prim[fig_key]
@@ -70,7 +71,7 @@ def update_subplots(
     # Set Axes properties/position
     for key, ax in key_to_ax.items():
         # Set Axes dimensions
-        quad = root_prim[f'{key}/Frame']
+        quad = root_prim[f"{key}/Frame"]
         ax.set_position(rect_from_box(quad, fig_size))
 
         # Set label positions for each axis
@@ -87,6 +88,7 @@ def update_subplots(
                 )
 
     return fig, key_to_ax
+
 
 def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float]:
     """

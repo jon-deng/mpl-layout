@@ -67,3 +67,30 @@ class TestNode:
             "jax.tree_util.tree_unflatten(flat_tree_def, flat_tree)", **timeit_kwargs
         )
         print(f"Unflattening duration: {duration/N: .2e} s")
+
+
+class TestOptionalKeyNode:
+
+    @pytest.fixture()
+    def node(self):
+        childd = cn.OptionalKeyNode(99, (), ())
+        childe = cn.OptionalKeyNode(9, (), ())
+        childb = cn.OptionalKeyNode(2, (childd, childe), ("d", "e"))
+
+        childa = cn.OptionalKeyNode(1, (), ())
+        childc = cn.OptionalKeyNode(3, (), ())
+        node = cn.OptionalKeyNode(0, [childa, childb, childc], ["a", "b", "c"])
+
+        return node
+
+    def test_add_child(self, node: cn.OptionalKeyNode):
+
+        # Try adding 2 children
+        children = [cn.OptionalKeyNode(-1, [], []), cn.OptionalKeyNode(-1, [], [])]
+        for child in children:
+            node.add_child("", child)
+
+        # Try adding 2 grand-children
+        children = [cn.OptionalKeyNode(-1, [], []), cn.OptionalKeyNode(-1, [], [])]
+        for child in children:
+            node.add_child("OptionalKeyNode1/", child)
