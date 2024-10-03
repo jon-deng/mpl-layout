@@ -182,6 +182,101 @@ class Node(tp.Generic[T]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
+    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+        """
+        Add a primitive indexed by a key
+
+        Base case of recursive `add_child`
+        """
+        if key in self.children_map:
+            raise KeyError(f"{key}")
+        else:
+            self.children_map[key] = child
+
+class OptionalKeyNode(Node[T]):
+    """
+    Tree structure with labelled child nodes
+
+    Keys can be supplied optionally because instances will automatically assign keys.
+
+    Parameters
+    ----------
+    value: T
+        A value associated with the node
+    children: tp.Tuple[Node, ...]
+        Child nodes
+    labels: tp.Tuple[str, ...]
+        Child node labels
+    """
+
+    def __init__(
+        self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
+    ):
+        self._child_counter = ItemCounter()
+        super().__init__(value, children)
+
+    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+        """
+        Add a primitive indexed by a key
+
+        Base case of recursive `add_child`
+        """
+        # Assign an automatic key if none is supplied
+        if key == "":
+            key = self._child_counter.add_item_until_valid(
+                child, lambda key: key not in self
+            )
+
+        if key in self.children_map:
+            raise KeyError(f"{key}")
+        else:
+            self.children_map[key] = child
+
+
+V = tp.TypeVar("V")
+
+
+class ItemCounter(tp.Generic[V]):
+    """
+    Count items by a prefix
+    """
+
+    @staticmethod
+    def __classname(item: V) -> str:
+        return type(item).__name__
+
+    def __init__(self, gen_prefix: tp.Callable[[V], str] = __classname):
+        self._prefix_to_count = {}
+        self._gen_prefix = gen_prefix
+
+    @property
+    def prefix_to_count(self):
+        return self._prefix_to_count
+
+    def __contains__(self, key):
+        return key in self._p
+
+    def gen_prefix(self, item: V) -> str:
+        return self._gen_prefix(item)
+
+    def add_item(self, item: V) -> str:
+        prefix = self.gen_prefix(item)
+        if prefix in self.prefix_to_count:
+            self.prefix_to_count[prefix] += 1
+        else:
+            self.prefix_to_count[prefix] = 1
+
+        postfix = self.prefix_to_count[prefix] - 1
+        return f"{prefix}{postfix}"
+
+    def add_item_until_valid(self, item: V, valid: tp.Callable[[str], bool]):
+
+        key = self.add_item(item)
+        while not valid(key):
+            key = self.add_item(item)
+
+        return key
+
 
 ## Manual flattening/unflattening implementation
 NodeType = tp.Type[Node]

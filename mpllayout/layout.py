@@ -61,7 +61,7 @@ class Layout:
         if root_prim is None:
             root_prim = Node(np.array([]), {})
         if constraints is None:
-            constraints = OptionalKeyNode(None, [], [])
+            constraints = OptionalKeyNode(None, {})
         if constraint_graph is None:
             constraint_graph = []
 
