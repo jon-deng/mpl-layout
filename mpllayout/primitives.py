@@ -68,18 +68,29 @@ class Primitive(Node[NDArray]):
     ] = ()
     _PRIM_LABELS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]] = None
 
-    def __init__(
-        self,
+    # def __init__(
+    #     self,
+    #     value: tp.Optional[NDArray] = None,
+    #     children: tp.Optional[tp.List["Primitive"]] = None,
+    #     keys: tp.Optional[tp.List[str]] = None,
+    # ):
+
+
+    #     super().__init__(value, children, keys)
+
+    @classmethod
+    def from_std(
+        cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None,
+        keys: tp.Optional[tp.List[str]] = None
     ):
         # NOTE: `Primitive` classes specify keys through `Primitive._PRIM_LABELS`
         # This is unlike `Node`, so `keys` is basically ignored!
 
         # Create default `value` if unspecified
         if value is None:
-            value = np.zeros(self._PARAM_SHAPE, dtype=float)
+            value = np.zeros(cls._PARAM_SHAPE, dtype=float)
         elif isinstance(value, (list, tuple)):
             value = np.array(value)
         elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
@@ -89,16 +100,16 @@ class Primitive(Node[NDArray]):
 
         # Create default `children` if unspecified
         if children is None:
-            if isinstance(self._PRIM_TYPES, tuple):
-                children = tuple(PrimType() for PrimType in self._PRIM_TYPES)
+            if isinstance(cls._PRIM_TYPES, tuple):
+                children = tuple(PrimType.from_std() for PrimType in cls._PRIM_TYPES)
             else:
                 children = ()
         else:
             # Validate the number of child primitives
             if isinstance(children, (list, tuple)) and isinstance(
-                self._PRIM_TYPES, tuple
+                cls._PRIM_TYPES, tuple
             ):
-                num_child = len(self._PRIM_TYPES)
+                num_child = len(cls._PRIM_TYPES)
                 if len(children) != num_child:
                     raise ValueError(
                         f"Expected {num_child} child primitives, got {len(children)}"
@@ -106,10 +117,10 @@ class Primitive(Node[NDArray]):
 
             # Validate child primitive types
             child_types = tuple(type(prim) for prim in children)
-            if isinstance(self._PRIM_TYPES, Primitive):
-                ref_types = self._PRIM_TYPES
+            if isinstance(cls._PRIM_TYPES, Primitive):
+                ref_types = cls._PRIM_TYPES
             else:
-                ref_types = self._PRIM_TYPES
+                ref_types = cls._PRIM_TYPES
 
             type_comparisons = (
                 child_type == ref_type
@@ -120,16 +131,16 @@ class Primitive(Node[NDArray]):
 
         # Create keys from class primitive labels if they aren't supplied
         if keys is None:
-            if self._PRIM_LABELS is None:
+            if cls._PRIM_LABELS is None:
                 keys = [f"{type(prim).__name__}{n}" for n, prim in enumerate(children)]
-            elif isinstance(self._PRIM_LABELS, str):
-                keys = [f"{self._PRIM_LABELS}{n}" for n in range(len(children))]
-            elif isinstance(self._PRIM_LABELS, tuple):
-                keys = self._PRIM_LABELS
+            elif isinstance(cls._PRIM_LABELS, str):
+                keys = [f"{cls._PRIM_LABELS}{n}" for n in range(len(children))]
+            elif isinstance(cls._PRIM_LABELS, tuple):
+                keys = cls._PRIM_LABELS
             else:
-                raise TypeError(f"{self._PRIM_LABELS}")
+                raise TypeError(f"{cls._PRIM_LABELS}")
 
-        super().__init__(value, children, keys)
+        return cls(value, {key: prim for key, prim in zip(keys, children)})
 
 
 PrimList = tp.List[Primitive]
@@ -165,22 +176,23 @@ class Polygon(Primitive):
     _PARAM_SHAPE = (0,)
     _PRIM_TYPES = Line
 
-    def __init__(
-        self,
+    @classmethod
+    def from_std(
+        cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None,
+        keys: tp.Optional[tp.List[str]] = None
     ):
         if not isinstance(children, (tuple, list)):
-            super().__init__(value, children)
+            super().from_std(value, children)
         else:
             # This allows you to input `children` as a series of points rather than lines
             if all((isinstance(prim, Point) for prim in children)):
-                lines = self._points_to_lines(children)
+                lines = cls._points_to_lines(children)
             else:
                 lines = children
 
-            super().__init__(value, lines)
+            super().from_std(value, lines)
 
     @staticmethod
     def _points_to_lines(children: tp.List[Point]) -> tp.List[Line]:
