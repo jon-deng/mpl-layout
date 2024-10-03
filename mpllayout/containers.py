@@ -35,25 +35,17 @@ class Node(tp.Generic[T]):
     """
 
     def __init__(
-        self, value: tp.Union[None, T], children: tp.List["Node"], keys: tp.List[str]
+        self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
     ):
         self._value = value
-        self._children = children
-        self._keys = keys
-
-        if len(children) == len(keys):
-            self._key_to_child = {label: cnode for label, cnode in zip(keys, children)}
-        else:
-            raise ValueError(
-                f"Number of child nodes {len(children)} must equal number of keys {len(keys)}"
-            )
+        self._key_to_child = children
 
     @property
     def children(self):
         """
         Return any children
         """
-        return self._children
+        return list(self.children_map.values())
 
     @property
     def children_map(self):
@@ -222,7 +214,7 @@ def unflatten(
     node_structs = node_structs[1:]
 
     if num_child == 0:
-        node = NodeType(value, (), ())
+        node = NodeType(value, {})
     else:
         ckeys = []
         children = []
@@ -235,7 +227,7 @@ def unflatten(
             ckeys.append(ckey)
             children.append(child)
 
-        node = NodeType(value, children, ckeys)
+        node = NodeType(value, {key: child for key, child in zip(ckeys, children)})
 
     return node, node_structs
 
@@ -253,14 +245,13 @@ AuxData = tp.Tuple[Keys]
 def _make_flatten_unflatten(NodeClass: tp.Type[Node[T]]):
 
     def _flatten_node(node: NodeClass) -> tp.Tuple[FlatNode, AuxData]:
-        flat_node = (node.value, node.children)
-        aux_data = (node.keys(),)
+        flat_node = (node.value, node.children_map)
+        aux_data = None
         return (flat_node, aux_data)
 
     def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeClass:
         value, children = flat_node
-        (keys,) = aux_data
-        return NodeClass(value, children, keys)
+        return NodeClass(value, children)
 
     return _flatten_node, _unflatten_node
 
