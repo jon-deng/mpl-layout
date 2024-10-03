@@ -15,18 +15,18 @@ if __name__ == "__main__":
     layout = solver.Layout()
 
     ## Create an origin point
-    layout.add_prim(geo.Point([0, 0]), "Origin")
+    layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     layout.add_constraint(geo.PointLocation(np.array([0, 0])), (PrimIdx("Origin"),))
 
     ## Create two lines
     vert_coords = [[0, 0], [1, 0]]
     layout.add_prim(
-        geo.Line(children=[geo.Point(coord) for coord in vert_coords]), "LineA"
+        geo.Line.from_std(children=[geo.Point.from_std(coord) for coord in vert_coords]), "LineA"
     )
 
     vert_coords = [[2, 0], [3, 3]]
     layout.add_prim(
-        geo.Line(children=[geo.Point(coord) for coord in vert_coords]), "LineB"
+        geo.Line.from_std(children=[geo.Point.from_std(coord) for coord in vert_coords]), "LineB"
     )
 
     # Fix LineA

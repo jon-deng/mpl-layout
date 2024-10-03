@@ -35,25 +35,18 @@ class Node(tp.Generic[T]):
     """
 
     def __init__(
-        self, value: tp.Union[None, T], children: tp.List["Node"], keys: tp.List[str]
+        self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
     ):
+        assert isinstance(children, dict)
         self._value = value
-        self._children = children
-        self._keys = keys
-
-        if len(children) == len(keys):
-            self._key_to_child = {label: cnode for label, cnode in zip(keys, children)}
-        else:
-            raise ValueError(
-                f"Number of child nodes {len(children)} must equal number of keys {len(keys)}"
-            )
+        self._key_to_child = children
 
     @property
     def children(self):
         """
         Return any children
         """
-        return self._children
+        return list(self.children_map.values())
 
     @property
     def children_map(self):
@@ -82,6 +75,16 @@ class Node(tp.Generic[T]):
         return self.__repr__()
 
     ## Dict-like interface
+
+    def __contains__(self, key: str):
+        split_keys = key.split("/")
+        parent_key = split_keys[0]
+        child_key = "/".join(split_keys[1:])
+
+        if child_key == "":
+            return parent_key in self.children_map
+        else:
+            return child_key in self[parent_key]
 
     def __len__(self) -> int:
         return len(self.children)
@@ -121,6 +124,23 @@ class Node(tp.Generic[T]):
         """
         return self.children_map.items()
 
+    def __setitem__(self, key: tp.Union[str, int], node: "Node[T]"):
+        """
+        Set the node indexed by a slash-separated key
+
+        Parameters
+        ----------
+        key: str
+            A slash-separated key, for example 'Box/Line0/Point2'
+        """
+        split_keys = key.split('/')
+        parent_key = '/'.join(split_keys[:-1])
+        child_key = split_keys[-1]
+        if parent_key == '':
+            self.children_map[child_key] = node
+        else:
+            self[parent_key].children_map[child_key] = node
+
     def __getitem__(self, key: tp.Union[str, int]) -> "Node[T]":
         """
         Return the value indexed by a slash-separated key
@@ -144,17 +164,19 @@ class Node(tp.Generic[T]):
         return self.children[key]
 
     def get_child_from_str(self, key: str) -> "Node[T]":
-        split_key = key.split("/")
-        parent_key = split_key[0]
-        child_key = "/".join(split_key[1:])
+        split_key = key.split("/", 1)
+        parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
-            if len(split_key) == 1:
-                return self.children_map[parent_key]
+            if len(child_keys) == 0:
+                return self.get_child_from_str_nonrecursive(parent_key)
             else:
-                return self.children_map[parent_key].get_child_from_str(child_key)
+                return self.children_map[parent_key].get_child_from_str(child_keys[0])
         except KeyError as err:
             raise KeyError(f"{key}") from err
+
+    def get_child_from_str_nonrecursive(self, key: str) -> "Node[T]":
+        return self.children_map[key]
 
     def add_child(self, key: str, child: "Node[T]"):
         """
@@ -165,22 +187,112 @@ class Node(tp.Generic[T]):
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        split_key = key.split("/")
-        parent_key = split_key[0]
-        child_keys = split_key[1:]
-        child_key = "/".join(child_keys)
+        split_key = key.split("/", 1)
+        parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
-            if len(child_keys) > 0:
-                self.children_map[parent_key][child_key] = child
-            elif len(child_keys) == 0:
-                self._children.append(child)
-                self.children_map[key] = child
+            if len(child_keys) == 0:
+                self.add_child_nonrecursive(parent_key, child)
             else:
-                assert False
+                self.children_map[parent_key].add_child(child_keys[0], child)
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
+
+    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+        """
+        Add a primitive indexed by a key
+
+        Base case of recursive `add_child`
+        """
+        if key in self.children_map:
+            raise KeyError(f"{key}")
+        else:
+            self.children_map[key] = child
+
+class OptionalKeyNode(Node[T]):
+    """
+    Tree structure with labelled child nodes
+
+    Keys can be supplied optionally because instances will automatically assign keys.
+
+    Parameters
+    ----------
+    value: T
+        A value associated with the node
+    children: tp.Tuple[Node, ...]
+        Child nodes
+    labels: tp.Tuple[str, ...]
+        Child node labels
+    """
+
+    def __init__(
+        self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
+    ):
+        self._child_counter = ItemCounter()
+        super().__init__(value, children)
+
+    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+        """
+        Add a primitive indexed by a key
+
+        Base case of recursive `add_child`
+        """
+        # Assign an automatic key if none is supplied
+        if key == "":
+            key = self._child_counter.add_item_until_valid(
+                child, lambda key: key not in self
+            )
+
+        if key in self.children_map:
+            raise KeyError(f"{key}")
+        else:
+            self.children_map[key] = child
+
+
+V = tp.TypeVar("V")
+
+
+class ItemCounter(tp.Generic[V]):
+    """
+    Count items by a prefix
+    """
+
+    @staticmethod
+    def __classname(item: V) -> str:
+        return type(item).__name__
+
+    def __init__(self, gen_prefix: tp.Callable[[V], str] = __classname):
+        self._prefix_to_count = {}
+        self._gen_prefix = gen_prefix
+
+    @property
+    def prefix_to_count(self):
+        return self._prefix_to_count
+
+    def __contains__(self, key):
+        return key in self._p
+
+    def gen_prefix(self, item: V) -> str:
+        return self._gen_prefix(item)
+
+    def add_item(self, item: V) -> str:
+        prefix = self.gen_prefix(item)
+        if prefix in self.prefix_to_count:
+            self.prefix_to_count[prefix] += 1
+        else:
+            self.prefix_to_count[prefix] = 1
+
+        postfix = self.prefix_to_count[prefix] - 1
+        return f"{prefix}{postfix}"
+
+    def add_item_until_valid(self, item: V, valid: tp.Callable[[str], bool]):
+
+        key = self.add_item(item)
+        while not valid(key):
+            key = self.add_item(item)
+
+        return key
 
 
 ## Manual flattening/unflattening implementation
@@ -222,7 +334,7 @@ def unflatten(
     node_structs = node_structs[1:]
 
     if num_child == 0:
-        node = NodeType(value, (), ())
+        node = NodeType(value, {})
     else:
         ckeys = []
         children = []
@@ -235,7 +347,7 @@ def unflatten(
             ckeys.append(ckey)
             children.append(child)
 
-        node = NodeType(value, children, ckeys)
+        node = NodeType(value, {key: child for key, child in zip(ckeys, children)})
 
     return node, node_structs
 
@@ -253,14 +365,13 @@ AuxData = tp.Tuple[Keys]
 def _make_flatten_unflatten(NodeClass: tp.Type[Node[T]]):
 
     def _flatten_node(node: NodeClass) -> tp.Tuple[FlatNode, AuxData]:
-        flat_node = (node.value, node.children)
-        aux_data = (node.keys(),)
+        flat_node = (node.value, node.children_map)
+        aux_data = None
         return (flat_node, aux_data)
 
     def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeClass:
         value, children = flat_node
-        (keys,) = aux_data
-        return NodeClass(value, children, keys)
+        return NodeClass(value, children)
 
     return _flatten_node, _unflatten_node
 

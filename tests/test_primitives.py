@@ -17,24 +17,24 @@ from mpllayout import geometry as geo
 class TestPrimitives:
 
     def test_Quadrilateral(self):
-        quad = geo.Quadrilateral()
+        quad = geo.Quadrilateral.from_std()
 
     def test_Line(self):
-        line = geo.Line()
+        line = geo.Line.from_std()
 
     def test_Point(self):
-        point = geo.Point()
+        point = geo.Point.from_std()
 
     def test_Polygon(self):
-        poly = geo.Polygon()
+        poly = geo.Polygon.from_std()
 
     def test_Primitive_jax_pytree(self):
         # breakpoint()
         from jax import tree_util
 
-        point = geo.Point()
-        line = geo.Line()
-        quad = geo.Quadrilateral()
+        point = geo.Point.from_std()
+        line = geo.Line.from_std()
+        quad = geo.Quadrilateral.from_std()
 
         for prim in (point, line, quad):
             print(f"\nTesting primitive type {type(prim).__name__}")
