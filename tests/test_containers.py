@@ -13,13 +13,13 @@ class TestNode:
 
     @pytest.fixture()
     def node(self):
-        childd = cn.Node(99, (), ())
-        childe = cn.Node(9, (), ())
-        childb = cn.Node(2, (childd, childe), ("d", "e"))
+        childd = cn.Node(99, {})
+        childe = cn.Node(9, {})
+        childb = cn.Node(2, {'d': childd, 'e': childe})
 
-        childa = cn.Node(1, (), ())
-        childc = cn.Node(3, (), ())
-        node = cn.Node(0, (childa, childb, childc), ("a", "b", "c"))
+        childa = cn.Node(1, {})
+        childc = cn.Node(3, {})
+        node = cn.Node(0, {'a': childa, 'b': childb, 'c': childc})
         return node
 
     def test_repr(self, node: cn.Node):

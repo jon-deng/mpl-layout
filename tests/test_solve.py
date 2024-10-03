@@ -21,7 +21,7 @@ class TestPrimitiveTree:
         verts = np.array([[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]])
 
         layout.add_prim(
-            geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]),
+            geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]),
             "MyFavouriteBox",
         )
         layout.add_constraint(geo.Box(), ("MyFavouriteBox",))
@@ -41,14 +41,14 @@ class TestPrimitiveTree:
     def layout_grid(self, axes_shape):
         layout = lay.Layout()
         ## Create an origin point
-        layout.add_prim(geo.Point([0, 0]), "Origin")
+        layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
         layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
 
         ## Create the figure box
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         layout.add_prim(
-            geo.Quadrilateral(
-                children=[geo.Point(vert_coords) for vert_coords in verts]
+            geo.Quadrilateral.from_std(
+                children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
             ),
             "Figure",
         )
@@ -67,8 +67,8 @@ class TestPrimitiveTree:
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         for n in range(num_axes):
             layout.add_prim(
-                geo.Quadrilateral(
-                    children=[geo.Point(vert_coords) for vert_coords in verts]
+                geo.Quadrilateral.from_std(
+                    children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
                 ),
                 f"Axes{n}",
             )

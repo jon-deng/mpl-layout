@@ -10,18 +10,18 @@ if __name__ == "__main__":
     layout = lay.Layout()
 
     ## Create an origin point
-    layout.add_prim(geo.Point([0, 0]), "Origin")
+    layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts])
+    box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
     layout.add_prim(box, "Figure")
     layout.add_constraint(geo.Box(), ("Figure",))
 
     ## Create the axes box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts])
+    box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
     layout.add_prim(box, "Axes1")
     layout.add_constraint(geo.Box(), ("Axes1",))
 

@@ -24,13 +24,13 @@ class GeometryFixtures:
         """
         Return a `geo.Point` at the given coordinates
         """
-        return geo.Point(value=coord)
+        return geo.Point.from_std(value=coord)
 
     def make_relative_point(self, point: geo.Point, displacement: NDArray):
         """
         Return a `geo.Point` displaced from a given point
         """
-        return geo.Point(value=point.value + displacement)
+        return geo.Point.from_std(value=point.value + displacement)
 
     ## Line creation
     def make_rotation(self, theta: float):
@@ -44,7 +44,7 @@ class GeometryFixtures:
         Return a `geo.Line` with given origin and line vector
         """
         coords = (origin, origin + line_vec)
-        return geo.Line(value=[], children=tuple(geo.Point(x) for x in coords))
+        return geo.Line.from_std(value=[], children=tuple(geo.Point.from_std(x) for x in coords))
 
     def make_relative_line(
         self, line: geo.Line, translation: NDArray, deformation: NDArray
@@ -67,8 +67,8 @@ class GeometryFixtures:
         verts = np.tensordot(verts, deformation, axes=(-1, -1))
         verts = verts + displacement
 
-        return geo.Quadrilateral(
-            value=[], children=tuple(geo.Point(vert) for vert in verts)
+        return geo.Quadrilateral.from_std(
+            value=[], children=tuple(geo.Point.from_std(vert) for vert in verts)
         )
 
     def make_quad_grid(
