@@ -28,7 +28,7 @@ from numpy.typing import NDArray
 import numpy as np
 
 from . import geometry as geo
-from .containers import Node, iter_flat, flatten, unflatten
+from .containers import Node, OptionalKeyNode, iter_flat, flatten, unflatten
 
 IntGraph = tp.List[tp.Tuple[int, ...]]
 StrGraph = tp.List[tp.Tuple[str, ...]]
@@ -54,14 +54,14 @@ class Layout:
     def __init__(
         self,
         root_prim: tp.Optional[Node] = None,
-        constraints: tp.Optional[tp.List[geo.Constraint]] = None,
+        constraints: tp.Optional[OptionalKeyNode] = None,
         constraint_graph: tp.Optional[StrGraph] = None,
     ):
 
         if root_prim is None:
             root_prim = Node(np.array([]), [], [])
         if constraints is None:
-            constraints = []
+            constraints = OptionalKeyNode(None, [], [])
         if constraint_graph is None:
             constraint_graph = []
 
@@ -102,7 +102,9 @@ class Layout:
         """
         self.root_prim.add_child(key, prim)
 
-    def add_constraint(self, constraint: geo.Constraint, prim_keys: tp.Tuple[str, ...]):
+    def add_constraint(
+        self, constraint: geo.Constraint, prim_keys: tp.Tuple[str, ...], key: str = ""
+    ):
         """
         Add a constraint between primitives
 
@@ -113,7 +115,7 @@ class Layout:
         prim_labels:
             A tuple of strings referencing primitives (`self.root_prim`)
         """
-        self.constraints.append(constraint)
+        self.constraints.add_child(key, constraint)
         self.constraint_graph.append(prim_keys)
 
 
