@@ -1,28 +1,29 @@
 
 ![Project logo](logo.svg)
 
-## Overview
+## Summary
 
-MPLLayout is a Python package meant to make arrangement of plot elements in Matplotlib easy.
+MPLLayout is a package used to create figure layouts in `matplotlib` with geometric constraints.
 
-The layout of figure elements plays a big role in their visual aesthetic.
-For example, you might want:
+You can use MPLLayout to:
 
-* consistently sized margins around axes across multiple figures
-* to align visual elements within a figure, such as the edges of axes or locations of legends
-* to fix the size of certain axes
-* or any combination of these
-
-While `matplotlib` contains facilities for specifying the location of plot elements (for example, `GridSpec` for grid-based layouts of axes) these can be constrained to a specific type of layout (such as a grid of elements) or require additional code to satisfy more complicated arrangements of elements.
-MPLLayout provides a set of tools for arranging visual elements in `matplotlib` using geometric constraints to handle flexible arrangements.
-It consists of:
-
-* geometric primitives to represent plot elements (for example, a `Box` primitive can represent a `Bbox` or `Axes` in Matplotlib)
-* constraints on primitives used to specify the arrangement of plot elements (for example, constraints on the length of lines, collinearity between lines, locations of points, etc.)
-* a constraint solver to solve for the arrangement of primitives that satisfy given constraints
-* utilities to generate Matplotlib figures and axes from geometric primitives
+* consistently size margins around axes
+* align visual elements within a figure, such as the edges of axes, label positions, etc.
+* fix the size of axes of figures
+* and more!
 
 ## Motivation
+
+`matplotlib` contains a few strategies for creating figure layouts, for example, `GridSpec` for grid-based layouts of axes or `plt.subplots`.
+These layout strategies are very useful but follow a predetermined strategy for arranging axes elements which is not easily customizable by users.
+This can make it difficult to achieve precise placement of axes, or sometimes leave extraneous whitespace.
+To achieve more precise placement MPLLayout provides a set of geometric constraints and primitives to model the positioning of axes, figures, and other `matplotlib` visual elements.
+It consists of:
+
+* geometric primitives to represent plot elements (for example: a `Quadrilateral` primitive represents  `Figure` or `Axes` frames, a `Point` can represent a text anchor, etc.)
+* geometric constraints to specify the arrangement of plot elements (for example: constraints on the length of lines, collinearity between lines, locations of points, dimensions of rectangles, etc.)
+* a constraint solver to solve for the arrangement of primitives that satisfy given constraints
+* utilities to generate `matplotlib` figures and axes from geometric primitives
 
 ## Installation
 
@@ -37,12 +38,12 @@ You will also need to have the packages `numpy`, `matplotlib`, and `jax`.
 ## How to use
 
 Basic usage of the project is shown in the `examples` folder.
-In particular, the notebook in 'examples/two_axes.ipynb' illustrates the basic usage of the package.
+The notebook in 'examples/ten_simple_rules_demo.ipynb' gives an interactive demo.
 
 ## Contributing
 
 This project is a work in progress so there are likely bugs and missing features.
-If you would like to contribute a bug fix, a feature, refactor etc. thank you!
+If you would like to contribute a bug fix, a feature, refactor etc. thanks!
 All contributions are welcome.
 
 ## Motivation and Similar Projects
