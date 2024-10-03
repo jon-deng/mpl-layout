@@ -68,12 +68,12 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     for n in range(num_axes):
         layout.add_prim(
-            geo.Quadrilateral.from_std(
-                children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+            geo.Axes.from_std(
+                children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])]
             ),
             f"Axes{n}",
         )
-        layout.add_constraint(geo.Box(), (f"Axes{n}",))
+        layout.add_constraint(geo.Box(), (f"Axes{n}/Frame",))
 
     ## Constrain the axes in a grid
     num_row, num_col = axes_shape
@@ -85,22 +85,22 @@ if __name__ == "__main__":
             (num_col - 1) * [1],
             (num_row - 1) * [1],
         ),
-        tuple(f"Axes{n}" for n in range(num_axes)),
+        tuple(f"Axes{n}/Frame" for n in range(num_axes)),
     )
 
     # Constrain the first axis aspect ratio
-    layout.add_constraint(geo.RelativeLength(2), ("Axes0/Line0", "Axes0/Line1"))
+    layout.add_constraint(geo.RelativeLength(2), ("Axes0/Frame/Line0", "Axes0/Frame/Line1"))
 
     # Constrain top/bottom margins
     margin_top = 1.1
     margin_bottom = 0.5
     layout.add_constraint(
         geo.DirectedDistance(margin_top, np.array([0, 1])),
-        ("Axes0/Line1/Point1", "Figure/Line1/Point1"),
+        ("Axes0/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
     layout.add_constraint(
         geo.DirectedDistance(margin_bottom, np.array([0, -1])),
-        (f"Axes{num_axes-1}/Line1/Point0", "Figure/Line1/Point0"),
+        (f"Axes{num_axes-1}/Frame/Line1/Point0", "Figure/Line1/Point0"),
     )
 
     # Constrain left/right margins
@@ -108,11 +108,11 @@ if __name__ == "__main__":
     margin_right = 0.3
     layout.add_constraint(
         geo.DirectedDistance(margin_left, np.array([-1, 0])),
-        ("Axes0/Line0/Point0", "Figure/Line0/Point0"),
+        ("Axes0/Frame/Line0/Point0", "Figure/Line0/Point0"),
     )
     layout.add_constraint(
         geo.DirectedDistance(margin_right, np.array([1, 0])),
-        (f"Axes{num_col-1}/Line1/Point1", "Figure/Line1/Point1"),
+        (f"Axes{num_col-1}/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
 
     ## Solve the constraints and form the figure/axes layout

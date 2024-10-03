@@ -21,9 +21,9 @@ if __name__ == "__main__":
 
     ## Create the axes box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
+    box = geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])])
     layout.add_prim(box, "Axes1")
-    layout.add_constraint(geo.Box(), ("Axes1",))
+    layout.add_constraint(geo.Box(), ("Axes1/Frame",))
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
@@ -44,11 +44,11 @@ if __name__ == "__main__":
     margin_right = 1.1
     layout.add_constraint(
         geo.DirectedDistance(margin_left, np.array([-1, 0])),
-        ("Axes1/Line0/Point0", "Figure/Line0/Point0"),
+        ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
     )
     layout.add_constraint(
         geo.DirectedDistance(margin_right, np.array([1, 0])),
-        ("Axes1/Line0/Point1", "Figure/Line0/Point1"),
+        ("Axes1/Frame/Line0/Point1", "Figure/Line0/Point1"),
     )
 
     # Constrain top/bottom margins
@@ -56,11 +56,11 @@ if __name__ == "__main__":
     margin_bottom = 0.5
     layout.add_constraint(
         geo.DirectedDistance(margin_bottom, np.array([0, -1])),
-        ("Axes1/Line1/Point0", "Figure/Line1/Point0"),
+        ("Axes1/Frame/Line1/Point0", "Figure/Line1/Point0"),
     )
     layout.add_constraint(
         geo.DirectedDistance(margin_top, np.array([0, 1])),
-        ("Axes1/Line1/Point1", "Figure/Line1/Point1"),
+        ("Axes1/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
 
     ## Solve the constraints and form the figure/axes layout
