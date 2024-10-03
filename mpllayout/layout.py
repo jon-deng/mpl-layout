@@ -25,6 +25,8 @@ The class `Layout` handles construction of these three things while functions
 import typing as tp
 from numpy.typing import NDArray
 
+import warnings
+
 import numpy as np
 
 from . import geometry as geo
@@ -163,3 +165,62 @@ def build_tree(
         for old_struct, new_value in zip(old_prim_structs, new_prim_values)
     ]
     return unflatten(new_prim_structs)[0]
+
+
+import matplotlib as mpl
+from matplotlib.axes import Axes
+from matplotlib.axis import Axis, XAxis, YAxis
+
+def update_layout_constraints(constraints: Node, axs: tp.Mapping[str, Axes]) -> Node:
+    # Update constraints based on bboxes
+    from mpllayout.containers import Node
+
+    # Update x/y axis bbox dimensions
+    for ax_key, ax in axs.items():
+        dims = get_axis_bbox_dims(ax.xaxis)
+        constraints = update_bbox_dimension_constraints(constraints, f"{ax_key}.XAxis", *dims)
+
+        dims = get_axis_bbox_dims(ax.yaxis)
+        constraints = update_bbox_dimension_constraints(constraints, f"{ax_key}.YAxis", *dims)
+    return constraints
+
+def update_bbox_dimension_constraints(
+    constraints: Node,
+    bbox_key: str,
+    width: float,
+    height: float,
+) -> Node:
+    dims = (width, height)
+    dim_labels = ('Width', 'Height')
+    constraint_labels = [f"{bbox_key}.{dim_label}" for dim_label in dim_labels]
+    for dim_label, dim in zip(constraint_labels, dims):
+        if dim_label in constraints:
+            constraints[dim_label] = geo.Length(dim)
+        else:
+            warnings.warn(f"'{bbox_key}' is missing a '{dim_label}' constraint")
+
+    return constraints
+
+def get_axis_bbox_dims(axis: Axis):
+    axes = axis.axes
+    fig = axes.figure
+    fig_width, fig_height = fig.get_size_inches()
+    axes_bbox = axes.get_position()
+    axis_bbox = axis.get_tightbbox().transformed(fig.transFigure.inverted())
+    if isinstance(axis, XAxis):
+        width = axes_bbox.width * fig_width
+        if axis.get_ticks_position() == "bottom":
+            height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
+        if axis.get_ticks_position() == "top":
+            height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
+    elif isinstance(axis, YAxis):
+        height = axes_bbox.height * fig_height
+        if axis.get_ticks_position() == "left":
+            width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
+        if axis.get_ticks_position() == "right":
+            width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
+    else:
+        raise TypeError
+
+    return width, height
+

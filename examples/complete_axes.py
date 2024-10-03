@@ -5,33 +5,34 @@ Create a one axes figure with x/y axis labels and stuff too
 import numpy as np
 
 import matplotlib as mpl
-from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt
+
+from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt, constraints as con
 
 if __name__ == "__main__":
     layout = lay.Layout()
 
     ## Create an origin point
-    layout.add_prim(geo.Point([0, 0]), "Origin")
+    layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts])
+    box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
     layout.add_prim(box, "Figure")
     layout.add_constraint(geo.Box(), ("Figure",))
 
     ## Create the axes box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    frame = geo.Quadrilateral(
-        children=[geo.Point(vert_coords) for vert_coords in verts]
+    frame = geo.Quadrilateral.from_std(
+        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
     )
-    xaxis = geo.Quadrilateral(
-        children=[geo.Point(vert_coords) for vert_coords in verts]
+    xaxis = geo.Quadrilateral.from_std(
+        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
     )
-    yaxis = geo.Quadrilateral(
-        children=[geo.Point(vert_coords) for vert_coords in verts]
+    yaxis = geo.Quadrilateral.from_std(
+        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
     )
-    axes = geo.Axes(children=(frame, xaxis, yaxis, geo.Point(), geo.Point()))
+    axes = geo.Axes.from_std(children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std()))
     layout.add_prim(axes, "Axes1")
     layout.add_constraint(geo.Box(), ("Axes1/Frame",))
 
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         ("Axes1/YAxis/Line2", "Axes1/Frame/Line2"),
     )
 
-    # Make the x/y axes align the with left/right of the frame
+    # Pin the x/y axis to the frame sie
     layout.add_constraint(
         geo.Collinear(),
         ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"),
@@ -112,35 +113,25 @@ if __name__ == "__main__":
         ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"),
     )
 
-    ## Constrain 'Axes1' x/y axis label positions
-    # layout.add_constraint(
-    #     geo.DirectedDistance(0.1, np.array([1, 0])),
-    #     ("Axes1/Frame/Line0/Point0", "Axes1/XAxisLabel"),
-    # )
-    # layout.add_constraint(
-    #     geo.DirectedDistance(0.5, np.array([0, 1])),
-    #     ("Axes1/Frame/Line0/Point0", "Axes1/XAxisLabel"),
-    # )
+    # Set temporary widths/heights for x/y axis
+    dim_labels = ("Height", "Width")
+    for axis_key, line_label, dim_label in zip(("X", "Y"), ("Line1", "Line0"), dim_labels):
+        layout.add_constraint(
+            geo.Length(0.0),
+            (f"Axes1/{axis_key}Axis/{line_label}",),
+            f"Axes1.{axis_key}Axis.{dim_label}"
+        )
 
-    # layout.add_constraint(
-    #     geo.DirectedDistance(0.2, np.array([1, 0])),
-    #     ("Axes1/Frame/Line0/Point0", "Axes1/YAxisLabel"),
-    # )
-    # layout.add_constraint(
-    #     geo.DirectedDistance(0.5, np.array([0, 1])),
-    #     ("Axes1/Frame/Line0/Point0", "Axes1/YAxisLabel"),
-    # )
+    # Align x/y axis labels with axis bboxes
+    layout.add_constraint(
+        geo.CoincidentPoints(),
+        ("Axes1/XAxis/Line0/Point0", "Axes1/XAxisLabel"),
+    )
 
-    # Align with frame
-    # layout.add_constraint(
-    #     geo.CoincidentPoints(),
-    #     ("Axes1/Frame/Line0/Point1", "Axes1/XAxisLabel"),
-    # )
-
-    # layout.add_constraint(
-    #     geo.CoincidentPoints(),
-    #     ("Axes1/Frame/Line0/Point0", "Axes1/YAxisLabel"),
-    # )
+    layout.add_constraint(
+        geo.CoincidentPoints(),
+        ("Axes1/YAxis/Line0/Point0", "Axes1/YAxisLabel"),
+    )
 
     ## Solve the constraints and form the figure/axes layout
     prim_tree_n, info = solver.solve(
@@ -154,64 +145,10 @@ if __name__ == "__main__":
 
     axs["Axes1"].xaxis.set_label_text("My x label", ha='left')
     axs["Axes1"].yaxis.set_label_text("My y label", ha='left')
-    # plt.draw()
 
     ax = axs["Axes1"]
 
-    def get_axis_thickness(axis: mpl.axis.Axis):
-        axes = axis.axes
-        fig = axes.figure
-        fig_width, fig_height = fig.get_size_inches()
-        axes_bbox = axes.get_position()
-        axis_bbox = axis.get_tightbbox().transformed(fig.transFigure.inverted())
-        if isinstance(axis, mpl.axis.XAxis):
-            if axis.get_ticks_position() == "bottom":
-                return fig_height * (axes_bbox.ymin - axis_bbox.ymin)
-            if axis.get_ticks_position() == "top":
-                return fig_height * (axis_bbox.ymax - axes_bbox.ymax)
-        elif isinstance(axis, mpl.axis.YAxis):
-            if axis.get_ticks_position() == "left":
-                return fig_width * (axes_bbox.xmin - axis_bbox.xmin)
-            if axis.get_ticks_position() == "right":
-                return fig_width * (axis_bbox.xmax - axes_bbox.xmax)
-        else:
-            raise TypeError
-
-    fig_shape = fig.get_size_inches()
-    for fig_dim, axis_key, axis, line_label in zip(
-        (fig.get_size_inches()[::-1]),
-        ("X", "Y"),
-        (ax.xaxis, ax.yaxis),
-        ("Line1", "Line0"),
-    ):
-        if axis.get_label().get_visible():
-            axis.get_label().set_visible(False)
-            thickness = get_axis_thickness(axis)
-            axis.get_label().set_visible(True)
-        else:
-            thickness = get_axis_thickness(axis)
-
-        print(f"{axis_key}Axis thickness: {thickness}")
-
-        # layout.constraints
-
-        # Make the x/y axes have a certain thickness
-        layout.add_constraint(
-            geo.Length(thickness),
-            (f"Axes1/{axis_key}Axis/{line_label}",),
-        )
-
-    # Align with axis bboxes
-    layout.add_constraint(
-        geo.CoincidentPoints(),
-        ("Axes1/XAxis/Line0/Point0", "Axes1/XAxisLabel"),
-    )
-
-    layout.add_constraint(
-        geo.CoincidentPoints(),
-        ("Axes1/YAxis/Line0/Point0", "Axes1/YAxisLabel"),
-    )
-
+    lay.update_layout_constraints(layout.constraints, axs)
     prim_tree_n, info = solver.solve(
         layout.root_prim, layout.constraints, layout.constraint_graph
     )
