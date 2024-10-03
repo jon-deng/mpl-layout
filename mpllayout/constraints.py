@@ -56,28 +56,21 @@ class Constraint(Node[ConstraintValue]):
     _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
     _CONSTANTS: collections.namedtuple = collections.namedtuple('Constants', ())
 
-    def __init__(
-            self,
-            value: ConstraintValue,
-            children: tp.List['Constraint'],
-            keys: tp.List[str]
-        ):
-        constants, prim_keys = value
-        if isinstance(constants, dict):
-            constants = self._CONSTANTS(**constants)
-        elif isinstance(constants, self._CONSTANTS):
-            constants = constants
-        else:
-            raise TypeError()
-        super().__init__((constants, prim_keys), children, keys)
-
     @classmethod
-    def init_from_constants(cls, constants):
+    def from_std(cls, constants: dict[str, tp.Any]):
         prim_keys = tuple('arg{n}' for n in range(len(cls._PRIMITIVE_TYPES)))
         value = (constants, prim_keys)
         children = ()
         keys = ()
-        return cls(value, children, keys)
+        constants, prim_keys = value
+        if isinstance(constants, dict):
+            constants = cls._CONSTANTS(**constants)
+        elif isinstance(constants, cls._CONSTANTS):
+            constants = constants
+        else:
+            raise TypeError()
+
+        return cls(value, {key: child for key, child in zip(keys, children)})
 
     @property
     def constants(self):
@@ -397,8 +390,8 @@ class Box(Constraint):
         Return the error in the 'boxiness'
         """
         (quad,) = prims
-        horizontal = Horizontal.init_from_constants({})
-        vertical = Vertical.init_from_constants({})
+        horizontal = Horizontal.from_std({})
+        vertical = Vertical.from_std({})
         res = jnp.concatenate(
             [
                 horizontal((quad[0],)),
