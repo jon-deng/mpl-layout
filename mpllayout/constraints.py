@@ -57,7 +57,7 @@ class Constraint(Node[ConstraintValue]):
     _CONSTANTS: collections.namedtuple = collections.namedtuple('Constants', ())
 
     @classmethod
-    def from_std(cls, constants: dict[str, tp.Any]):
+    def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
         prim_keys = tuple('arg{n}' for n in range(len(cls._PRIMITIVE_TYPES)))
         value = (constants, prim_keys)
         children = ()
@@ -65,6 +65,8 @@ class Constraint(Node[ConstraintValue]):
         constants, prim_keys = value
         if isinstance(constants, dict):
             constants = cls._CONSTANTS(**constants)
+        elif isinstance(constants, tuple):
+            constants = cls._CONSTANTS(*constants)
         elif isinstance(constants, cls._CONSTANTS):
             constants = constants
         else:
