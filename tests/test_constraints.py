@@ -139,7 +139,7 @@ class TestPointConstraints(GeometryFixtures):
         self, point: geo.Point, distance: float, direction: NDArray
     ):
         pointb = self.make_relative_point(point, distance * direction)
-        constraint = geo.DirectedDistance.from_std({'distance':distance, 'direction':direction})
+        constraint = geo.DirectedDistance.from_std({'distance': distance, 'direction': direction})
         res = constraint((point, pointb))
         assert np.all(np.isclose(res, 0))
 
@@ -239,18 +239,27 @@ class TestQuadConstraints(GeometryFixtures):
         rel_row_heights = 6 * np.ones(num_row - 1)
         row_margins = 3 * np.ones(num_row - 1)
 
-        return col_margins, row_margins, rel_col_widths, rel_row_heights
+        grid_kwargs = {
+            'horizontal_margins': col_margins,
+            'vertical_margins': row_margins,
+            'widths': rel_col_widths,
+            'heights': rel_row_heights
+        }
+        return grid_kwargs
 
     @pytest.fixture()
     def quads(
         self,
         grid_origin_dimensions: tp.Tuple[float, float],
-        rel_grid_dimensions: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
+        rel_grid_dimensions: tp.Mapping[str, NDArray],
     ):
         origin = np.random.rand(2)
         origin = np.zeros(2)
 
-        col_margins, row_margins, rel_col_widths, rel_row_heights = rel_grid_dimensions
+        col_margins = rel_grid_dimensions['horizontal_margins']
+        row_margins = rel_grid_dimensions['vertical_margins']
+        rel_col_widths = rel_grid_dimensions['widths']
+        rel_row_heights = rel_grid_dimensions['heights']
 
         origin_width, origin_height = grid_origin_dimensions
         col_widths = origin_width * np.concatenate(([1], rel_col_widths))

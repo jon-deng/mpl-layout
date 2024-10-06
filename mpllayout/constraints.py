@@ -185,10 +185,6 @@ class CoincidentPoints(Constraint):
     _PRIMITIVE_TYPES = (pr.Point, pr.Point)
     _CONSTANTS = collections.namedtuple("Constants", [])
 
-    # def __init__(self):
-    #     self._PRIMITIVE_TYPES = (pr.Point, pr.Point)
-    #     super().__init__()
-
     def assem_res(self, prims):
         """
         Return the coincident error between two points
@@ -226,9 +222,6 @@ class RelativeLength(Constraint):
     _CONSTANTS = collections.namedtuple("Constants", ["length"])
     _PRIMITIVE_TYPES = (pr.Line, pr.Line)
 
-    # def __init__(self, length: float):
-    #     super().__init__(length=length)
-
     def assem_res(self, prims):
         """
         Return the error in the length of the line
@@ -248,9 +241,6 @@ class Orthogonal(Constraint):
     _PRIMITIVE_TYPES = (pr.Line, pr.Line)
     _CONSTANTS = collections.namedtuple("Constants", [])
 
-    # def __init__(self):
-    #     super().__init__()
-
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the orthogonal error
@@ -268,9 +258,6 @@ class Parallel(Constraint):
 
     _PRIMITIVE_TYPES = (pr.Line, pr.Line)
     _CONSTANTS = collections.namedtuple("Constants", [])
-
-    # def __init__(self):
-    #     super().__init__()
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -290,9 +277,6 @@ class Vertical(Constraint):
     _PRIMITIVE_TYPES = (pr.Line,)
     _CONSTANTS = collections.namedtuple("Constants", [])
 
-    # def __init__(self):
-    #     super().__init__()
-
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
         Return the vertical error
@@ -310,9 +294,6 @@ class Horizontal(Constraint):
     _PRIMITIVE_TYPES = (pr.Line,)
     _CONSTANTS = collections.namedtuple("Constants", [])
 
-    # def __init__(self):
-    #     super().__init__()
-
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
         Return the horizontal error
@@ -329,9 +310,6 @@ class Angle(Constraint):
 
     _PRIMITIVE_TYPES = (pr.Line, pr.Line)
     _CONSTANTS = collections.namedtuple("Constants", ["angle"])
-
-    # def __init__(self, angle: NDArray):
-    #     super().__init__(angle=angle)
 
     def assem_res(self, prims):
         """
@@ -354,14 +332,11 @@ class Collinear(Constraint):
     _PRIMITIVE_TYPES = (pr.Line, pr.Line)
     _CONSTANTS = collections.namedtuple("Constants", [])
 
-    # def __init__(self):
-    #     super().__init__()
-
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the collinearity error
         """
-        res_parallel = Parallel.from_std()
+        res_parallel = Parallel.from_std({})
         line0, line1 = prims
         line2 = pr.Line.from_std(children=(line1[0], line0[0]))
         # line3 = primitives.Line.from_std(children=(line1['Point0'], line0['Point1']))
@@ -381,9 +356,6 @@ class Box(Constraint):
 
     _PRIMITIVE_TYPES = (pr.Quadrilateral,)
     _CONSTANTS = collections.namedtuple("Constants", [])
-
-    # def __init__(self):
-    #     super().__init__()
 
     def assem_res(self, prims):
         """
@@ -409,30 +381,14 @@ class Box(Constraint):
 class Grid(Constraint):
 
     _PRIMITIVE_TYPES = (pr.Quadrilateral,)
-    _CONSTANTS = collections.namedtuple("Constants", ["horizontal_margins", "vertical_margins", "widths", "heights"])
-
-    # def __init__(
-    #     self,
-    #     shape: tp.Tuple[int, ...],
-    #     horizontal_margins: tp.Union[float, NDArray[float]],
-    #     vertical_margins: tp.Union[float, NDArray[float]],
-    #     widths: tp.Union[float, NDArray[float]],
-    #     heights: tp.Union[float, NDArray[float]],
-    # ):
-
-
-    #     self._shape = shape
-    #     self._vertical_margins = vertical_margins
-    #     self._horizontal_margins = horizontal_margins
-    #     self._heights = heights
-    #     self._widths = widths
-
-    #     super().__init__()
+    _CONSTANTS = collections.namedtuple(
+        "Constants", ("shape", "horizontal_margins", "vertical_margins", "widths", "heights")
+    )
 
     def assem_res(self, prims):
         # boxes = np.array(prims).reshape(self._shape)
 
-        num_row, num_col = self._shape
+        num_row, num_col = self.constants.shape
 
         # Set the top left (0 box) to have the right width/height
         (box_topleft, *_) = prims
@@ -442,26 +398,26 @@ class Grid(Constraint):
         for ii, jj in itertools.product(range(num_row - 1), range(num_col)):
 
             # Set vertical margins
-            margin = self._vertical_margins[ii]
+            margin = self.constants.vertical_margins[ii]
 
             box_a = prims[(ii) * num_col + jj]
             box_b = prims[(ii + 1) * num_col + jj]
 
             res_arrays.append(
-                DirectedDistance.from_std(margin, direction=np.array([0, -1]))(
+                DirectedDistance.from_std({'distance': margin, 'direction': np.array([0, -1])})(
                     (box_a["Line0/Point0"], box_b["Line2/Point1"])
                 )
             )
 
             # Set vertical widths
-            length = self._heights[ii]
+            length = self.constants.heights[ii]
             res_arrays.append(
-                RelativeLength(length)((box_b["Line1"], box_topleft["Line1"]))
+                RelativeLength.from_std({'length': length})((box_b["Line1"], box_topleft["Line1"]))
             )
 
             # Set vertical collinearity
             res_arrays.append(
-                Collinear.from_std()(
+                Collinear.from_std({})(
                     (
                         box_a["Line1"],
                         box_b["Line1"],
@@ -469,7 +425,7 @@ class Grid(Constraint):
                 )
             )
             res_arrays.append(
-                Collinear.from_std()(
+                Collinear.from_std({})(
                     (
                         box_a["Line3"],
                         box_b["Line3"],
@@ -480,27 +436,27 @@ class Grid(Constraint):
         for ii, jj in itertools.product(range(num_row), range(num_col - 1)):
 
             # Set horizontal margins
-            margin = self._horizontal_margins[jj]
+            margin = self.constants.horizontal_margins[jj]
 
             box_a = prims[ii * num_col + (jj)]
             box_b = prims[ii * num_col + (jj + 1)]
 
             res_arrays.append(
-                DirectedDistance(margin, direction=np.array([1, 0]))(
+                DirectedDistance.from_std({'distance': margin, 'direction': np.array([1, 0])})(
                     (box_a["Line0/Point1"], box_b["Line0/Point0"])
                 )
             )
 
             # Set horizontal widths
-            length = self._widths[jj]
+            length = self.constants.widths[jj]
             # breakpoint()
             res_arrays.append(
-                RelativeLength(length)((box_b["Line0"], box_topleft["Line0"]))
+                RelativeLength.from_std({'length': length})((box_b["Line0"], box_topleft["Line0"]))
             )
 
             # Set horizontal collinearity
             res_arrays.append(
-                Collinear.from_std()(
+                Collinear.from_std({})(
                     (
                         box_a["Line0"],
                         box_b["Line0"],
@@ -508,7 +464,7 @@ class Grid(Constraint):
                 )
             )
             res_arrays.append(
-                Collinear.from_std()(
+                Collinear.from_std({})(
                     (
                         box_a["Line2"],
                         box_b["Line2"],
