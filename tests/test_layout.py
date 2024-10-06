@@ -70,9 +70,9 @@ class TestLayout:
         layout = lat.Layout()
 
         layout.add_prim(geo.Quadrilateral.from_std(), "MyBox")
-        layout.add_constraint(geo.Box.from_std(), ("MyBox",))
+        layout.add_constraint(geo.Box.from_std({}), ("MyBox",))
 
-        layout.add_constraint(geo.PointLocation.from_std((0, 0)), ("MyBox/Line0/Point0",))
+        layout.add_constraint(geo.PointLocation.from_std(((0, 0),)), ("MyBox/Line0/Point0",))
 
         pprint(layout.root_prim)
         pprint(layout.constraints)
@@ -87,7 +87,7 @@ class TestUtilities:
         layout = lat.Layout()
 
         layout.add_prim(geo.Quadrilateral.from_std(), "MyBox")
-        layout.add_constraint(geo.Box.from_std(), ("MyBox",))
+        layout.add_constraint(geo.Box.from_std({}), ("MyBox",))
 
-        layout.add_constraint(geo.PointLocation.from_std((0, 0)), ("MyBox/Line0/Point0",))
+        layout.add_constraint(geo.PointLocation.from_std(((0, 0),)), ("MyBox/Line0/Point0",))
         return layout

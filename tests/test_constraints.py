@@ -139,12 +139,12 @@ class TestPointConstraints(GeometryFixtures):
         self, point: geo.Point, distance: float, direction: NDArray
     ):
         pointb = self.make_relative_point(point, distance * direction)
-        constraint = geo.DirectedDistance.from_std({'distance': distance, 'direction': direction})
+        constraint = geo.DirectedDistance.from_std((distance, direction))
         res = constraint((point, pointb))
         assert np.all(np.isclose(res, 0))
 
     def test_PointLocation(self, point):
-        constraint = geo.PointLocation.from_std({'location': point.value})
+        constraint = geo.PointLocation.from_std((point.value,))
         res = constraint((point,))
         assert np.all(np.isclose(res, 0))
 
@@ -190,7 +190,7 @@ class TestLineConstraints(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     def test_Length(self, line, length):
-        constraint = geo.Length.from_std({'length': length})
+        constraint = geo.Length.from_std((length,))
         res = constraint((line,))
         assert np.all(np.isclose(res, 0))
 
@@ -204,7 +204,7 @@ class TestLineConstraints(GeometryFixtures):
         rotate = self.make_rotation(theta)
 
         lineb = self.make_relative_line(line, displacement, scale @ rotate)
-        constraint = geo.RelativeLength.from_std({'length': relative_length})
+        constraint = geo.RelativeLength.from_std((relative_length,))
         res = constraint((lineb, line))
         assert np.all(np.isclose(res, 0))
 

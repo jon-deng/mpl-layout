@@ -195,7 +195,7 @@ def update_bbox_dimension_constraints(
     constraint_labels = [f"{bbox_key}.{dim_label}" for dim_label in dim_labels]
     for dim_label, dim in zip(constraint_labels, dims):
         if dim_label in constraints:
-            constraints[dim_label] = geo.Length(dim)
+            constraints[dim_label] = geo.Length.from_std((dim,))
         else:
             warnings.warn(f"'{bbox_key}' is missing a '{dim_label}' constraint")
 

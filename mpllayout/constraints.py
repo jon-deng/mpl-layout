@@ -133,34 +133,30 @@ class DirectedDistance(Constraint):
 
 class XDistance(DirectedDistance):
 
-    _CONSTANTS = collections.namedtuple("Constants", ["distance", "direction"])
+    @classmethod
+    def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
+        direction = np.array([1, 0])
+        if isinstance(constants, dict):
+            constants = constants.copy()
+            constants.update({'direction': direction})
+        elif isinstance(constants, tuple):
+            constants = constants[:1] + (direction,)
 
-    def __init__(
-            self,
-            value: ConstraintValue,
-            children: tp.List['Constraint'],
-            keys: tp.List[str]
-        ):
-        constants_dict, prim_keys = value
-        new_constants_dict = constants_dict.copy()
-        new_constants_dict["direction"] = np.array([1, 0])
-
-        super().__init__((new_constants_dict, prim_keys), children, keys)
+        return super().from_std(constants)
 
 
 class YDistance(DirectedDistance):
 
-    def __init__(
-            self,
-            value: ConstraintValue,
-            children: tp.List['Constraint'],
-            keys: tp.List[str]
-        ):
-        constants_dict, prim_keys = value
-        new_constants_dict = constants_dict.copy()
-        new_constants_dict["direction"] = np.array([0, 1])
+    @classmethod
+    def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
+        direction = np.array([0, 1])
+        if isinstance(constants, dict):
+            constants = constants.copy()
+            constants.update({'direction': direction})
+        elif isinstance(constants, tuple):
+            constants = constants[:1] + (direction,)
 
-        super().__init__((new_constants_dict, prim_keys), children, keys)
+        return super().from_std(constants)
 
 
 class PointLocation(Constraint):
@@ -406,7 +402,7 @@ class Grid(Constraint):
             box_b = prims[(ii + 1) * num_col + jj]
 
             res_arrays.append(
-                DirectedDistance.from_std({'distance': margin, 'direction': np.array([0, -1])})(
+                DirectedDistance.from_std((margin, np.array([0, -1])))(
                     (box_a["Line0/Point0"], box_b["Line2/Point1"])
                 )
             )
@@ -414,7 +410,7 @@ class Grid(Constraint):
             # Set vertical widths
             length = self.constants.heights[ii]
             res_arrays.append(
-                RelativeLength.from_std({'length': length})((box_b["Line1"], box_topleft["Line1"]))
+                RelativeLength.from_std((length,))((box_b["Line1"], box_topleft["Line1"]))
             )
 
             # Set vertical collinearity
@@ -444,7 +440,7 @@ class Grid(Constraint):
             box_b = prims[ii * num_col + (jj + 1)]
 
             res_arrays.append(
-                DirectedDistance.from_std({'distance': margin, 'direction': np.array([1, 0])})(
+                DirectedDistance.from_std((margin, np.array([1, 0])))(
                     (box_a["Line0/Point1"], box_b["Line0/Point0"])
                 )
             )
@@ -453,7 +449,7 @@ class Grid(Constraint):
             length = self.constants.widths[jj]
             # breakpoint()
             res_arrays.append(
-                RelativeLength.from_std({'length': length})((box_b["Line0"], box_topleft["Line0"]))
+                RelativeLength.from_std((length,))((box_b["Line0"], box_topleft["Line0"]))
             )
 
             # Set horizontal collinearity
