@@ -29,7 +29,7 @@ class Primitive(Node[NDArray]):
     be explicitly constrained to have (0, 0) coordinates.
 
     To create a `Primitive` class, subclass `Primitive` and define the class
-    attributes `_PARAM_SHAPE`, `_PRIM_TYPES`, `_PRIM_LABELS`
+    attributes `PARAM_SHAPE`, `CHILD_TYPES`, `CHILD_KEYS`
 
     Parameters
     ----------
@@ -47,50 +47,40 @@ class Primitive(Node[NDArray]):
         `self.children`
     keys: tp.List[str]
 
-    _PARAM_SHAPE: ArrayShape
+    PARAM_SHAPE: ArrayShape
         The shape of the parameter vector parameterizing the `Primitive`
-    _PRIM_TYPES: tp.Union[
+    CHILD_TYPES: tp.Union[
             tp.Tuple[tp.Type['Primitive'], ...],
             tp.Type['Primitive']
         ]
         The types of child primitives parameterizing the `Primitive`
-    _PRIM_LABELS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]]
+    CHILD_KEYS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]]
         Optional labels for the child primitives
     """
 
     ## Specific primitive classes should define these to represent different primitives
-    _PARAM_SHAPE: ArrayShape = (0,)
-    # `_PRIM_TYPES` can either be a tuple of types, or a single type.
+    PARAM_SHAPE: ArrayShape = (0,)
+    # `CHILD_TYPES` can either be a tuple of types, or a single type.
     # If it's a single type, then this implies a variable number of child primitives of that type
     # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
-    _PRIM_TYPES: tp.Union[
+    CHILD_TYPES: tp.Union[
         tp.Tuple[tp.Type["Primitive"], ...], tp.Type["Primitive"]
     ] = ()
-    _PRIM_LABELS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]] = None
-
-    # def __init__(
-    #     self,
-    #     value: tp.Optional[NDArray] = None,
-    #     children: tp.Optional[tp.List["Primitive"]] = None,
-    #     keys: tp.Optional[tp.List[str]] = None,
-    # ):
-
-
-    #     super().__init__(value, children, keys)
+    CHILD_KEYS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]] = None
 
     @classmethod
     def from_std(
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None
+        keys: tp.Optional[tp.List[str]] = None,
     ):
-        # NOTE: `Primitive` classes specify keys through `Primitive._PRIM_LABELS`
+        # NOTE: `Primitive` classes specify keys through `Primitive.CHILD_KEYS`
         # This is unlike `Node`, so `keys` is basically ignored!
 
         # Create default `value` if unspecified
         if value is None:
-            value = np.zeros(cls._PARAM_SHAPE, dtype=float)
+            value = np.zeros(cls.PARAM_SHAPE, dtype=float)
         elif isinstance(value, (list, tuple)):
             value = np.array(value)
         elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
@@ -100,16 +90,16 @@ class Primitive(Node[NDArray]):
 
         # Create default `children` if unspecified
         if children is None:
-            if isinstance(cls._PRIM_TYPES, tuple):
-                children = tuple(PrimType.from_std() for PrimType in cls._PRIM_TYPES)
+            if isinstance(cls.CHILD_TYPES, tuple):
+                children = tuple(PrimType.from_std() for PrimType in cls.CHILD_TYPES)
             else:
                 children = ()
         else:
             # Validate the number of child primitives
             if isinstance(children, (list, tuple)) and isinstance(
-                cls._PRIM_TYPES, tuple
+                cls.CHILD_TYPES, tuple
             ):
-                num_child = len(cls._PRIM_TYPES)
+                num_child = len(cls.CHILD_TYPES)
                 if len(children) != num_child:
                     raise ValueError(
                         f"Expected {num_child} child primitives, got {len(children)}"
@@ -117,10 +107,10 @@ class Primitive(Node[NDArray]):
 
             # Validate child primitive types
             child_types = tuple(type(prim) for prim in children)
-            if isinstance(cls._PRIM_TYPES, Primitive):
-                ref_types = cls._PRIM_TYPES
+            if isinstance(cls.CHILD_TYPES, Primitive):
+                ref_types = cls.CHILD_TYPES
             else:
-                ref_types = cls._PRIM_TYPES
+                ref_types = cls.CHILD_TYPES
 
             type_comparisons = (
                 child_type == ref_type
@@ -130,14 +120,14 @@ class Primitive(Node[NDArray]):
                 raise TypeError(f"Expected child types {ref_types} got {child_types}")
 
         # Create keys from class primitive labels
-        if cls._PRIM_LABELS is None:
+        if cls.CHILD_KEYS is None:
             keys = [f"{type(prim).__name__}{n}" for n, prim in enumerate(children)]
-        elif isinstance(cls._PRIM_LABELS, str):
-            keys = [f"{cls._PRIM_LABELS}{n}" for n in range(len(children))]
-        elif isinstance(cls._PRIM_LABELS, tuple):
-            keys = cls._PRIM_LABELS
+        elif isinstance(cls.CHILD_KEYS, str):
+            keys = [f"{cls.CHILD_KEYS}{n}" for n in range(len(children))]
+        elif isinstance(cls.CHILD_KEYS, tuple):
+            keys = cls.CHILD_KEYS
         else:
-            raise TypeError(f"{cls._PRIM_LABELS}")
+            raise TypeError(f"{cls.CHILD_KEYS}")
 
         return cls(value, {key: prim for key, prim in zip(keys, children)})
 
@@ -153,9 +143,9 @@ class Point(Primitive):
     A point
     """
 
-    _PARAM_SHAPE = (2,)
-    _PRIM_TYPES = ()
-    _PRIM_LABELS = ()
+    PARAM_SHAPE = (2,)
+    CHILD_TYPES = ()
+    CHILD_KEYS = ()
 
 
 class Line(Primitive):
@@ -163,8 +153,8 @@ class Line(Primitive):
     A straight line segment between two points
     """
 
-    _PRIM_TYPES = (Point, Point)
-    _PARAM_SHAPE = (0,)
+    CHILD_TYPES = (Point, Point)
+    PARAM_SHAPE = (0,)
 
 
 class Polygon(Primitive):
@@ -172,15 +162,15 @@ class Polygon(Primitive):
     A polygon through a given set of points
     """
 
-    _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = Line
+    PARAM_SHAPE = (0,)
+    CHILD_TYPES = Line
 
     @classmethod
     def from_std(
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None
+        keys: tp.Optional[tp.List[str]] = None,
     ):
         if not isinstance(children, (tuple, list)):
             return super().from_std(value, children)
@@ -211,21 +201,22 @@ class Quadrilateral(Polygon):
     A 4 sided closed polygon
     """
 
-    _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (Line, Line, Line, Line)
+    PARAM_SHAPE = (0,)
+    CHILD_TYPES = (Line, Line, Line, Line)
 
 
 class Axes(Primitive):
 
-    _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (Quadrilateral, )
-    _PRIM_LABELS = ("Frame",)
+    PARAM_SHAPE = (0,)
+    CHILD_TYPES = (Quadrilateral,)
+    CHILD_KEYS = ("Frame",)
+
 
 class StandardAxes(Primitive):
 
-    _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
-    _PRIM_LABELS = ("Frame", "XAxis", "YAxis", "XAxisLabel", "YAxisLabel")
+    PARAM_SHAPE = (0,)
+    CHILD_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
+    CHILD_KEYS = ("Frame", "XAxis", "YAxis", "XAxisLabel", "YAxisLabel")
 
 
 ## Register `Primitive` classes as `jax.pytree`
