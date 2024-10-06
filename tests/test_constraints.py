@@ -285,5 +285,7 @@ class TestQuadConstraints(GeometryFixtures):
         return self.make_quad(translation, deformation)
 
     def test_Box(self, quad_box: geo.Quadrilateral):
-        res = geo.Box.from_std({})((quad_box,))
+        box = geo.Box.from_std({})
+        res = box((quad_box,))
+
         assert np.all(np.isclose(res, 0))

@@ -12,12 +12,12 @@ import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node
+from .containers import Node, iter_flat
 
 Primitive = pr.Primitive
 
 
-Constants = tp.Mapping[str, tp.Any]
+Constants = tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
 PrimKeys = tp.Tuple[str, ...]
 ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
@@ -54,13 +54,25 @@ class Constraint(Node[ConstraintValue]):
     """
 
     _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
-    _CONSTANTS: collections.namedtuple = collections.namedtuple('Constants', ())
+    _CONSTANTS: tp.Type[collections.namedtuple] = collections.namedtuple('Constants', ())
+
+    _CHILD_TYPES: tp.Tuple[tp.Type['Constraint'], ...] = ()
+    _CHILD_KEYS: tp.Tuple[str, ...] = ()
+    # NOTE: I think the class should be able to specify what the constants are for
+    # any child constraints but this isn't possible to do with knowing the parent constraints
+    # _CHILD_CONSTANTS: tp.Tuple[Any, ...]
+    _CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
 
     @classmethod
-    def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
-        prim_keys = tuple('arg{n}' for n in range(len(cls._PRIMITIVE_TYPES)))
-        children = ()
-        keys = ()
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+        child_constants: tp.Tuple[Constants, ...] = None
+    ):
+        if child_constants is None:
+            child_constants = ({},) * len(cls._CHILD_TYPES)
+
         if isinstance(constants, dict):
             constants = cls._CONSTANTS(**constants)
         elif isinstance(constants, tuple):
@@ -70,7 +82,18 @@ class Constraint(Node[ConstraintValue]):
         else:
             raise TypeError()
 
-        return cls((constants, prim_keys), {key: child for key, child in zip(keys, children)})
+        if arg_keys is None:
+            arg_keys = tuple(f'arg{n}' for n in range(len(cls._PRIMITIVE_TYPES)))
+        elif isinstance(arg_keys, tuple):
+            pass
+
+        children = {
+            key: ChildType.from_std(constant, arg_keys=ChildArgs)
+            for key, ChildType, constant, ChildArgs
+            in zip(cls._CHILD_KEYS, cls._CHILD_TYPES, child_constants, cls._CHILD_ARGS)
+        }
+
+        return cls((constants, arg_keys), children)
 
     @property
     def constants(self):
@@ -81,11 +104,23 @@ class Constraint(Node[ConstraintValue]):
         return self.value[1]
 
     def __call__(self, prims: tp.Tuple[Primitive, ...]):
-        # Check the input primitives are valid
-        # assert len(prims) == len(self._PRIMITIVE_TYPES)
-        # for prim, prim_type in zip(prims, self._PRIMITIVE_TYPES):
-        #     assert issubclass(type(prim), prim_type)
+        root_prim = Node(
+            np.array([]),
+            {f'arg{n}': prim for n, prim in enumerate(prims)}
+        )
+        return self.assem_res_from_tree(root_prim)
 
+    def assem_res_from_tree(self, root_prim: Node[NDArray]):
+        # flat_constraints = flatten('', self)
+        residuals = tuple(
+            constraint.assem_res_atleast_1d(
+                tuple(root_prim[arg_key] for arg_key in constraint.prim_keys)
+            )
+            for _, constraint in iter_flat('', self)
+        )
+        return jnp.concatenate(residuals)
+
+    def assem_res_atleast_1d(self, prims: tp.Tuple[Primitive, ...]) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims))
 
     def assem_res(self, prims: tp.Tuple[Primitive, ...]) -> NDArray:
@@ -352,23 +387,29 @@ class Box(Constraint):
 
     _PRIMITIVE_TYPES = (pr.Quadrilateral,)
     _CONSTANTS = collections.namedtuple("Constants", [])
+    _CHILD_KEYS = ('HorizontalBottom', 'HorizontalTop', 'VerticalLeft', 'VerticalRight')
+    _CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
+    _CHILD_ARGS = (('arg0/Line0',), ('arg0/Line2',), ('arg0/Line3',), ('arg0/Line1',))
+
+    # def assem_res(self, prims):
+    #     """
+    #     Return the error in the 'boxiness'
+    #     """
+    #     (quad,) = prims
+    #     horizontal = Horizontal.from_std({})
+    #     vertical = Vertical.from_std({})
+    #     res = jnp.concatenate(
+    #         [
+    #             horizontal((quad[0],)),
+    #             horizontal((quad[2],)),
+    #             vertical((quad[1],)),
+    #             vertical((quad[3],)),
+    #         ]
+    #     )
+    #     return res
 
     def assem_res(self, prims):
-        """
-        Return the error in the 'boxiness'
-        """
-        (quad,) = prims
-        horizontal = Horizontal.from_std({})
-        vertical = Vertical.from_std({})
-        res = jnp.concatenate(
-            [
-                horizontal((quad[0],)),
-                horizontal((quad[2],)),
-                vertical((quad[1],)),
-                vertical((quad[3],)),
-            ]
-        )
-        return res
+        return np.array([])
 
 
 ## Grid constraints
@@ -380,6 +421,17 @@ class Grid(Constraint):
     _CONSTANTS = collections.namedtuple(
         "Constants", ("shape", "horizontal_margins", "vertical_margins", "widths", "heights")
     )
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+        child_constants: tp.Tuple[Constants, ...] = None
+    ):
+        _temp = super().from_std(constants)
+        num_args = np.prod(_temp.constants.shape)
+        return super().from_std(constants, tuple(f'arg{n}' for n in range(num_args)))
 
     def assem_res(self, prims):
         # boxes = np.array(prims).reshape(self._shape)
