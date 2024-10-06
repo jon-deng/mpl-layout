@@ -70,7 +70,7 @@ class Constraint(Node[ConstraintValue]):
         else:
             raise TypeError()
 
-        return cls(value, {key: child for key, child in zip(keys, children)})
+        return cls((constants, value), {key: child for key, child in zip(keys, children)})
 
     @property
     def constants(self):
