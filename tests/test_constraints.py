@@ -278,6 +278,15 @@ class TestQuadConstraints(GeometryFixtures):
         res = geo.Grid.from_std({'shape': grid_shape, **rel_grid_dimensions})(quads)
         assert np.all(np.isclose(res, 0))
 
+    def test_RectilinearGrid(
+        self,
+        quads: tp.List[geo.Quadrilateral],
+        grid_shape: tp.Tuple[int, int]
+    ):
+        res = geo.RectilinearGrid.from_std({'shape': grid_shape})(quads)
+        assert np.all(np.isclose(res, 0))
+
+
     @pytest.fixture()
     def quad_box(self):
         translation = np.random.rand(2)

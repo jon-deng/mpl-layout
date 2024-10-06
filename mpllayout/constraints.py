@@ -401,6 +401,59 @@ class Box(Constraint):
 
 ## Grid constraints
 
+class RectilinearGrid(Constraint):
+    """
+    Constrain quads to a rectilinear grid
+    """
+
+    ARG_TYPES = (pr.Quadrilateral,)
+    CONSTANTS = collections.namedtuple(
+        "Constants", ("shape",)
+    )
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+        child_constants: tp.Tuple[Constants, ...] = None
+    ):
+        _temp = super().from_std(constants)
+        shape = _temp.constants.shape
+
+        num_row, num_col = shape
+        num_args = num_row*num_col
+
+        # Specify child constraints given the grid shape
+
+        # line up bot/top/right/left
+        def flat_idx(row, col):
+            return row*num_col + col
+        CHILD_TYPES = 4*(num_args-1)*(Collinear,)
+        CHILD_ARGS = [
+            (f'arg{flat_idx(nrow, 0)}/Line0', f'arg{flat_idx(nrow, ncol)}/Line0')
+            for nrow, ncol in itertools.product(range(num_row), range(1, num_col))
+        ] + [
+            (f'arg{flat_idx(nrow, 0)}/Line2', f'arg{flat_idx(nrow, ncol)}/Line2')
+            for nrow, ncol in itertools.product(range(num_row), range(1, num_col))
+        ] + [
+            (f'arg{flat_idx(0, ncol)}/Line1', f'arg{flat_idx(nrow, ncol)}/Line1')
+            for nrow, ncol in itertools.product(range(1, num_row), range(num_col))
+        ] + [
+            (f'arg{flat_idx(0, ncol)}/Line3', f'arg{flat_idx(nrow, ncol)}/Line3')
+            for nrow, ncol in itertools.product(range(1, num_row), range(num_col))
+        ]
+        CHILD_KEYS = num_args*('AlignBottom',) + num_args*('AlignTop',) + num_args*('AlignRight',) + num_args*('AlignLeft',)
+
+        cls.CHILD_TYPES = CHILD_TYPES
+        cls.CHILD_ARGS = CHILD_ARGS
+        cls.CHILD_KEYS = CHILD_KEYS
+
+        return super().from_std(constants)
+
+    def assem_res(self, prims):
+        return np.array([])
+
 class Grid(Constraint):
 
     ARG_TYPES = (pr.Quadrilateral,)
