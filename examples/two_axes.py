@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     # Constrain the origin to be at (0, 0)
-    layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
+    layout.add_constraint(geo.PointLocation.from_std(np.array([0, 0])), ("Origin",))
 
     plot_layout(layout, "out/2Axes--0.png")
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     layout.add_prim(
         geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]), "Figure"
     )
-    layout.add_constraint(geo.Box(), ("Figure",))
+    layout.add_constraint(geo.Box.from_std(), ("Figure",))
 
     plot_layout(layout, "out/2Axes--1.png")
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     layout.add_prim(
         geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts])]), "Axes1"
     )
-    layout.add_constraint(geo.Box(), ("Axes1/Frame",))
+    layout.add_constraint(geo.Box.from_std(), ("Axes1/Frame",))
 
     plot_layout(layout, "out/2Axes--2.png")
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     layout.add_prim(
         geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts])]), "Axes2"
     )
-    layout.add_constraint(geo.Box(), ("Axes2/Frame",))
+    layout.add_constraint(geo.Box.from_std(), ("Axes2/Frame",))
 
     plot_layout(layout, "out/2Axes--3.png")
 
@@ -155,8 +155,8 @@ if __name__ == "__main__":
 
     ## Make the top/bottom edges of the right axes ('Axes2') line up with the
     # top/bottom edges of the left axes ('Axes1')
-    layout.add_constraint(geo.Collinear(), ("Axes1/Frame/Line0", "Axes2/Frame/Line0"))
-    layout.add_constraint(geo.Collinear(), ("Axes1/Frame/Line2", "Axes2/Frame/Line2"))
+    layout.add_constraint(geo.Collinear.from_std(), ("Axes1/Frame/Line0", "Axes2/Frame/Line0"))
+    layout.add_constraint(geo.Collinear.from_std(), ("Axes1/Frame/Line2", "Axes2/Frame/Line2"))
 
     plot_layout(layout, "out/2Axes--10.png")
 

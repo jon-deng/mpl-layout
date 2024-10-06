@@ -361,7 +361,7 @@ class Collinear(Constraint):
         """
         Return the collinearity error
         """
-        res_parallel = Parallel()
+        res_parallel = Parallel.from_std()
         line0, line1 = prims
         line2 = pr.Line.from_std(children=(line1[0], line0[0]))
         # line3 = primitives.Line.from_std(children=(line1['Point0'], line0['Point1']))
@@ -448,7 +448,7 @@ class Grid(Constraint):
             box_b = prims[(ii + 1) * num_col + jj]
 
             res_arrays.append(
-                DirectedDistance(margin, direction=np.array([0, -1]))(
+                DirectedDistance.from_std(margin, direction=np.array([0, -1]))(
                     (box_a["Line0/Point0"], box_b["Line2/Point1"])
                 )
             )
@@ -461,7 +461,7 @@ class Grid(Constraint):
 
             # Set vertical collinearity
             res_arrays.append(
-                Collinear()(
+                Collinear.from_std()(
                     (
                         box_a["Line1"],
                         box_b["Line1"],
@@ -469,7 +469,7 @@ class Grid(Constraint):
                 )
             )
             res_arrays.append(
-                Collinear()(
+                Collinear.from_std()(
                     (
                         box_a["Line3"],
                         box_b["Line3"],
@@ -500,7 +500,7 @@ class Grid(Constraint):
 
             # Set horizontal collinearity
             res_arrays.append(
-                Collinear()(
+                Collinear.from_std()(
                     (
                         box_a["Line0"],
                         box_b["Line0"],
@@ -508,7 +508,7 @@ class Grid(Constraint):
                 )
             )
             res_arrays.append(
-                Collinear()(
+                Collinear.from_std()(
                     (
                         box_a["Line2"],
                         box_b["Line2"],

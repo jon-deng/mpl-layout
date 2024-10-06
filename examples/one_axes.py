@@ -11,19 +11,19 @@ if __name__ == "__main__":
 
     ## Create an origin point
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-    layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
+    layout.add_constraint(geo.PointLocation.from_std(np.array([0, 0])), ("Origin",))
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
     layout.add_prim(box, "Figure")
-    layout.add_constraint(geo.Box(), ("Figure",))
+    layout.add_constraint(geo.Box.from_std(), ("Figure",))
 
     ## Create the axes box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     box = geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])])
     layout.add_prim(box, "Axes1")
-    layout.add_constraint(geo.Box(), ("Axes1/Frame",))
+    layout.add_constraint(geo.Box.from_std(), ("Axes1/Frame",))
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3

@@ -13,13 +13,13 @@ if __name__ == "__main__":
 
     ## Create an origin point
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-    layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
+    layout.add_constraint(geo.PointLocation.from_std(np.array([0, 0])), ("Origin",))
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
     layout.add_prim(box, "Figure")
-    layout.add_constraint(geo.Box(), ("Figure",))
+    layout.add_constraint(geo.Box.from_std(), ("Figure",))
 
     ## Create the axes box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     )
     axes = geo.StandardAxes.from_std(children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std()))
     layout.add_prim(axes, "Axes1")
-    layout.add_constraint(geo.Box(), ("Axes1/Frame",))
+    layout.add_constraint(geo.Box.from_std(), ("Axes1/Frame",))
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
@@ -76,40 +76,40 @@ if __name__ == "__main__":
 
     # Constrain 'Axes1' x/y axis bboxes
     layout.add_constraint(
-        geo.Box(),
+        geo.Box.from_std(),
         ("Axes1/XAxis",),
     )
     layout.add_constraint(
-        geo.Box(),
+        geo.Box.from_std(),
         ("Axes1/YAxis",),
     )
 
     # Make the x/y axes align the with frame
     layout.add_constraint(
-        geo.Collinear(),
+        geo.Collinear.from_std(),
         ("Axes1/XAxis/Line1", "Axes1/Frame/Line1"),
     )
     layout.add_constraint(
-        geo.Collinear(),
+        geo.Collinear.from_std(),
         ("Axes1/XAxis/Line3", "Axes1/Frame/Line3"),
     )
 
     layout.add_constraint(
-        geo.Collinear(),
+        geo.Collinear.from_std(),
         ("Axes1/YAxis/Line0", "Axes1/Frame/Line0"),
     )
     layout.add_constraint(
-        geo.Collinear(),
+        geo.Collinear.from_std(),
         ("Axes1/YAxis/Line2", "Axes1/Frame/Line2"),
     )
 
     # Pin the x/y axis to the frame sie
     layout.add_constraint(
-        geo.Collinear(),
+        geo.Collinear.from_std(),
         ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"),
     )
     layout.add_constraint(
-        geo.Collinear(),
+        geo.Collinear.from_std(),
         ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"),
     )
 

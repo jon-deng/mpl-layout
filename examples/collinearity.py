@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     ## Create an origin point
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-    layout.add_constraint(geo.PointLocation(np.array([0, 0])), (PrimIdx("Origin"),))
+    layout.add_constraint(geo.PointLocation.from_std(np.array([0, 0])), (PrimIdx("Origin"),))
 
     ## Create two lines
     vert_coords = [[0, 0], [1, 0]]
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     layout.add_constraint(
         geo.CoincidentPoints(), (PrimIdx("LineA.Point0"), PrimIdx("Origin"))
     )
-    layout.add_constraint(geo.Horizontal(), (PrimIdx("LineA"),))
+    layout.add_constraint(geo.Horizontal.from_std(), (PrimIdx("LineA"),))
     layout.add_constraint(
         geo.DirectedDistance(5, [1, 0]),
         (PrimIdx("LineA.Point0"), PrimIdx("LineA.Point1")),
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     layout.add_constraint(
         geo.CoincidentPoints(), (PrimIdx("LineA.Point1"), PrimIdx("LineB.Point0"))
     )
-    layout.add_constraint(geo.Collinear(), (PrimIdx("LineA"), PrimIdx("LineB")))
+    layout.add_constraint(geo.Collinear.from_std(), (PrimIdx("LineA"), PrimIdx("LineB")))
     layout.add_constraint(
         geo.DirectedDistance(5, [1, 0]),
         (PrimIdx("LineB.Point0"), PrimIdx("LineB.Point1")),
