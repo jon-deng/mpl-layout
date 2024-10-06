@@ -47,50 +47,53 @@ class Constraint(Node[ConstraintValue]):
 
     Attributes
     ----------
-    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
+    ARG_TYPES: tp.Tuple[tp.Type[Primitive], ...]
         The primitive types accepted by `assem_res`
 
         These are the primitive types the constraint applies on.
     """
 
-    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
-    _CONSTANTS: tp.Type[collections.namedtuple] = collections.namedtuple('Constants', ())
+    ARG_TYPES: tp.Tuple[type[Primitive], ...]
+    CONSTANTS: type[collections.namedtuple] = collections.namedtuple('Constants', ())
 
-    _CHILD_TYPES: tp.Tuple[tp.Type['Constraint'], ...] = ()
-    _CHILD_KEYS: tp.Tuple[str, ...] = ()
-    # NOTE: I think the class should be able to specify what the constants are for
-    # any child constraints but this isn't possible to do with knowing the parent constraints
-    # _CHILD_CONSTANTS: tp.Tuple[Any, ...]
-    _CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
+    CHILD_TYPES: tp.Tuple[type['Constraint'], ...] = ()
+    CHILD_KEYS: tp.Tuple[str, ...] = ()
+    CHILD_CONSTANTS: tp.Callable[
+        [type['Constraint'], Constants],
+        tp.Tuple[Constants, ...]
+    ]
+    CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
+
+    @classmethod
+    def CHILD_CONSTANTS(cls, constants: Constants):
+        # Use default constants if not specified
+        return len(cls.CHILD_TYPES) * ({},)
 
     @classmethod
     def from_std(
         cls,
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
-        child_constants: tp.Tuple[Constants, ...] = None
     ):
-        if child_constants is None:
-            child_constants = ({},) * len(cls._CHILD_TYPES)
-
         if isinstance(constants, dict):
-            constants = cls._CONSTANTS(**constants)
+            constants = cls.CONSTANTS(**constants)
         elif isinstance(constants, tuple):
-            constants = cls._CONSTANTS(*constants)
-        elif isinstance(constants, cls._CONSTANTS):
-            constants = constants
+            constants = cls.CONSTANTS(*constants)
+        elif isinstance(constants, cls.CONSTANTS):
+            pass
         else:
             raise TypeError()
 
         if arg_keys is None:
-            arg_keys = tuple(f'arg{n}' for n in range(len(cls._PRIMITIVE_TYPES)))
+            arg_keys = tuple(f'arg{n}' for n in range(len(cls.ARG_TYPES)))
         elif isinstance(arg_keys, tuple):
             pass
 
+        child_constants = cls.CHILD_CONSTANTS(constants)
         children = {
             key: ChildType.from_std(constant, arg_keys=ChildArgs)
             for key, ChildType, constant, ChildArgs
-            in zip(cls._CHILD_KEYS, cls._CHILD_TYPES, child_constants, cls._CHILD_ARGS)
+            in zip(cls.CHILD_KEYS, cls.CHILD_TYPES, child_constants, cls.CHILD_ARGS)
         }
 
         return cls((constants, arg_keys), children)
@@ -149,8 +152,8 @@ class DirectedDistance(Constraint):
     A constraint on distance between two points along a direction
     """
 
-    _PRIMITIVE_TYPES = (pr.Point, pr.Point)
-    _CONSTANTS = collections.namedtuple("Constants", ["distance", "direction"])
+    ARG_TYPES = (pr.Point, pr.Point)
+    CONSTANTS = collections.namedtuple("Constants", ["distance", "direction"])
 
     def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point]):
         """
@@ -197,8 +200,8 @@ class PointLocation(Constraint):
     A constraint on the location of a point
     """
 
-    _PRIMITIVE_TYPES = (pr.Point,)
-    _CONSTANTS = collections.namedtuple("Constants", ["location"])
+    ARG_TYPES = (pr.Point,)
+    CONSTANTS = collections.namedtuple("Constants", ["location"])
 
     def assem_res(self, prims):
         """
@@ -213,8 +216,8 @@ class CoincidentPoints(Constraint):
     A constraint on coincide of two points
     """
 
-    _PRIMITIVE_TYPES = (pr.Point, pr.Point)
-    _CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_TYPES = (pr.Point, pr.Point)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims):
         """
@@ -232,8 +235,8 @@ class Length(Constraint):
     A constraint on the length of a line
     """
 
-    _PRIMITIVE_TYPES = (pr.Line,)
-    _CONSTANTS = collections.namedtuple("Constants", ["length"])
+    ARG_TYPES = (pr.Line,)
+    CONSTANTS = collections.namedtuple("Constants", ["length"])
 
     def assem_res(self, prims):
         """
@@ -250,8 +253,8 @@ class RelativeLength(Constraint):
     A constraint on relative length between two lines
     """
 
-    _CONSTANTS = collections.namedtuple("Constants", ["length"])
-    _PRIMITIVE_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", ["length"])
+    ARG_TYPES = (pr.Line, pr.Line)
 
     def assem_res(self, prims):
         """
@@ -269,8 +272,8 @@ class Orthogonal(Constraint):
     A constraint on orthogonality of two lines
     """
 
-    _PRIMITIVE_TYPES = (pr.Line, pr.Line)
-    _CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -287,8 +290,8 @@ class Parallel(Constraint):
     A constraint on parallelism of two lines
     """
 
-    _PRIMITIVE_TYPES = (pr.Line, pr.Line)
-    _CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -305,8 +308,8 @@ class Vertical(Constraint):
     A constraint that a line must be vertical
     """
 
-    _PRIMITIVE_TYPES = (pr.Line,)
-    _CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_TYPES = (pr.Line,)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
@@ -322,8 +325,8 @@ class Horizontal(Constraint):
     A constraint that a line must be horizontal
     """
 
-    _PRIMITIVE_TYPES = (pr.Line,)
-    _CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_TYPES = (pr.Line,)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
@@ -339,8 +342,8 @@ class Angle(Constraint):
     A constraint on the angle between two lines
     """
 
-    _PRIMITIVE_TYPES = (pr.Line, pr.Line)
-    _CONSTANTS = collections.namedtuple("Constants", ["angle"])
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", ["angle"])
 
     def assem_res(self, prims):
         """
@@ -360,8 +363,8 @@ class Collinear(Constraint):
     A constraint on the collinearity of two lines
     """
 
-    _PRIMITIVE_TYPES = (pr.Line, pr.Line)
-    _CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -385,28 +388,12 @@ class Box(Constraint):
     Constrain a `Quadrilateral` to have horizontal tops/bottom and vertical sides
     """
 
-    _PRIMITIVE_TYPES = (pr.Quadrilateral,)
-    _CONSTANTS = collections.namedtuple("Constants", [])
-    _CHILD_KEYS = ('HorizontalBottom', 'HorizontalTop', 'VerticalLeft', 'VerticalRight')
-    _CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
-    _CHILD_ARGS = (('arg0/Line0',), ('arg0/Line2',), ('arg0/Line3',), ('arg0/Line1',))
+    ARG_TYPES = (pr.Quadrilateral,)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
-    # def assem_res(self, prims):
-    #     """
-    #     Return the error in the 'boxiness'
-    #     """
-    #     (quad,) = prims
-    #     horizontal = Horizontal.from_std({})
-    #     vertical = Vertical.from_std({})
-    #     res = jnp.concatenate(
-    #         [
-    #             horizontal((quad[0],)),
-    #             horizontal((quad[2],)),
-    #             vertical((quad[1],)),
-    #             vertical((quad[3],)),
-    #         ]
-    #     )
-    #     return res
+    CHILD_KEYS = ('HorizontalBottom', 'HorizontalTop', 'VerticalLeft', 'VerticalRight')
+    CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
+    CHILD_ARGS = (('arg0/Line0',), ('arg0/Line2',), ('arg0/Line3',), ('arg0/Line1',))
 
     def assem_res(self, prims):
         return np.array([])
@@ -414,11 +401,10 @@ class Box(Constraint):
 
 ## Grid constraints
 
-
 class Grid(Constraint):
 
-    _PRIMITIVE_TYPES = (pr.Quadrilateral,)
-    _CONSTANTS = collections.namedtuple(
+    ARG_TYPES = (pr.Quadrilateral,)
+    CONSTANTS = collections.namedtuple(
         "Constants", ("shape", "horizontal_margins", "vertical_margins", "widths", "heights")
     )
 
