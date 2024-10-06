@@ -59,10 +59,8 @@ class Constraint(Node[ConstraintValue]):
     @classmethod
     def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
         prim_keys = tuple('arg{n}' for n in range(len(cls._PRIMITIVE_TYPES)))
-        value = (constants, prim_keys)
         children = ()
         keys = ()
-        constants, prim_keys = value
         if isinstance(constants, dict):
             constants = cls._CONSTANTS(**constants)
         elif isinstance(constants, tuple):
@@ -72,7 +70,7 @@ class Constraint(Node[ConstraintValue]):
         else:
             raise TypeError()
 
-        return cls((constants, value), {key: child for key, child in zip(keys, children)})
+        return cls((constants, prim_keys), {key: child for key, child in zip(keys, children)})
 
     @property
     def constants(self):
