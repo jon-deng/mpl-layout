@@ -70,11 +70,7 @@ class Constraint(Node[ConstraintValue]):
         return len(cls.CHILD_TYPES) * ({},)
 
     @classmethod
-    def from_std(
-        cls,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
+    def load_constants(cls, constants: Constants):
         if isinstance(constants, dict):
             constants = cls.CONSTANTS(**constants)
         elif isinstance(constants, tuple):
@@ -83,6 +79,15 @@ class Constraint(Node[ConstraintValue]):
             pass
         else:
             raise TypeError()
+        return constants
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        constants = cls.load_constants(constants)
 
         if arg_keys is None:
             arg_keys = tuple(f'arg{n}' for n in range(len(cls.ARG_TYPES)))
@@ -170,8 +175,13 @@ class DirectedDistance(Constraint):
 class XDistance(DirectedDistance):
 
     @classmethod
-    def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
         direction = np.array([1, 0])
+
         if isinstance(constants, dict):
             constants = constants.copy()
             constants.update({'direction': direction})
@@ -184,7 +194,11 @@ class XDistance(DirectedDistance):
 class YDistance(DirectedDistance):
 
     @classmethod
-    def from_std(cls, constants: dict[str, tp.Any] | tp.Tuple[tp.Any, ...]):
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
         direction = np.array([0, 1])
         if isinstance(constants, dict):
             constants = constants.copy()
@@ -416,7 +430,6 @@ class RectilinearGrid(Constraint):
         cls,
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
-        child_constants: tp.Tuple[Constants, ...] = None
     ):
         _temp = super().from_std(constants)
         shape = _temp.constants.shape
@@ -454,6 +467,7 @@ class RectilinearGrid(Constraint):
     def assem_res(self, prims):
         return np.array([])
 
+
 class Grid(Constraint):
 
     ARG_TYPES = (pr.Quadrilateral,)
@@ -466,7 +480,6 @@ class Grid(Constraint):
         cls,
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
-        child_constants: tp.Tuple[Constants, ...] = None
     ):
         _temp = super().from_std(constants)
         num_args = np.prod(_temp.constants.shape)
