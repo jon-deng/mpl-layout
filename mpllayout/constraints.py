@@ -394,6 +394,38 @@ class Collinear(Constraint):
         )
 
 
+class CollinearLines(Constraint):
+    """
+    A constraint on the collinearity of 2 or more lines
+    """
+
+    ARG_TYPES = None
+    CONSTANTS = collections.namedtuple("Constants", ("size",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        size = _constants.size
+        if size < 1:
+            raise ValueError()
+
+        cls.ARG_TYPES = size*(pr.Line,)
+
+        cls.CHILD_TYPES = (size-1)*(Collinear,)
+        cls.CHILD_ARGS = tuple(('arg0', f'arg{n}') for n in range(1, size))
+        cls.CHILD_KEYS = tuple(f'Collinear[0][{n}]' for n in range(1, size))
+        cls.CHILD_CONSTANTS = lambda constants: (constants.size-1)*((),)
+
+        return super().from_std(constants)
+
+    def assem_res(self, prims):
+        return np.array([])
+
+
 ## Closed polyline constraints
 
 
@@ -441,24 +473,36 @@ class RectilinearGrid(Constraint):
 
         # Specify child constraints given the grid shape
 
-        # line up bot/top/right/left
+        # Line up bot/top/left/right
         def flat_idx(row, col):
             return row*num_col + col
-        CHILD_TYPES = 4*(num_args-1)*(Collinear,)
+        CHILD_TYPES = 2*num_row*(CollinearLines,) + 2*num_col*(CollinearLines,)
         CHILD_ARGS = [
-            (f'arg{flat_idx(nrow, 0)}/Line0', f'arg{flat_idx(nrow, ncol)}/Line0')
-            for nrow, ncol in itertools.product(range(num_row), range(1, num_col))
+            tuple(f'arg{flat_idx(nrow, ncol)}/Line0' for ncol in range(num_col))
+            for nrow in range(num_row)
         ] + [
-            (f'arg{flat_idx(nrow, 0)}/Line2', f'arg{flat_idx(nrow, ncol)}/Line2')
-            for nrow, ncol in itertools.product(range(num_row), range(1, num_col))
+            tuple(f'arg{flat_idx(nrow, ncol)}/Line2' for ncol in range(num_col))
+            for nrow in range(num_row)
         ] + [
-            (f'arg{flat_idx(0, ncol)}/Line1', f'arg{flat_idx(nrow, ncol)}/Line1')
-            for nrow, ncol in itertools.product(range(1, num_row), range(num_col))
+            tuple(f'arg{flat_idx(nrow, ncol)}/Line3' for nrow in range(num_row))
+            for ncol in range(num_col)
         ] + [
-            (f'arg{flat_idx(0, ncol)}/Line3', f'arg{flat_idx(nrow, ncol)}/Line3')
-            for nrow, ncol in itertools.product(range(1, num_row), range(num_col))
+            tuple(f'arg{flat_idx(nrow, ncol)}/Line1' for nrow in range(num_row))
+            for ncol in range(num_col)
         ]
-        CHILD_KEYS = num_args*('AlignBottom',) + num_args*('AlignTop',) + num_args*('AlignRight',) + num_args*('AlignLeft',)
+        CHILD_KEYS =(
+            [f'AlignBottomForRow{nrow}' for nrow in range(num_row)]
+            + [f'AlignTopForRow{nrow}' for nrow in range(num_row)]
+            + [f'AlignLeftForRow{ncol}' for ncol in range(num_col)]
+            + [f'AlignRightForRow{ncol}' for ncol in range(num_col)]
+        )
+
+        cls.CHILD_CONSTANTS = lambda constants: (
+            [(constants.shape[1],) for nrow in range(constants.shape[0])]
+            +[(constants.shape[1],) for nrow in range(constants.shape[0])]
+            +[(constants.shape[0],) for ncol in range(constants.shape[1])]
+            +[(constants.shape[0],) for ncol in range(constants.shape[1])]
+        )
 
         cls.CHILD_TYPES = CHILD_TYPES
         cls.CHILD_ARGS = CHILD_ARGS
