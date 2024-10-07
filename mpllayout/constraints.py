@@ -89,16 +89,44 @@ class Constraint(Node[ConstraintValue]):
     ):
         constants = cls.load_constants(constants)
 
+        # `arg_keys` specifies the keys from a root primitive that gives the primitives
+        # for `assem_res(prims)`.
+        # If `arg_keys` is not supplied (the constraint is top-level constraint) then these
+        # are simply f'arg{n}' for integer argument numbers `n`
+        # Child keys `arg_keys` are assumed to index from `arg_keys`
         if arg_keys is None:
             arg_keys = tuple(f'arg{n}' for n in range(len(cls.ARG_TYPES)))
-        elif isinstance(arg_keys, tuple):
-            pass
+
+        # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
+        def get_parent_arg_number(arg_key: str):
+            arg_number_str = arg_key.split('/', 1)[0]
+            if arg_number_str[:3] == 'arg':
+                arg_number = int(arg_number_str[3:])
+            else:
+                raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
+            return arg_number
+
+        parent_args_numbers = [
+            tuple(get_parent_arg_number(arg_key) for arg_key in carg_keys)
+            for carg_keys in cls.CHILD_ARGS
+        ]
+        parent_args = [
+            tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
+            for parent_arg_nums in parent_args_numbers
+        ]
+        child_args = tuple(
+            tuple(
+                "/".join([parent_arg_key]+arg_key.split('/', 1)[1:])
+                for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
+            )
+            for parent_arg_keys, carg_keys in zip(parent_args, cls.CHILD_ARGS)
+        )
 
         child_constants = cls.CHILD_CONSTANTS(constants)
         children = {
-            key: ChildType.from_std(constant, arg_keys=ChildArgs)
-            for key, ChildType, constant, ChildArgs
-            in zip(cls.CHILD_KEYS, cls.CHILD_TYPES, child_constants, cls.CHILD_ARGS)
+            key: ChildType.from_std(constant, arg_keys=arg_keys)
+            for key, ChildType, constant, arg_keys
+            in zip(cls.CHILD_KEYS, cls.CHILD_TYPES, child_constants, child_args)
         }
 
         return cls((constants, arg_keys), children)
@@ -188,7 +216,7 @@ class XDistance(DirectedDistance):
         elif isinstance(constants, tuple):
             constants = constants[:1] + (direction,)
 
-        return super().from_std(constants)
+        return super().from_std(constants, arg_keys)
 
 
 class YDistance(DirectedDistance):
@@ -206,7 +234,7 @@ class YDistance(DirectedDistance):
         elif isinstance(constants, tuple):
             constants = constants[:1] + (direction,)
 
-        return super().from_std(constants)
+        return super().from_std(constants, arg_keys)
 
 
 class PointLocation(Constraint):
@@ -419,8 +447,7 @@ class CollinearLines(Constraint):
         cls.CHILD_ARGS = tuple(('arg0', f'arg{n}') for n in range(1, size))
         cls.CHILD_KEYS = tuple(f'Collinear[0][{n}]' for n in range(1, size))
         cls.CHILD_CONSTANTS = lambda constants: (constants.size-1)*((),)
-
-        return super().from_std(constants)
+        return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
         return np.array([])
@@ -508,7 +535,7 @@ class RectilinearGrid(Constraint):
         cls.CHILD_ARGS = CHILD_ARGS
         cls.CHILD_KEYS = CHILD_KEYS
 
-        return super().from_std(constants)
+        return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
         return np.array([])
@@ -530,7 +557,7 @@ class Grid(Constraint):
         _constants = cls.load_constants(constants)
         num_args = np.prod(_constants.shape)
         cls.ARG_TYPES = num_args*(pr.Quadrilateral,)
-        return super().from_std(constants, tuple(f'arg{n}' for n in range(num_args)))
+        return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
         # boxes = np.array(prims).reshape(self._shape)
@@ -596,7 +623,6 @@ class Grid(Constraint):
 
             # Set horizontal widths
             length = self.constants.widths[jj]
-            # breakpoint()
             res_arrays.append(
                 RelativeLength.from_std((length,))((box_b["Line0"], box_topleft["Line0"]))
             )
