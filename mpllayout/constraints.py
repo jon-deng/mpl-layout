@@ -420,7 +420,7 @@ class RectilinearGrid(Constraint):
     Constrain quads to a rectilinear grid
     """
 
-    ARG_TYPES = (pr.Quadrilateral,)
+    ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
         "Constants", ("shape",)
     )
@@ -431,11 +431,13 @@ class RectilinearGrid(Constraint):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _temp = super().from_std(constants)
-        shape = _temp.constants.shape
+        _constants = cls.load_constants(constants)
+        shape = _constants.shape
 
         num_row, num_col = shape
         num_args = num_row*num_col
+
+        cls.ARG_TYPES = num_args*(pr.Quadrilateral,)
 
         # Specify child constraints given the grid shape
 
@@ -470,7 +472,7 @@ class RectilinearGrid(Constraint):
 
 class Grid(Constraint):
 
-    ARG_TYPES = (pr.Quadrilateral,)
+    ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
         "Constants", ("shape", "horizontal_margins", "vertical_margins", "widths", "heights")
     )
@@ -481,8 +483,9 @@ class Grid(Constraint):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _temp = super().from_std(constants)
-        num_args = np.prod(_temp.constants.shape)
+        _constants = cls.load_constants(constants)
+        num_args = np.prod(_constants.shape)
+        cls.ARG_TYPES = num_args*(pr.Quadrilateral,)
         return super().from_std(constants, tuple(f'arg{n}' for n in range(num_args)))
 
     def assem_res(self, prims):
