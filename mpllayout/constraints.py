@@ -309,6 +309,40 @@ class RelativeLength(Constraint):
         return jnp.sum(vec_a**2) - self.constants.length ** 2 * jnp.sum(vec_b**2)
 
 
+class RelativeLengths(Constraint):
+    """
+    A constraint on relative lengths of a set of lines
+    """
+
+    CONSTANTS = collections.namedtuple("Constants", ("lengths",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_args = len(_constants.lengths) + 1
+        cls.ARG_TYPES = num_args*(pr.Line,)
+
+        cls.CHILD_TYPES = (num_args-1)*(RelativeLength,)
+        cls.CHILD_ARGS = tuple(
+            (f'arg{n}', f'arg{num_args-1}') for n in range(num_args-1)
+        )
+        cls.CHILD_CONSTANTS = lambda constants: tuple(
+            (length,) for length in constants.lengths
+        )
+        cls.CHILD_KEYS = tuple(
+            f'RelativeLength{n}' for n in range(num_args-1)
+        )
+
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
+
+
 class Orthogonal(Constraint):
     """
     A constraint on orthogonality of two lines

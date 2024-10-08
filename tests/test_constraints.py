@@ -208,6 +208,32 @@ class TestLineConstraints(GeometryFixtures):
         res = constraint((lineb, line))
         assert np.all(np.isclose(res, 0))
 
+    @pytest.fixture()
+    def num_lines(self):
+        return 5
+
+    @pytest.fixture()
+    def relative_lengths(self, num_lines: int):
+        return np.random.rand(num_lines)
+
+    @pytest.fixture()
+    def displacements(self, num_lines: int):
+        return np.random.rand(num_lines, 2)
+
+    def test_RelativeLengths(self, line, displacements, relative_lengths):
+        num_lines = len(relative_lengths)
+        scales = relative_lengths[:, None, None] * np.diag(np.ones(2))
+        thetas = 2 * np.pi * np.random.rand(num_lines)
+        rotates = [self.make_rotation(theta) for theta in thetas]
+
+        lines = [
+            self.make_relative_line(line, displacement, scale @ rotate)
+            for displacement, scale, rotate in zip(displacements, scales, rotates)
+        ] + [line]
+        constraint = geo.RelativeLengths.from_std((relative_lengths,))
+        res = constraint(lines)
+        assert np.all(np.isclose(res, 0))
+
 
 class TestQuadConstraints(GeometryFixtures):
     # @pytest.fixture(params=[(2, 1)])
