@@ -552,10 +552,10 @@ class RectilinearGrid(Constraint):
             for ncol in range(num_col)
         ]
         CHILD_KEYS =(
-            [f'AlignBottomForRow{nrow}' for nrow in range(num_row)]
-            + [f'AlignTopForRow{nrow}' for nrow in range(num_row)]
-            + [f'AlignLeftForRow{ncol}' for ncol in range(num_col)]
-            + [f'AlignRightForRow{ncol}' for ncol in range(num_col)]
+            [f'CollinearRowBottom{nrow}' for nrow in range(num_row)]
+            + [f'CollinearRowTop{nrow}' for nrow in range(num_row)]
+            + [f'CollinearColumnLeft{ncol}' for ncol in range(num_col)]
+            + [f'CollinearColumnRight{ncol}' for ncol in range(num_col)]
         )
 
         cls.CHILD_CONSTANTS = lambda constants: (
