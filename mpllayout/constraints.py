@@ -343,6 +343,39 @@ class RelativeLengths(Constraint):
         return np.array([])
 
 
+class LineMidpointXDistance(Constraint):
+    """
+    Constrain the x-distance between two line midpoints
+    """
+
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple('Constants', ('distance',))
+
+    def assem_res(self, prims):
+        line0, line1 = prims
+        start_points = (line0['Point0'], line1['Point0'])
+        end_points = (line0['Point1'], line1['Point1'])
+        distance_start = XDistance.assem_res(self, start_points)
+        distance_end = XDistance.assem_res(self, end_points)
+        return 1/2*(distance_start+distance_end)
+
+class LineMidpointYDistance(Constraint):
+    """
+    Constrain the y-distance between two line midpoints
+    """
+
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple('Constants', ('distance',))
+
+    def assem_res(self, prims):
+        line0, line1 = prims
+        start_points = (line0['Point0'], line1['Point0'])
+        end_points = (line0['Point1'], line1['Point1'])
+        distance_start = YDistance.assem_res(self, start_points)
+        distance_end = YDistance.assem_res(self, end_points)
+        return 1/2*(distance_start+distance_end)
+
+
 class Orthogonal(Constraint):
     """
     A constraint on orthogonality of two lines
