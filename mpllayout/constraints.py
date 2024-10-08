@@ -596,6 +596,32 @@ class Grid(Constraint):
         _constants = cls.load_constants(constants)
         num_args = np.prod(_constants.shape)
         cls.ARG_TYPES = num_args*(pr.Quadrilateral,)
+
+        # Children constraints do:
+        # 1. Align all quads in a grid
+        # 2. Set relative column widths relative to column 0
+        # 3. Set relative row heights relative to row 0
+        cls.CHILD_TYPES = (RectilinearGrid, RelativeLengths, RelativeLengths)
+        cls.CHILD_KEYS = ('RectilinearGrid', 'ColumnWidths', 'RowHeights')
+
+        shape = _constants.shape
+        rows, cols = list(range(shape[0])), list(range(shape[1]))
+        cls.CHILD_ARGS = (
+            tuple(f'arg{n}' for n in range(num_args)),
+            tuple(
+                f'arg{idx_1d((row, col), shape)}/Line0'
+                for row, col in itertools.product([0], cols[1:] + cols[:1])
+            ),
+            tuple(
+                f'arg{idx_1d((row, col), shape)}/Line1'
+                for row, col in itertools.product(rows[1:] + rows[:1], [0])
+            )
+        )
+        cls.CHILD_CONSTANTS = lambda constants: (
+            {'shape': constants.shape},
+            {'lengths': constants.widths},
+            {'lengths': constants.heights}
+        )
         return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
@@ -622,30 +648,6 @@ class Grid(Constraint):
                 )
             )
 
-            # Set vertical widths
-            length = self.constants.heights[ii]
-            res_arrays.append(
-                RelativeLength.from_std((length,))((box_b["Line1"], box_topleft["Line1"]))
-            )
-
-            # Set vertical collinearity
-            res_arrays.append(
-                Collinear.from_std({})(
-                    (
-                        box_a["Line1"],
-                        box_b["Line1"],
-                    )
-                )
-            )
-            res_arrays.append(
-                Collinear.from_std({})(
-                    (
-                        box_a["Line3"],
-                        box_b["Line3"],
-                    )
-                )
-            )
-
         for ii, jj in itertools.product(range(num_row), range(num_col - 1)):
 
             # Set horizontal margins
@@ -657,30 +659,6 @@ class Grid(Constraint):
             res_arrays.append(
                 DirectedDistance.from_std((margin, np.array([1, 0])))(
                     (box_a["Line0/Point1"], box_b["Line0/Point0"])
-                )
-            )
-
-            # Set horizontal widths
-            length = self.constants.widths[jj]
-            res_arrays.append(
-                RelativeLength.from_std((length,))((box_b["Line0"], box_topleft["Line0"]))
-            )
-
-            # Set horizontal collinearity
-            res_arrays.append(
-                Collinear.from_std({})(
-                    (
-                        box_a["Line0"],
-                        box_b["Line0"],
-                    )
-                )
-            )
-            res_arrays.append(
-                Collinear.from_std({})(
-                    (
-                        box_a["Line2"],
-                        box_b["Line2"],
-                    )
                 )
             )
 
