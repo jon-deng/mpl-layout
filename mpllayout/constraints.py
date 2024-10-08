@@ -508,6 +508,13 @@ class Box(Constraint):
 
 ## Grid constraints
 
+def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
+    """
+    Return a 1D array index from a multi-dimensional array index
+    """
+    strides = shape[1:] + (1,)
+    return sum(axis_idx*stride for axis_idx, stride in zip(multi_idx, strides))
+
 class RectilinearGrid(Constraint):
     """
     Constrain quads to a rectilinear grid
@@ -535,20 +542,18 @@ class RectilinearGrid(Constraint):
         # Specify child constraints given the grid shape
 
         # Line up bot/top/left/right
-        def flat_idx(row, col):
-            return row*num_col + col
         CHILD_TYPES = 2*num_row*(CollinearLines,) + 2*num_col*(CollinearLines,)
         CHILD_ARGS = [
-            tuple(f'arg{flat_idx(nrow, ncol)}/Line0' for ncol in range(num_col))
+            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line0' for ncol in range(num_col))
             for nrow in range(num_row)
         ] + [
-            tuple(f'arg{flat_idx(nrow, ncol)}/Line2' for ncol in range(num_col))
+            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line2' for ncol in range(num_col))
             for nrow in range(num_row)
         ] + [
-            tuple(f'arg{flat_idx(nrow, ncol)}/Line3' for nrow in range(num_row))
+            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line3' for nrow in range(num_row))
             for ncol in range(num_col)
         ] + [
-            tuple(f'arg{flat_idx(nrow, ncol)}/Line1' for nrow in range(num_row))
+            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line1' for nrow in range(num_row))
             for ncol in range(num_col)
         ]
         CHILD_KEYS =(
