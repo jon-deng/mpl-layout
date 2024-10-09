@@ -17,8 +17,9 @@ ArrayShape = tp.Tuple[int, ...]
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
 
+ChildPrimitive = tp.TypeVar("ChildPrimitive", bound="Primitive")
 
-class Primitive(Node[NDArray, "Primitive"]):
+class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
     """
     A geometric primitive
 
@@ -64,7 +65,7 @@ class Primitive(Node[NDArray, "Primitive"]):
     # If it's a single type, then this implies a variable number of child primitives of that type
     # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
     CHILD_TYPES: tp.Union[
-        tp.Tuple[tp.Type["Primitive"], ...], tp.Type["Primitive"]
+        tp.Tuple[tp.Type[ChildPrimitive], ...], tp.Type[ChildPrimitive]
     ] = ()
     CHILD_KEYS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]] = None
 
@@ -148,7 +149,7 @@ class Point(Primitive):
     CHILD_KEYS = ()
 
 
-class Line(Primitive):
+class Line(Primitive[Point]):
     """
     A straight line segment between two points
     """
@@ -157,7 +158,7 @@ class Line(Primitive):
     PARAM_SHAPE = (0,)
 
 
-class Polygon(Primitive):
+class Polygon(Primitive[Line]):
     """
     A polygon through a given set of points
     """
@@ -205,7 +206,7 @@ class Quadrilateral(Polygon):
     CHILD_TYPES = (Line, Line, Line, Line)
 
 
-class Axes(Primitive):
+class Axes(Primitive[Quadrilateral]):
 
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Quadrilateral,)
@@ -213,7 +214,7 @@ class Axes(Primitive):
 
 
 
-class StandardAxes(Primitive):
+class StandardAxes(Primitive[Quadrilateral | Point]):
 
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
