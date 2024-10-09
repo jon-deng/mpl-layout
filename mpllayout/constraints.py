@@ -355,9 +355,37 @@ class LineMidpointXDistance(Constraint):
         line0, line1 = prims
         start_points = (line0['Point0'], line1['Point0'])
         end_points = (line0['Point1'], line1['Point1'])
-        distance_start = XDistance.assem_res(self, start_points)
-        distance_end = XDistance.assem_res(self, end_points)
-        return 1/2*(distance_start+distance_end)
+        distance_start = jnp.dot(start_points[1].value - start_points[0].value, np.array([1, 0]))
+        distance_end = jnp.dot(end_points[1].value - end_points[0].value, np.array([1, 0]))
+        return 1/2*(distance_start+distance_end) - self.constants.distance
+
+class LineMidpointXDistances(Constraint):
+    """
+    Constrain the x-distance between pairs of line midpoints
+    """
+
+    CONSTANTS = collections.namedtuple('Constants', ('distances',))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_child = len(_constants.distances)
+
+        cls.ARG_TYPES = num_child*(pr.Line, pr.Line)
+        cls.CHILD_TYPES = num_child*(LineMidpointXDistance,)
+        cls.CHILD_ARGS = tuple((f'arg{2*n}', f'arg{2*n+1}') for n in range(num_child))
+        cls.CHILD_KEYS = tuple(f'LineMidpointXDistance{n}' for n in range(num_child))
+        cls.CHILD_CONSTANTS = lambda constants: tuple((distance,) for distance in constants.distances)
+
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
+
 
 class LineMidpointYDistance(Constraint):
     """
@@ -371,9 +399,36 @@ class LineMidpointYDistance(Constraint):
         line0, line1 = prims
         start_points = (line0['Point0'], line1['Point0'])
         end_points = (line0['Point1'], line1['Point1'])
-        distance_start = YDistance.assem_res(self, start_points)
-        distance_end = YDistance.assem_res(self, end_points)
-        return 1/2*(distance_start+distance_end)
+        distance_start = jnp.dot(start_points[1].value - start_points[0].value, np.array([0, 1]))
+        distance_end = jnp.dot(end_points[1].value - end_points[0].value, np.array([0, 1]))
+        return 1/2*(distance_start+distance_end) - self.constants.distance
+
+class LineMidpointYDistances(Constraint):
+    """
+    Constrain the x-distance between pairs of line midpoints
+    """
+
+    CONSTANTS = collections.namedtuple('Constants', ('distances',))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_child = len(_constants.distances)
+
+        cls.ARG_TYPES = num_child*(pr.Line, pr.Line)
+        cls.CHILD_TYPES = num_child*(LineMidpointYDistance,)
+        cls.CHILD_ARGS = tuple((f'arg{2*n}', f'arg{2*n+1}') for n in range(num_child))
+        cls.CHILD_KEYS = tuple(f'LineMidpointYDistance{n}' for n in range(num_child))
+        cls.CHILD_CONSTANTS = lambda constants: tuple((distance,) for distance in constants.distances)
+
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
 
 
 class Orthogonal(Constraint):
@@ -634,11 +689,28 @@ class Grid(Constraint):
         # 1. Align all quads in a grid
         # 2. Set relative column widths relative to column 0
         # 3. Set relative row heights relative to row 0
-        cls.CHILD_TYPES = (RectilinearGrid, RelativeLengths, RelativeLengths)
-        cls.CHILD_KEYS = ('RectilinearGrid', 'ColumnWidths', 'RowHeights')
+        cls.CHILD_TYPES = (
+            RectilinearGrid, RelativeLengths, RelativeLengths, LineMidpointXDistances, LineMidpointYDistances
+        )
+        cls.CHILD_KEYS = (
+            'RectilinearGrid', 'ColumnWidths', 'RowHeights', 'ColumnMargins', 'RowMargins'
+        )
 
         shape = _constants.shape
         rows, cols = list(range(shape[0])), list(range(shape[1]))
+
+
+        col_labels = (
+            f'arg{idx_1d((0, col+offset), shape)}' for offset in (0, 1) for col in cols[:-1]
+        )
+        col_line_labels = itertools.cycle(('Line1', 'Line3', 'Line1', 'Line3'))
+
+        row_labels = (
+            f'arg{idx_1d((row+offset, 0), shape)}' for offset in (0, 1) for row in rows[:-1]
+        )
+        row_line_labels = itertools.cycle(('Line2', 'Line0', 'Line2', 'Line0'))
+
+
         cls.CHILD_ARGS = (
             tuple(f'arg{n}' for n in range(num_args)),
             tuple(
@@ -648,54 +720,27 @@ class Grid(Constraint):
             tuple(
                 f'arg{idx_1d((row, col), shape)}/Line1'
                 for row, col in itertools.product(rows[1:] + rows[:1], [0])
-            )
+            ),
+            tuple(
+                f'{col_label}/{line_label}'
+                for col_label, line_label in zip(col_labels, col_line_labels)
+            ),
+            tuple(
+                f'{row_label}/{line_label}'
+                for row_label, line_label in zip(row_labels, row_line_labels)
+            ),
         )
         cls.CHILD_CONSTANTS = lambda constants: (
             {'shape': constants.shape},
             {'lengths': constants.widths},
-            {'lengths': constants.heights}
+            {'lengths': constants.heights},
+            {'distances': constants.horizontal_margins},
+            {'distances': constants.vertical_margins}
         )
         return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
-        # boxes = np.array(prims).reshape(self._shape)
-
-        num_row, num_col = self.constants.shape
-
-        # Set the top left (0 box) to have the right width/height
-        (box_topleft, *_) = prims
-
-        res_arrays = [np.array([])]
-
-        for ii, jj in itertools.product(range(num_row - 1), range(num_col)):
-
-            # Set vertical margins
-            margin = self.constants.vertical_margins[ii]
-
-            box_a = prims[(ii) * num_col + jj]
-            box_b = prims[(ii + 1) * num_col + jj]
-
-            res_arrays.append(
-                DirectedDistance.from_std((margin, np.array([0, -1])))(
-                    (box_a["Line0/Point0"], box_b["Line2/Point1"])
-                )
-            )
-
-        for ii, jj in itertools.product(range(num_row), range(num_col - 1)):
-
-            # Set horizontal margins
-            margin = self.constants.horizontal_margins[jj]
-
-            box_a = prims[ii * num_col + (jj)]
-            box_b = prims[ii * num_col + (jj + 1)]
-
-            res_arrays.append(
-                DirectedDistance.from_std((margin, np.array([1, 0])))(
-                    (box_a["Line0/Point1"], box_b["Line0/Point0"])
-                )
-            )
-
-        return jnp.concatenate(res_arrays)
+        return np.array([])
 
 
 def line_vector(line: pr.Line):
