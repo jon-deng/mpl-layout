@@ -18,9 +18,10 @@ import itertools
 import jax
 
 T = tp.TypeVar("T")
+ChildType = tp.TypeVar("ChildType", bound="Node")
+AnyNode = tp.TypeVar("AnyNode", bound="Node")
 
-
-class Node(tp.Generic[T]):
+class Node(tp.Generic[T, ChildType]):
     """
     Tree structure with labelled child nodes
 
@@ -34,7 +35,7 @@ class Node(tp.Generic[T]):
         Child node labels
     """
 
-    def __init__(self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]):
+    def __init__(self, value: None | T, children: tp.Mapping[str, ChildType]):
         assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
@@ -74,7 +75,7 @@ class Node(tp.Generic[T]):
 
     ## Dict-like interface
 
-    def __contains__(self, key: str):
+    def __contains__(self, key: str) -> bool:
         split_keys = key.split("/")
         parent_key = split_keys[0]
         child_key = "/".join(split_keys[1:])
@@ -87,7 +88,7 @@ class Node(tp.Generic[T]):
     def __len__(self) -> int:
         return len(self.children)
 
-    def keys(self) -> tp.List[str]:
+    def keys(self):
         """
         Return child keys
 
@@ -100,7 +101,7 @@ class Node(tp.Generic[T]):
         """
         return list(self.children_map.keys())
 
-    def values(self, flat: bool = False) -> tp.List[T]:
+    def values(self, flat: bool = False):
         """
         Return child primitives
 
@@ -111,7 +112,7 @@ class Node(tp.Generic[T]):
         """
         return list(self.children_map.values())
 
-    def items(self, flat: bool = False) -> tp.List[tp.Tuple[str, "Node[T]"]]:
+    def items(self, flat: bool = False):
         """
         Return paired child keys and associated trees
 
@@ -122,7 +123,7 @@ class Node(tp.Generic[T]):
         """
         return self.children_map.items()
 
-    def __setitem__(self, key: tp.Union[str, int], node: "Node[T]"):
+    def __setitem__(self, key: str | int, node: AnyNode):
         """
         Set the node indexed by a slash-separated key
 
@@ -139,7 +140,7 @@ class Node(tp.Generic[T]):
         else:
             self[parent_key].children_map[child_key] = node
 
-    def __getitem__(self, key: tp.Union[str, int]) -> "Node[T]":
+    def __getitem__(self, key: str | int):
         """
         Return the value indexed by a slash-separated key
 
@@ -150,7 +151,7 @@ class Node(tp.Generic[T]):
         """
         return self.get_child(key)
 
-    def get_child(self, key: tp.Union[str, int]) -> "Node[T]":
+    def get_child(self, key: tp.Union[str, int]):
         if isinstance(key, int):
             return self.get_child_from_int(key)
         elif isinstance(key, str):
@@ -158,10 +159,10 @@ class Node(tp.Generic[T]):
         else:
             raise TypeError("")
 
-    def get_child_from_int(self, key: int) -> "Node[T]":
+    def get_child_from_int(self, key: int):
         return self.children[key]
 
-    def get_child_from_str(self, key: str) -> "Node[T]":
+    def get_child_from_str(self, key: str):
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
@@ -173,10 +174,10 @@ class Node(tp.Generic[T]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def get_child_from_str_nonrecursive(self, key: str) -> "Node[T]":
+    def get_child_from_str_nonrecursive(self, key: str):
         return self.children_map[key]
 
-    def add_child(self, key: str, child: "Node[T]"):
+    def add_child(self, key: str, child: AnyNode):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -197,7 +198,7 @@ class Node(tp.Generic[T]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+    def add_child_nonrecursive(self, key: str, child: ChildType):
         """
         Add a primitive indexed by a key
 
@@ -209,7 +210,7 @@ class Node(tp.Generic[T]):
             self.children_map[key] = child
 
 
-class OptionalKeyNode(Node[T]):
+class OptionalKeyNode(Node[T, ChildType]):
     """
     Tree structure with labelled child nodes
 
@@ -225,11 +226,11 @@ class OptionalKeyNode(Node[T]):
         Child node labels
     """
 
-    def __init__(self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]):
+    def __init__(self, value: None | T, children: tp.Mapping[str, ChildType]):
         self._child_counter = ItemCounter()
         super().__init__(value, children)
 
-    def add_child_nonrecursive(self, key: str, child: "Node[T]"):
+    def add_child_nonrecursive(self, key: str, child: AnyNode):
         """
         Add a primitive indexed by a key
 
@@ -297,7 +298,7 @@ NodeType = tp.Type[Node]
 FlatNodeStructure = tp.Tuple[NodeType, str, T, int]
 
 
-def iter_flat(key: str, node: Node) -> tp.Iterable[tp.Tuple[str, Node]]:
+def iter_flat(key: str, node: Node[T, ChildType]):
     """
     Return a flat iterator over all nodes
     """
@@ -353,13 +354,13 @@ def unflatten(
 # These functions register `Node` classes as a `jax.pytree` so jax can flatten/unflatten
 # them
 
-Children = tp.List[Node[T]]
+Children = tp.List[Node[T, ChildType]]
 FlatNode = tp.Tuple[T, Children]
 Keys = tp.List[str]
 AuxData = tp.Tuple[Keys]
 
 
-def _make_flatten_unflatten(NodeClass: tp.Type[Node[T]]):
+def _make_flatten_unflatten(NodeClass: tp.Type[Node[T, ChildType]]):
 
     def _flatten_node(node: NodeClass) -> tp.Tuple[FlatNode, AuxData]:
         flat_node = (node.value, node.children_map)

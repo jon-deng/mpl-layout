@@ -18,7 +18,7 @@ ArrayShape = tp.Tuple[int, ...]
 # defining appropriate class attributes
 
 
-class Primitive(Node[NDArray]):
+class Primitive(Node[NDArray, "Primitive"]):
     """
     A geometric primitive
 

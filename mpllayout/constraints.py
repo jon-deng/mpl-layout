@@ -22,7 +22,7 @@ PrimKeys = tp.Tuple[str, ...]
 ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
 
-class Constraint(Node[ConstraintValue]):
+class Constraint(Node[ConstraintValue, "Constraint"]):
     """
     A geometric constraint on primitives
 
@@ -146,7 +146,7 @@ class Constraint(Node[ConstraintValue]):
         )
         return self.assem_res_from_tree(root_prim)
 
-    def assem_res_from_tree(self, root_prim: Node[NDArray]):
+    def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive]):
         # flat_constraints = flatten('', self)
         residuals = tuple(
             constraint.assem_res_atleast_1d(
