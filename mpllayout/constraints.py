@@ -137,7 +137,7 @@ class Constraint(Node[ConstraintValue]):
         return self.value[0]
 
     @property
-    def prim_keys(self):
+    def arg_keys(self):
         return self.value[1]
 
     def __call__(self, prims: tp.Tuple[Primitive, ...]):
@@ -150,7 +150,7 @@ class Constraint(Node[ConstraintValue]):
         # flat_constraints = flatten('', self)
         residuals = tuple(
             constraint.assem_res_atleast_1d(
-                tuple(root_prim[arg_key] for arg_key in constraint.prim_keys)
+                tuple(root_prim[arg_key] for arg_key in constraint.arg_keys)
             )
             for _, constraint in iter_flat("", self)
         )
