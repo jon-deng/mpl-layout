@@ -738,14 +738,14 @@ class Grid(Constraint):
             for offset in (0, 1)
             for col in cols[:-1]
         )
-        col_line_labels = itertools.cycle(("Line1", "Line3", "Line1", "Line3"))
+        col_line_labels = itertools.cycle(("Line1", "Line3"))
 
         row_labels = (
             f"arg{idx_1d((row+offset, 0), shape)}"
-            for offset in (0, 1)
+            for offset in (1, 0)
             for row in rows[:-1]
         )
-        row_line_labels = itertools.cycle(("Line2", "Line0", "Line2", "Line0"))
+        row_line_labels = itertools.cycle(("Line2", "Line0"))
 
         cls.CHILD_ARGS = (
             tuple(f"arg{n}" for n in range(num_args)),
