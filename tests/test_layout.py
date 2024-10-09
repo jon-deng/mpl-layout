@@ -77,9 +77,9 @@ class TestLayout:
         )
 
         pprint(layout.root_prim)
-        pprint(layout.constraints)
-        pprint(layout.constraint_graph)
-        # pprint(layout.constraint_graph_int)
+        constraints, constraint_graph = layout.flat_constraints()
+        pprint(constraints)
+        pprint(constraint_graph)
 
 
 class TestUtilities:

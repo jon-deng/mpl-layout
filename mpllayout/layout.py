@@ -56,20 +56,20 @@ class Layout:
     def __init__(
         self,
         root_prim: tp.Optional[Node] = None,
-        constraints: tp.Optional[OptionalKeyNode] = None,
-        constraint_graph: tp.Optional[StrGraph] = None,
+        root_constraint: tp.Optional[OptionalKeyNode] = None,
+        root_constraint_graph: tp.Optional[StrGraph] = None,
     ):
 
         if root_prim is None:
             root_prim = Node(np.array([]), {})
-        if constraints is None:
-            constraints = OptionalKeyNode(None, {})
-        if constraint_graph is None:
-            constraint_graph = []
+        if root_constraint is None:
+            root_constraint = OptionalKeyNode(None, {})
+        if root_constraint_graph is None:
+            root_constraint_graph = []
 
         self._root_prim = root_prim
-        self._constraints = constraints
-        self._constraint_graph = constraint_graph
+        self._root_constraint = root_constraint
+        self._root_constraint_graph = root_constraint_graph
 
         self._prim_type_count = {}
         self._label_to_primidx = {}
@@ -82,12 +82,30 @@ class Layout:
         return self._root_prim
 
     @property
-    def constraints(self):
-        return self._constraints
+    def root_constraint(self):
+        return self._root_constraint
 
     @property
-    def constraint_graph(self) -> StrGraph:
-        return self._constraint_graph
+    def root_constraint_graph(self) -> StrGraph:
+        return self._root_constraint_graph
+
+    def flat_constraints(self):
+        constraints = []
+        constraint_graph = []
+        for constraint, global_arg_keys in zip(self.root_constraint, self.root_constraint_graph):
+            constraint: geo.Constraint
+            arg_key_replacements = {keya: keyb for keya, keyb in zip(constraint.arg_keys, global_arg_keys)}
+            for _, child_constraint in iter_flat('', constraint):
+                split_args = (key.split('/', 1) for key in child_constraint.arg_keys)
+                global_args = tuple(
+                    "/".join([arg_key_replacements[split_arg[0]]] + split_arg[1:])
+                    for split_arg in split_args
+                )
+
+                constraints.append(child_constraint.assem_res_atleast_1d)
+                constraint_graph.append(global_args)
+
+        return constraints, constraint_graph
 
     def add_prim(self, prim: geo.Primitive, key: str):
         """
@@ -117,8 +135,8 @@ class Layout:
         prim_labels:
             A tuple of strings referencing primitives (`self.root_prim`)
         """
-        self.constraints.add_child(key, constraint)
-        self.constraint_graph.append(prim_keys)
+        self.root_constraint.add_child(key, constraint)
+        self.root_constraint_graph.append(prim_keys)
 
 
 def build_prim_graph(

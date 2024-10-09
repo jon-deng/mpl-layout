@@ -134,8 +134,7 @@ class TestPrimitiveTree:
 
         prim_tree = layout.root_prim
         # prim_graph = prim_tree.prim_graph()
-        constraints = layout.constraints
-        constraint_graph_str = layout.constraint_graph
+        constraints, constraint_graph_str = layout.flat_constraints()
 
         # Plain call
 
@@ -184,8 +183,9 @@ class TestPrimitiveTree:
 
     def test_solve(self, layout: lay.Layout):
         prim_tree_n, solve_info = solver.solve(
-            layout.root_prim, layout.constraints, layout.constraint_graph
+            layout.root_prim, *layout.flat_constraints()
         )
+
         prim_keys_to_value = {
             key: prim.value for key, prim in cn.iter_flat("", prim_tree_n)
         }
