@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     ## Solve the constraints and form the figure/axes layout
     prim_tree_n, info = solver.solve(
-        layout.root_prim, layout.constraints, layout.constraint_graph
+        layout.root_prim, *layout.flat_constraints()
     )
 
     fig, axs = lplt.subplots(prim_tree_n)
@@ -162,9 +162,9 @@ if __name__ == "__main__":
 
     ax = axs["Axes1"]
 
-    lay.update_layout_constraints(layout.constraints, axs)
+    lay.update_layout_constraints(layout.root_constraint, axs)
     prim_tree_n, info = solver.solve(
-        layout.root_prim, layout.constraints, layout.constraint_graph
+        layout.root_prim, *layout.flat_constraints()
     )
     lplt.update_subplots(prim_tree_n, "Figure", fig, axs)
 

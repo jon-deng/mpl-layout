@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     ## Solve the constraints and form the figure/axes layout
     prims, info = solver.solve(
-        layout.root_prim, layout.constraints, layout.constraint_graph, max_iter=40
+        layout.root_prim, *layout.flat_constraints(), max_iter=40
     )
     pprint(info)
 

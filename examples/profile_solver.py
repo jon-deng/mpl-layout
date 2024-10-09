@@ -108,29 +108,31 @@ if __name__ == "__main__":
     prim_graph, prims = lay.build_prim_graph(layout.root_prim)
     prim_values = [prim.value for prim in prims]
 
+    constraints, constraint_graph = layout.flat_constraints()
+
     solver.assem_constraint_residual(
         layout.root_prim,
         prim_graph,
         prim_values,
-        layout.constraints,
-        layout.constraint_graph,
+        constraints,
+        constraint_graph
     )
-    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, layout.constraints, layout.constraint_graph)"
+    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, constraints, constraint_graph)"
     cProfile.run(stmt, "profile_wo_jax.prof")
     stats = pstats.Stats("profile_wo_jax.prof")
     stats.sort_stats("cumtime").print_stats(20)
 
     import jax
 
-    constraints_jit = [jax.jit(c) for c in layout.constraints]
+    constraints_jit = [jax.jit(c) for c in constraints]
     solver.assem_constraint_residual(
         layout.root_prim,
         prim_graph,
         prim_values,
         constraints_jit,
-        layout.constraint_graph,
+        constraint_graph,
     )
-    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, constraints_jit, layout.constraint_graph)"
+    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, constraints_jit, constraint_graph)"
     cProfile.run(stmt, "profile_w_jax.prof")
     stats = pstats.Stats("profile_w_jax.prof")
     stats.sort_stats("cumtime").print_stats(20)

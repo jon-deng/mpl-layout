@@ -15,10 +15,12 @@ from mpllayout import (
 
 
 def plot_layout(layout: lay.Layout, fig_path: str):
+
+    constraints, constraint_graph = layout.flat_constraints()
     prim_tree_n, info = solver.solve(
         layout.root_prim,
-        layout.constraints,
-        layout.constraint_graph,
+        constraints,
+        constraint_graph,
         max_iter=40,
         rel_tol=1e-9,
     )
@@ -184,10 +186,11 @@ if __name__ == "__main__":
     plot_layout(layout, "out/2Axes--10.png")
 
     ## Solve for the constrained positions of the primitives
+    constraints, constraint_graph = layout.flat_constraints()
     prims, info = solver.solve(
         layout.root_prim,
-        layout.constraints,
-        layout.constraint_graph,
+        constraints,
+        constraint_graph,
         max_iter=40,
         rel_tol=1e-9,
     )

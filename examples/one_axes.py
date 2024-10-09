@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     ## Solve the constraints and form the figure/axes layout
     prim_tree_n, info = solver.solve(
-        layout.root_prim, layout.constraints, layout.constraint_graph
+        layout.root_prim, *layout.flat_constraints()
     )
 
     print("Figure:", prim_tree_n["Figure"])
