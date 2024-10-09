@@ -54,6 +54,7 @@ def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
             color=line.get_color(),
         )
 
+
 def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
     """
     Plot any child primitives of a generic primitive
@@ -61,6 +62,7 @@ def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
     for key, child_prim in prim.items():
         plot = make_plot(child_prim)
         plot(ax, child_prim, key)
+
 
 ## Functions for plotting arbitrary geometric primitives
 def make_plot(
@@ -78,6 +80,7 @@ def make_plot(
         return plot_polygon
     else:
         return plot_generic_prim
+
 
 def plot_prims(ax: Axes, root_prim: geo.Primitive):
     """

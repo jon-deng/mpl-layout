@@ -44,7 +44,9 @@ class GeometryFixtures:
         Return a `geo.Line` with given origin and line vector
         """
         coords = (origin, origin + line_vec)
-        return geo.Line.from_std(value=[], children=tuple(geo.Point.from_std(x) for x in coords))
+        return geo.Line.from_std(
+            value=[], children=tuple(geo.Point.from_std(x) for x in coords)
+        )
 
     def make_relative_line(
         self, line: geo.Line, translation: NDArray, deformation: NDArray
@@ -139,12 +141,12 @@ class TestPointConstraints(GeometryFixtures):
         self, point: geo.Point, distance: float, direction: NDArray
     ):
         pointb = self.make_relative_point(point, distance * direction)
-        constraint = geo.DirectedDistance(distance, direction)
+        constraint = geo.DirectedDistance.from_std((distance, direction))
         res = constraint((point, pointb))
         assert np.all(np.isclose(res, 0))
 
     def test_PointLocation(self, point):
-        constraint = geo.PointLocation(point.value)
+        constraint = geo.PointLocation.from_std((point.value,))
         res = constraint((point,))
         assert np.all(np.isclose(res, 0))
 
@@ -173,7 +175,7 @@ class TestLineConstraints(GeometryFixtures):
         return (line, lineb)
 
     def test_Parallel(self, parallel_lines):
-        constraint = geo.Parallel()
+        constraint = geo.Parallel.from_std({})
         res = constraint(parallel_lines)
         assert np.all(np.isclose(res, 0))
 
@@ -185,12 +187,12 @@ class TestLineConstraints(GeometryFixtures):
         return (line, lineb)
 
     def test_Orthogonal(self, orthogonal_lines):
-        constraint = geo.Orthogonal()
+        constraint = geo.Orthogonal.from_std({})
         res = constraint(orthogonal_lines)
         assert np.all(np.isclose(res, 0))
 
     def test_Length(self, line, length):
-        constraint = geo.Length(length)
+        constraint = geo.Length.from_std((length,))
         res = constraint((line,))
         assert np.all(np.isclose(res, 0))
 
@@ -204,8 +206,34 @@ class TestLineConstraints(GeometryFixtures):
         rotate = self.make_rotation(theta)
 
         lineb = self.make_relative_line(line, displacement, scale @ rotate)
-        constraint = geo.RelativeLength(relative_length)
+        constraint = geo.RelativeLength.from_std((relative_length,))
         res = constraint((lineb, line))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def num_lines(self):
+        return 5
+
+    @pytest.fixture()
+    def relative_lengths(self, num_lines: int):
+        return np.random.rand(num_lines)
+
+    @pytest.fixture()
+    def displacements(self, num_lines: int):
+        return np.random.rand(num_lines, 2)
+
+    def test_RelativeLengths(self, line, displacements, relative_lengths):
+        num_lines = len(relative_lengths)
+        scales = relative_lengths[:, None, None] * np.diag(np.ones(2))
+        thetas = 2 * np.pi * np.random.rand(num_lines)
+        rotates = [self.make_rotation(theta) for theta in thetas]
+
+        lines = [
+            self.make_relative_line(line, displacement, scale @ rotate)
+            for displacement, scale, rotate in zip(displacements, scales, rotates)
+        ] + [line]
+        constraint = geo.RelativeLengths.from_std((relative_lengths,))
+        res = constraint(lines)
         assert np.all(np.isclose(res, 0))
 
 
@@ -239,18 +267,27 @@ class TestQuadConstraints(GeometryFixtures):
         rel_row_heights = 6 * np.ones(num_row - 1)
         row_margins = 3 * np.ones(num_row - 1)
 
-        return col_margins, row_margins, rel_col_widths, rel_row_heights
+        grid_kwargs = {
+            "horizontal_margins": col_margins,
+            "vertical_margins": row_margins,
+            "widths": rel_col_widths,
+            "heights": rel_row_heights,
+        }
+        return grid_kwargs
 
     @pytest.fixture()
     def quads(
         self,
         grid_origin_dimensions: tp.Tuple[float, float],
-        rel_grid_dimensions: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
+        rel_grid_dimensions: tp.Mapping[str, NDArray],
     ):
         origin = np.random.rand(2)
         origin = np.zeros(2)
 
-        col_margins, row_margins, rel_col_widths, rel_row_heights = rel_grid_dimensions
+        col_margins = rel_grid_dimensions["horizontal_margins"]
+        row_margins = rel_grid_dimensions["vertical_margins"]
+        rel_col_widths = rel_grid_dimensions["widths"]
+        rel_row_heights = rel_grid_dimensions["heights"]
 
         origin_width, origin_height = grid_origin_dimensions
         col_widths = origin_width * np.concatenate(([1], rel_col_widths))
@@ -266,7 +303,13 @@ class TestQuadConstraints(GeometryFixtures):
         grid_shape: tp.Tuple[int, int],
         rel_grid_dimensions: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
     ):
-        res = geo.Grid(grid_shape, *rel_grid_dimensions)(quads)
+        res = geo.Grid.from_std({"shape": grid_shape, **rel_grid_dimensions})(quads)
+        assert np.all(np.isclose(res, 0))
+
+    def test_RectilinearGrid(
+        self, quads: tp.List[geo.Quadrilateral], grid_shape: tp.Tuple[int, int]
+    ):
+        res = geo.RectilinearGrid.from_std({"shape": grid_shape})(quads)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -276,5 +319,7 @@ class TestQuadConstraints(GeometryFixtures):
         return self.make_quad(translation, deformation)
 
     def test_Box(self, quad_box: geo.Quadrilateral):
-        res = geo.Box()((quad_box,))
+        box = geo.Box.from_std({})
+        res = box((quad_box,))
+
         assert np.all(np.isclose(res, 0))

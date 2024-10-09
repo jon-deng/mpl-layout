@@ -5,17 +5,24 @@ Geometric constraints
 import typing as tp
 from numpy.typing import NDArray
 
+import collections
 import itertools
 
 import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
+from .containers import Node, iter_flat
 
 Primitive = pr.Primitive
 
 
-class Constraint:
+Constants = tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
+PrimKeys = tp.Tuple[str, ...]
+ConstraintValue = tp.Tuple[Constants, PrimKeys]
+
+
+class Constraint(Node[ConstraintValue]):
     """
     A geometric constraint on primitives
 
@@ -41,24 +48,115 @@ class Constraint:
 
     Attributes
     ----------
-    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
+    ARG_TYPES: tp.Tuple[tp.Type[Primitive], ...]
         The primitive types accepted by `assem_res`
 
         These are the primitive types the constraint applies on.
     """
 
-    _PRIMITIVE_TYPES: tp.Tuple[tp.Type[Primitive], ...]
+    ARG_TYPES: tp.Tuple[type[Primitive], ...]
+    CONSTANTS: type[collections.namedtuple] = collections.namedtuple("Constants", ())
 
-    def __init__(self, *args, **kwargs):
-        self._res_args = args
-        self._res_kwargs = kwargs
+    CHILD_TYPES: tp.Tuple[type["Constraint"], ...] = ()
+    CHILD_KEYS: tp.Tuple[str, ...] = ()
+    CHILD_CONSTANTS: tp.Callable[
+        [type["Constraint"], Constants], tp.Tuple[Constants, ...]
+    ]
+    CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
+
+    @classmethod
+    def CHILD_CONSTANTS(cls, constants: Constants):
+        # Use default constants if not specified
+        return len(cls.CHILD_TYPES) * ({},)
+
+    @classmethod
+    def load_constants(cls, constants: Constants):
+        if isinstance(constants, dict):
+            constants = cls.CONSTANTS(**constants)
+        elif isinstance(constants, tuple):
+            constants = cls.CONSTANTS(*constants)
+        elif isinstance(constants, cls.CONSTANTS):
+            pass
+        else:
+            raise TypeError()
+        return constants
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        constants = cls.load_constants(constants)
+
+        # `arg_keys` specifies the keys from a root primitive that gives the primitives
+        # for `assem_res(prims)`.
+        # If `arg_keys` is not supplied (the constraint is top-level constraint) then these
+        # are simply f'arg{n}' for integer argument numbers `n`
+        # Child keys `arg_keys` are assumed to index from `arg_keys`
+        if arg_keys is None:
+            arg_keys = tuple(f"arg{n}" for n in range(len(cls.ARG_TYPES)))
+
+        # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
+        def get_parent_arg_number(arg_key: str):
+            arg_number_str = arg_key.split("/", 1)[0]
+            if arg_number_str[:3] == "arg":
+                arg_number = int(arg_number_str[3:])
+            else:
+                raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
+            return arg_number
+
+        parent_args_numbers = [
+            tuple(get_parent_arg_number(arg_key) for arg_key in carg_keys)
+            for carg_keys in cls.CHILD_ARGS
+        ]
+        parent_args = [
+            tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
+            for parent_arg_nums in parent_args_numbers
+        ]
+        child_args = tuple(
+            tuple(
+                "/".join([parent_arg_key] + arg_key.split("/", 1)[1:])
+                for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
+            )
+            for parent_arg_keys, carg_keys in zip(parent_args, cls.CHILD_ARGS)
+        )
+
+        child_constants = cls.CHILD_CONSTANTS(constants)
+        children = {
+            key: ChildType.from_std(constant, arg_keys=arg_keys)
+            for key, ChildType, constant, arg_keys in zip(
+                cls.CHILD_KEYS, cls.CHILD_TYPES, child_constants, child_args
+            )
+        }
+
+        return cls((constants, arg_keys), children)
+
+    @property
+    def constants(self):
+        return self.value[0]
+
+    @property
+    def arg_keys(self):
+        return self.value[1]
 
     def __call__(self, prims: tp.Tuple[Primitive, ...]):
-        # Check the input primitives are valid
-        # assert len(prims) == len(self._PRIMITIVE_TYPES)
-        # for prim, prim_type in zip(prims, self._PRIMITIVE_TYPES):
-        #     assert issubclass(type(prim), prim_type)
+        root_prim = Node(
+            np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
+        )
+        return self.assem_res_from_tree(root_prim)
 
+    def assem_res_from_tree(self, root_prim: Node[NDArray]):
+        # flat_constraints = flatten('', self)
+        residuals = tuple(
+            constraint.assem_res_atleast_1d(
+                tuple(root_prim[arg_key] for arg_key in constraint.arg_keys)
+            )
+            for _, constraint in iter_flat("", self)
+        )
+        return jnp.concatenate(residuals)
+
+    def assem_res_atleast_1d(self, prims: tp.Tuple[Primitive, ...]) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims))
 
     def assem_res(self, prims: tp.Tuple[Primitive, ...]) -> NDArray:
@@ -87,17 +185,10 @@ class DirectedDistance(Constraint):
     A constraint on distance between two points along a direction
     """
 
-    def __init__(self, distance: float, direction: tp.Optional[NDArray] = None):
+    ARG_TYPES = (pr.Point, pr.Point)
+    CONSTANTS = collections.namedtuple("Constants", ["distance", "direction"])
 
-        self._PRIMITIVE_TYPES = (pr.Point, pr.Point)
-
-        if direction is None:
-            direction = np.array([1, 0])
-        else:
-            direction = np.array(direction)
-        super().__init__(distance=distance, direction=direction)
-
-    def assem_res(self, prims):
+    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point]):
         """
         Return the distance error between two points along a given direction
 
@@ -105,20 +196,45 @@ class DirectedDistance(Constraint):
         specified direction.
         """
         point0, point1 = prims
-        distance = jnp.dot(point1.value - point0.value, self._res_kwargs["direction"])
-        return distance - self._res_kwargs["distance"]
+        distance = jnp.dot(point1.value - point0.value, self.constants.direction)
+        return distance - self.constants.distance
 
 
 class XDistance(DirectedDistance):
 
-    def __init__(self, distance: float):
-        super().__init__(distance, direction=np.array([1, 0]))
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        direction = np.array([1, 0])
+
+        if isinstance(constants, dict):
+            constants = constants.copy()
+            constants.update({"direction": direction})
+        elif isinstance(constants, tuple):
+            constants = constants[:1] + (direction,)
+
+        return super().from_std(constants, arg_keys)
 
 
 class YDistance(DirectedDistance):
 
-    def __init__(self, distance: float):
-        super().__init__(distance, direction=np.array([0, 1]))
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        direction = np.array([0, 1])
+        if isinstance(constants, dict):
+            constants = constants.copy()
+            constants.update({"direction": direction})
+        elif isinstance(constants, tuple):
+            constants = constants[:1] + (direction,)
+
+        return super().from_std(constants, arg_keys)
 
 
 class PointLocation(Constraint):
@@ -126,16 +242,15 @@ class PointLocation(Constraint):
     A constraint on the location of a point
     """
 
-    def __init__(self, location: NDArray):
-        self._PRIMITIVE_TYPES = (pr.Point,)
-        super().__init__(location=location)
+    ARG_TYPES = (pr.Point,)
+    CONSTANTS = collections.namedtuple("Constants", ["location"])
 
     def assem_res(self, prims):
         """
         Return the location error for a point
         """
         (point,) = prims
-        return point.value - self._res_kwargs["location"]
+        return point.value - self.constants.location
 
 
 class CoincidentPoints(Constraint):
@@ -143,9 +258,8 @@ class CoincidentPoints(Constraint):
     A constraint on coincide of two points
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Point, pr.Point)
-        super().__init__()
+    ARG_TYPES = (pr.Point, pr.Point)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims):
         """
@@ -163,9 +277,8 @@ class Length(Constraint):
     A constraint on the length of a line
     """
 
-    def __init__(self, length: float):
-        self._PRIMITIVE_TYPES = (pr.Line,)
-        super().__init__(length=length)
+    ARG_TYPES = (pr.Line,)
+    CONSTANTS = collections.namedtuple("Constants", ["length"])
 
     def assem_res(self, prims):
         """
@@ -174,7 +287,7 @@ class Length(Constraint):
         # This sets the length of a line
         (line,) = prims
         vec = line_vector(line)
-        return jnp.sum(vec**2) - self._res_kwargs["length"] ** 2
+        return jnp.sum(vec**2) - self.constants.length**2
 
 
 class RelativeLength(Constraint):
@@ -182,9 +295,8 @@ class RelativeLength(Constraint):
     A constraint on relative length between two lines
     """
 
-    def __init__(self, length: float):
-        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
-        super().__init__(length=length)
+    CONSTANTS = collections.namedtuple("Constants", ["length"])
+    ARG_TYPES = (pr.Line, pr.Line)
 
     def assem_res(self, prims):
         """
@@ -194,7 +306,141 @@ class RelativeLength(Constraint):
         line0, line1 = prims
         vec_a = line_vector(line0)
         vec_b = line_vector(line1)
-        return jnp.sum(vec_a**2) - self._res_kwargs["length"] ** 2 * jnp.sum(vec_b**2)
+        return jnp.sum(vec_a**2) - self.constants.length**2 * jnp.sum(vec_b**2)
+
+
+class RelativeLengths(Constraint):
+    """
+    A constraint on relative lengths of a set of lines
+    """
+
+    CONSTANTS = collections.namedtuple("Constants", ("lengths",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_args = len(_constants.lengths) + 1
+        cls.ARG_TYPES = num_args * (pr.Line,)
+
+        cls.CHILD_TYPES = (num_args - 1) * (RelativeLength,)
+        cls.CHILD_ARGS = tuple(
+            (f"arg{n}", f"arg{num_args-1}") for n in range(num_args - 1)
+        )
+        cls.CHILD_CONSTANTS = lambda constants: tuple(
+            (length,) for length in constants.lengths
+        )
+        cls.CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(num_args - 1))
+
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
+
+
+class LineMidpointXDistance(Constraint):
+    """
+    Constrain the x-distance between two line midpoints
+    """
+
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", ("distance",))
+
+    def assem_res(self, prims):
+        line0, line1 = prims
+        start_points = (line0["Point0"], line1["Point0"])
+        end_points = (line0["Point1"], line1["Point1"])
+        distance_start = jnp.dot(
+            start_points[1].value - start_points[0].value, np.array([1, 0])
+        )
+        distance_end = jnp.dot(
+            end_points[1].value - end_points[0].value, np.array([1, 0])
+        )
+        return 1 / 2 * (distance_start + distance_end) - self.constants.distance
+
+
+class LineMidpointXDistances(Constraint):
+    """
+    Constrain the x-distance between pairs of line midpoints
+    """
+
+    CONSTANTS = collections.namedtuple("Constants", ("distances",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_child = len(_constants.distances)
+
+        cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
+        cls.CHILD_TYPES = num_child * (LineMidpointXDistance,)
+        cls.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        cls.CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
+        cls.CHILD_CONSTANTS = lambda constants: tuple(
+            (distance,) for distance in constants.distances
+        )
+
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
+
+
+class LineMidpointYDistance(Constraint):
+    """
+    Constrain the y-distance between two line midpoints
+    """
+
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", ("distance",))
+
+    def assem_res(self, prims):
+        line0, line1 = prims
+        start_points = (line0["Point0"], line1["Point0"])
+        end_points = (line0["Point1"], line1["Point1"])
+        distance_start = jnp.dot(
+            start_points[1].value - start_points[0].value, np.array([0, 1])
+        )
+        distance_end = jnp.dot(
+            end_points[1].value - end_points[0].value, np.array([0, 1])
+        )
+        return 1 / 2 * (distance_start + distance_end) - self.constants.distance
+
+
+class LineMidpointYDistances(Constraint):
+    """
+    Constrain the x-distance between pairs of line midpoints
+    """
+
+    CONSTANTS = collections.namedtuple("Constants", ("distances",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_child = len(_constants.distances)
+
+        cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
+        cls.CHILD_TYPES = num_child * (LineMidpointYDistance,)
+        cls.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        cls.CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
+        cls.CHILD_CONSTANTS = lambda constants: tuple(
+            (distance,) for distance in constants.distances
+        )
+
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
 
 
 class Orthogonal(Constraint):
@@ -202,9 +448,8 @@ class Orthogonal(Constraint):
     A constraint on orthogonality of two lines
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
-        super().__init__()
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -221,9 +466,8 @@ class Parallel(Constraint):
     A constraint on parallelism of two lines
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
-        super().__init__()
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -240,9 +484,8 @@ class Vertical(Constraint):
     A constraint that a line must be vertical
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Line,)
-        super().__init__()
+    ARG_TYPES = (pr.Line,)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
@@ -258,9 +501,8 @@ class Horizontal(Constraint):
     A constraint that a line must be horizontal
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Line,)
-        super().__init__()
+    ARG_TYPES = (pr.Line,)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
@@ -276,9 +518,8 @@ class Angle(Constraint):
     A constraint on the angle between two lines
     """
 
-    def __init__(self, angle: NDArray):
-        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
-        super().__init__(angle=angle)
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", ["angle"])
 
     def assem_res(self, prims):
         """
@@ -290,7 +531,7 @@ class Angle(Constraint):
 
         dir0 = dir0 / jnp.linalg.norm(dir0)
         dir1 = dir1 / jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - self._res_kwargs["angle"]
+        return jnp.arccos(jnp.dot(dir0, dir1)) - self.constants.angle
 
 
 class Collinear(Constraint):
@@ -298,15 +539,14 @@ class Collinear(Constraint):
     A constraint on the collinearity of two lines
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Line, pr.Line)
-        super().__init__()
+    ARG_TYPES = (pr.Line, pr.Line)
+    CONSTANTS = collections.namedtuple("Constants", [])
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the collinearity error
         """
-        res_parallel = Parallel()
+        res_parallel = Parallel.from_std({})
         line0, line1 = prims
         line2 = pr.Line.from_std(children=(line1[0], line0[0]))
         # line3 = primitives.Line.from_std(children=(line1['Point0'], line0['Point1']))
@@ -314,6 +554,37 @@ class Collinear(Constraint):
         return jnp.concatenate(
             [res_parallel((line0, line1)), res_parallel((line0, line2))]
         )
+
+
+class CollinearLines(Constraint):
+    """
+    A constraint on the collinearity of 2 or more lines
+    """
+
+    ARG_TYPES = None
+    CONSTANTS = collections.namedtuple("Constants", ("size",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        size = _constants.size
+        if size < 1:
+            raise ValueError()
+
+        cls.ARG_TYPES = size * (pr.Line,)
+
+        cls.CHILD_TYPES = (size - 1) * (Collinear,)
+        cls.CHILD_ARGS = tuple(("arg0", f"arg{n}") for n in range(1, size))
+        cls.CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
+        cls.CHILD_CONSTANTS = lambda constants: (constants.size - 1) * ((),)
+        return super().from_std(constants, arg_keys)
+
+    def assem_res(self, prims):
+        return np.array([])
 
 
 ## Closed polyline constraints
@@ -324,140 +595,188 @@ class Box(Constraint):
     Constrain a `Quadrilateral` to have horizontal tops/bottom and vertical sides
     """
 
-    def __init__(self):
-        self._PRIMITIVE_TYPES = (pr.Quadrilateral,)
-        super().__init__()
+    ARG_TYPES = (pr.Quadrilateral,)
+    CONSTANTS = collections.namedtuple("Constants", [])
+
+    CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
+    CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
+    CHILD_ARGS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
 
     def assem_res(self, prims):
-        """
-        Return the error in the 'boxiness'
-        """
-        (quad,) = prims
-        horizontal = Horizontal()
-        vertical = Vertical()
-        res = jnp.concatenate(
-            [
-                horizontal((quad[0],)),
-                horizontal((quad[2],)),
-                vertical((quad[1],)),
-                vertical((quad[3],)),
-            ]
-        )
-        return res
+        return np.array([])
 
 
 ## Grid constraints
 
 
-class Grid(Constraint):
+def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
+    """
+    Return a 1D array index from a multi-dimensional array index
+    """
+    strides = shape[1:] + (1,)
+    return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
-    def __init__(
-        self,
-        shape: tp.Tuple[int, ...],
-        horizontal_margins: tp.Union[float, NDArray[float]],
-        vertical_margins: tp.Union[float, NDArray[float]],
-        widths: tp.Union[float, NDArray[float]],
-        heights: tp.Union[float, NDArray[float]],
+
+class RectilinearGrid(Constraint):
+    """
+    Constrain quads to a rectilinear grid
+    """
+
+    ARG_TYPES = None
+    CONSTANTS = collections.namedtuple("Constants", ("shape",))
+
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
     ):
+        _constants = cls.load_constants(constants)
+        shape = _constants.shape
 
-        self._PRIMITIVE_TYPES = (pr.Quadrilateral,) * int(np.prod(shape))
+        num_row, num_col = shape
+        num_args = num_row * num_col
 
-        self._shape = shape
-        self._vertical_margins = vertical_margins
-        self._horizontal_margins = horizontal_margins
-        self._heights = heights
-        self._widths = widths
+        cls.ARG_TYPES = num_args * (pr.Quadrilateral,)
 
-        super().__init__()
+        # Specify child constraints given the grid shape
+
+        # Line up bot/top/left/right
+        CHILD_TYPES = 2 * num_row * (CollinearLines,) + 2 * num_col * (CollinearLines,)
+        CHILD_ARGS = (
+            [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line0" for ncol in range(num_col)
+                )
+                for nrow in range(num_row)
+            ]
+            + [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line2" for ncol in range(num_col)
+                )
+                for nrow in range(num_row)
+            ]
+            + [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line3" for nrow in range(num_row)
+                )
+                for ncol in range(num_col)
+            ]
+            + [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line1" for nrow in range(num_row)
+                )
+                for ncol in range(num_col)
+            ]
+        )
+        CHILD_KEYS = (
+            [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
+            + [f"CollinearRowTop{nrow}" for nrow in range(num_row)]
+            + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
+            + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
+        )
+
+        cls.CHILD_CONSTANTS = lambda constants: (
+            [(constants.shape[1],) for nrow in range(constants.shape[0])]
+            + [(constants.shape[1],) for nrow in range(constants.shape[0])]
+            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
+            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
+        )
+
+        cls.CHILD_TYPES = CHILD_TYPES
+        cls.CHILD_ARGS = CHILD_ARGS
+        cls.CHILD_KEYS = CHILD_KEYS
+
+        return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
-        # boxes = np.array(prims).reshape(self._shape)
+        return np.array([])
 
-        num_row, num_col = self._shape
 
-        # Set the top left (0 box) to have the right width/height
-        (box_topleft, *_) = prims
+class Grid(Constraint):
 
-        res_arrays = [np.array([])]
+    ARG_TYPES = None
+    CONSTANTS = collections.namedtuple(
+        "Constants",
+        ("shape", "horizontal_margins", "vertical_margins", "widths", "heights"),
+    )
 
-        for ii, jj in itertools.product(range(num_row - 1), range(num_col)):
+    @classmethod
+    def from_std(
+        cls,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...] = None,
+    ):
+        _constants = cls.load_constants(constants)
+        num_args = np.prod(_constants.shape)
+        cls.ARG_TYPES = num_args * (pr.Quadrilateral,)
 
-            # Set vertical margins
-            margin = self._vertical_margins[ii]
+        # Children constraints do:
+        # 1. Align all quads in a grid
+        # 2. Set relative column widths relative to column 0
+        # 3. Set relative row heights relative to row 0
+        cls.CHILD_TYPES = (
+            RectilinearGrid,
+            RelativeLengths,
+            RelativeLengths,
+            LineMidpointXDistances,
+            LineMidpointYDistances,
+        )
+        cls.CHILD_KEYS = (
+            "RectilinearGrid",
+            "ColumnWidths",
+            "RowHeights",
+            "ColumnMargins",
+            "RowMargins",
+        )
 
-            box_a = prims[(ii) * num_col + jj]
-            box_b = prims[(ii + 1) * num_col + jj]
+        shape = _constants.shape
+        rows, cols = list(range(shape[0])), list(range(shape[1]))
 
-            res_arrays.append(
-                DirectedDistance(margin, direction=np.array([0, -1]))(
-                    (box_a["Line0/Point0"], box_b["Line2/Point1"])
-                )
-            )
+        col_labels = (
+            f"arg{idx_1d((0, col+offset), shape)}"
+            for offset in (0, 1)
+            for col in cols[:-1]
+        )
+        col_line_labels = itertools.cycle(("Line1", "Line3"))
 
-            # Set vertical widths
-            length = self._heights[ii]
-            res_arrays.append(
-                RelativeLength(length)((box_b["Line1"], box_topleft["Line1"]))
-            )
+        row_labels = (
+            f"arg{idx_1d((row+offset, 0), shape)}"
+            for offset in (1, 0)
+            for row in rows[:-1]
+        )
+        row_line_labels = itertools.cycle(("Line2", "Line0"))
 
-            # Set vertical collinearity
-            res_arrays.append(
-                Collinear()(
-                    (
-                        box_a["Line1"],
-                        box_b["Line1"],
-                    )
-                )
-            )
-            res_arrays.append(
-                Collinear()(
-                    (
-                        box_a["Line3"],
-                        box_b["Line3"],
-                    )
-                )
-            )
+        cls.CHILD_ARGS = (
+            tuple(f"arg{n}" for n in range(num_args)),
+            tuple(
+                f"arg{idx_1d((row, col), shape)}/Line0"
+                for row, col in itertools.product([0], cols[1:] + cols[:1])
+            ),
+            tuple(
+                f"arg{idx_1d((row, col), shape)}/Line1"
+                for row, col in itertools.product(rows[1:] + rows[:1], [0])
+            ),
+            tuple(
+                f"{col_label}/{line_label}"
+                for col_label, line_label in zip(col_labels, col_line_labels)
+            ),
+            tuple(
+                f"{row_label}/{line_label}"
+                for row_label, line_label in zip(row_labels, row_line_labels)
+            ),
+        )
+        cls.CHILD_CONSTANTS = lambda constants: (
+            {"shape": constants.shape},
+            {"lengths": constants.widths},
+            {"lengths": constants.heights},
+            {"distances": constants.horizontal_margins},
+            {"distances": constants.vertical_margins},
+        )
+        return super().from_std(constants, arg_keys)
 
-        for ii, jj in itertools.product(range(num_row), range(num_col - 1)):
-
-            # Set horizontal margins
-            margin = self._horizontal_margins[jj]
-
-            box_a = prims[ii * num_col + (jj)]
-            box_b = prims[ii * num_col + (jj + 1)]
-
-            res_arrays.append(
-                DirectedDistance(margin, direction=np.array([1, 0]))(
-                    (box_a["Line0/Point1"], box_b["Line0/Point0"])
-                )
-            )
-
-            # Set horizontal widths
-            length = self._widths[jj]
-            # breakpoint()
-            res_arrays.append(
-                RelativeLength(length)((box_b["Line0"], box_topleft["Line0"]))
-            )
-
-            # Set horizontal collinearity
-            res_arrays.append(
-                Collinear()(
-                    (
-                        box_a["Line0"],
-                        box_b["Line0"],
-                    )
-                )
-            )
-            res_arrays.append(
-                Collinear()(
-                    (
-                        box_a["Line2"],
-                        box_b["Line2"],
-                    )
-                )
-            )
-
-        return jnp.concatenate(res_arrays)
+    def assem_res(self, prims):
+        return np.array([])
 
 
 def line_vector(line: pr.Line):

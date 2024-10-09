@@ -15,10 +15,12 @@ from mpllayout import (
 
 
 def plot_layout(layout: lay.Layout, fig_path: str):
+
+    constraints, constraint_graph = layout.flat_constraints()
     prim_tree_n, info = solver.solve(
         layout.root_prim,
-        layout.constraints,
-        layout.constraint_graph,
+        constraints,
+        constraint_graph,
         max_iter=40,
         rel_tol=1e-9,
     )
@@ -49,7 +51,7 @@ if __name__ == "__main__":
 
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     # Constrain the origin to be at (0, 0)
-    layout.add_constraint(geo.PointLocation(np.array([0, 0])), ("Origin",))
+    layout.add_constraint(geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",))
 
     plot_layout(layout, "out/2Axes--0.png")
 
@@ -58,9 +60,12 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     # Create the box with an initial size of 5 by 5 and call it 'Figure'
     layout.add_prim(
-        geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]), "Figure"
+        geo.Quadrilateral.from_std(
+            children=[geo.Point.from_std(vert) for vert in verts]
+        ),
+        "Figure",
     )
-    layout.add_constraint(geo.Box(), ("Figure",))
+    layout.add_constraint(geo.Box.from_std({}), ("Figure",))
 
     plot_layout(layout, "out/2Axes--1.png")
 
@@ -69,9 +74,16 @@ if __name__ == "__main__":
     verts = [[1, 1], [4, 1], [4, 4], [1, 4]]
     # Call the box 'Axes1'
     layout.add_prim(
-        geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts])]), "Axes1"
+        geo.Axes.from_std(
+            children=[
+                geo.Quadrilateral.from_std(
+                    children=[geo.Point.from_std(vert) for vert in verts]
+                )
+            ]
+        ),
+        "Axes1",
     )
-    layout.add_constraint(geo.Box(), ("Axes1/Frame",))
+    layout.add_constraint(geo.Box.from_std({}), ("Axes1/Frame",))
 
     plot_layout(layout, "out/2Axes--2.png")
 
@@ -80,9 +92,16 @@ if __name__ == "__main__":
     verts = [[2, 2], [5, 2], [5, 5], [2, 5]]
     # Call the box 'Axes2'
     layout.add_prim(
-        geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts])]), "Axes2"
+        geo.Axes.from_std(
+            children=[
+                geo.Quadrilateral.from_std(
+                    children=[geo.Point.from_std(vert) for vert in verts]
+                )
+            ]
+        ),
+        "Axes2",
     )
-    layout.add_constraint(geo.Box(), ("Axes2/Frame",))
+    layout.add_constraint(geo.Box.from_std({}), ("Axes2/Frame",))
 
     plot_layout(layout, "out/2Axes--3.png")
 
@@ -91,16 +110,18 @@ if __name__ == "__main__":
 
     # Constrain the bottom edge of the figure box to have length `fig_width`
     layout.add_constraint(
-        geo.Length(fig_width),
+        geo.Length.from_std((fig_width,)),
         ("Figure/Line0",),
     )
 
     # Constrain the right edge of the figure box to have length `fig_height`
-    layout.add_constraint(geo.Length(fig_height), ("Figure/Line1",))
+    layout.add_constraint(geo.Length.from_std((fig_height,)), ("Figure/Line1",))
 
     # Constrain the bottom corner point of the figure box
     # to be coincident with the origin
-    layout.add_constraint(geo.CoincidentPoints(), ("Figure/Line0/Point0", "Origin"))
+    layout.add_constraint(
+        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+    )
 
     plot_layout(layout, "out/2Axes--4.png")
 
@@ -108,7 +129,7 @@ if __name__ == "__main__":
 
     margin_left = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(margin_left, np.array([-1, 0])),
+        geo.DirectedDistance.from_std((margin_left, np.array([-1, 0]))),
         ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
     )
 
@@ -118,7 +139,7 @@ if __name__ == "__main__":
 
     margin_right = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(margin_right, np.array([1, 0])),
+        geo.DirectedDistance.from_std((margin_right, np.array([1, 0]))),
         ("Axes2/Frame/Line0/Point1", "Figure/Line0/Point1"),
     )
 
@@ -126,14 +147,14 @@ if __name__ == "__main__":
 
     ## Constrain the width of 'Axes1' by setting the length of the bottom edge
     width = 2
-    layout.add_constraint(geo.Length(width), ("Axes1/Frame/Line0",))
+    layout.add_constraint(geo.Length.from_std((width,)), ("Axes1/Frame/Line0",))
 
     plot_layout(layout, "out/2Axes--7.png")
 
     ## Constrain the gap between the left and right axes ('Axes1' and `Axes2`)
     margin_inter = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(margin_inter, np.array([1, 0])),
+        geo.DirectedDistance.from_std((margin_inter, np.array([1, 0]))),
         ("Axes1/Frame/Line0/Point1", "Axes2/Frame/Line0/Point0"),
     )
 
@@ -143,11 +164,11 @@ if __name__ == "__main__":
     margin_top = 1.0
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(margin_bottom, np.array([0, -1])),
+        geo.DirectedDistance.from_std((margin_bottom, np.array([0, -1]))),
         ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
     )
     layout.add_constraint(
-        geo.DirectedDistance(margin_top, np.array([0, 1])),
+        geo.DirectedDistance.from_std((margin_top, np.array([0, 1]))),
         ("Axes1/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
 
@@ -155,16 +176,21 @@ if __name__ == "__main__":
 
     ## Make the top/bottom edges of the right axes ('Axes2') line up with the
     # top/bottom edges of the left axes ('Axes1')
-    layout.add_constraint(geo.Collinear(), ("Axes1/Frame/Line0", "Axes2/Frame/Line0"))
-    layout.add_constraint(geo.Collinear(), ("Axes1/Frame/Line2", "Axes2/Frame/Line2"))
+    layout.add_constraint(
+        geo.Collinear.from_std({}), ("Axes1/Frame/Line0", "Axes2/Frame/Line0")
+    )
+    layout.add_constraint(
+        geo.Collinear.from_std({}), ("Axes1/Frame/Line2", "Axes2/Frame/Line2")
+    )
 
     plot_layout(layout, "out/2Axes--10.png")
 
     ## Solve for the constrained positions of the primitives
+    constraints, constraint_graph = layout.flat_constraints()
     prims, info = solver.solve(
         layout.root_prim,
-        layout.constraints,
-        layout.constraint_graph,
+        constraints,
+        constraint_graph,
         max_iter=40,
         rel_tol=1e-9,
     )

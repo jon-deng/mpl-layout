@@ -15,11 +15,11 @@ class TestNode:
     def node(self):
         childd = cn.Node(99, {})
         childe = cn.Node(9, {})
-        childb = cn.Node(2, {'d': childd, 'e': childe})
+        childb = cn.Node(2, {"d": childd, "e": childe})
 
         childa = cn.Node(1, {})
         childc = cn.Node(3, {})
-        node = cn.Node(0, {'a': childa, 'b': childb, 'c': childc})
+        node = cn.Node(0, {"a": childa, "b": childb, "c": childc})
         return node
 
     def test_repr(self, node: cn.Node):

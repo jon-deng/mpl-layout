@@ -34,9 +34,7 @@ class Node(tp.Generic[T]):
         Child node labels
     """
 
-    def __init__(
-        self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
-    ):
+    def __init__(self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]):
         assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
@@ -133,10 +131,10 @@ class Node(tp.Generic[T]):
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        split_keys = key.split('/')
-        parent_key = '/'.join(split_keys[:-1])
+        split_keys = key.split("/")
+        parent_key = "/".join(split_keys[:-1])
         child_key = split_keys[-1]
-        if parent_key == '':
+        if parent_key == "":
             self.children_map[child_key] = node
         else:
             self[parent_key].children_map[child_key] = node
@@ -210,6 +208,7 @@ class Node(tp.Generic[T]):
         else:
             self.children_map[key] = child
 
+
 class OptionalKeyNode(Node[T]):
     """
     Tree structure with labelled child nodes
@@ -226,9 +225,7 @@ class OptionalKeyNode(Node[T]):
         Child node labels
     """
 
-    def __init__(
-        self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]
-    ):
+    def __init__(self, value: tp.Union[None, T], children: tp.Mapping[str, "Node[T]"]):
         self._child_counter = ItemCounter()
         super().__init__(value, children)
 
