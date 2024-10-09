@@ -21,8 +21,9 @@ Constants = tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
 PrimKeys = tp.Tuple[str, ...]
 ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
+ChildConstraint = tp.TypeVar("ChildConstraint", bound="Constraint")
 
-class Constraint(Node[ConstraintValue, "Constraint"]):
+class Constraint(Node[ConstraintValue, ChildConstraint]):
     """
     A geometric constraint on primitives
 
@@ -309,7 +310,7 @@ class RelativeLength(Constraint):
         return jnp.sum(vec_a**2) - self.constants.length**2 * jnp.sum(vec_b**2)
 
 
-class RelativeLengths(Constraint):
+class RelativeLengths(Constraint[RelativeLength]):
     """
     A constraint on relative lengths of a set of lines
     """
@@ -362,7 +363,7 @@ class LineMidpointXDistance(Constraint):
         return 1 / 2 * (distance_start + distance_end) - self.constants.distance
 
 
-class LineMidpointXDistances(Constraint):
+class LineMidpointXDistances(Constraint[LineMidpointXDistance]):
     """
     Constrain the x-distance between pairs of line midpoints
     """
@@ -413,7 +414,7 @@ class LineMidpointYDistance(Constraint):
         return 1 / 2 * (distance_start + distance_end) - self.constants.distance
 
 
-class LineMidpointYDistances(Constraint):
+class LineMidpointYDistances(Constraint[LineMidpointXDistance]):
     """
     Constrain the x-distance between pairs of line midpoints
     """
@@ -556,7 +557,7 @@ class Collinear(Constraint):
         )
 
 
-class CollinearLines(Constraint):
+class CollinearLines(Constraint[Collinear]):
     """
     A constraint on the collinearity of 2 or more lines
     """
@@ -590,7 +591,7 @@ class CollinearLines(Constraint):
 ## Closed polyline constraints
 
 
-class Box(Constraint):
+class Box(Constraint[Horizontal | Vertical]):
     """
     Constrain a `Quadrilateral` to have horizontal tops/bottom and vertical sides
     """
@@ -617,7 +618,7 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
 
-class RectilinearGrid(Constraint):
+class RectilinearGrid(Constraint[CollinearLines]):
     """
     Constrain quads to a rectilinear grid
     """
@@ -693,7 +694,7 @@ class RectilinearGrid(Constraint):
         return np.array([])
 
 
-class Grid(Constraint):
+class Grid(Constraint[RectilinearGrid | RelativeLengths | LineMidpointXDistances | LineMidpointYDistances]):
 
     ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
