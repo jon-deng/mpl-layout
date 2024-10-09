@@ -171,6 +171,7 @@ import matplotlib as mpl
 from matplotlib.axes import Axes
 from matplotlib.axis import Axis, XAxis, YAxis
 
+
 def update_layout_constraints(constraints: Node, axs: tp.Mapping[str, Axes]) -> Node:
     # Update constraints based on bboxes
     from mpllayout.containers import Node
@@ -178,11 +179,16 @@ def update_layout_constraints(constraints: Node, axs: tp.Mapping[str, Axes]) -> 
     # Update x/y axis bbox dimensions
     for ax_key, ax in axs.items():
         dims = get_axis_bbox_dims(ax.xaxis)
-        constraints = update_bbox_dimension_constraints(constraints, f"{ax_key}.XAxis", *dims)
+        constraints = update_bbox_dimension_constraints(
+            constraints, f"{ax_key}.XAxis", *dims
+        )
 
         dims = get_axis_bbox_dims(ax.yaxis)
-        constraints = update_bbox_dimension_constraints(constraints, f"{ax_key}.YAxis", *dims)
+        constraints = update_bbox_dimension_constraints(
+            constraints, f"{ax_key}.YAxis", *dims
+        )
     return constraints
+
 
 def update_bbox_dimension_constraints(
     constraints: Node,
@@ -191,7 +197,7 @@ def update_bbox_dimension_constraints(
     height: float,
 ) -> Node:
     dims = (width, height)
-    dim_labels = ('Width', 'Height')
+    dim_labels = ("Width", "Height")
     constraint_labels = [f"{bbox_key}.{dim_label}" for dim_label in dim_labels]
     for dim_label, dim in zip(constraint_labels, dims):
         if dim_label in constraints:
@@ -200,6 +206,7 @@ def update_bbox_dimension_constraints(
             warnings.warn(f"'{bbox_key}' is missing a '{dim_label}' constraint")
 
     return constraints
+
 
 def get_axis_bbox_dims(axis: Axis):
     axes = axis.axes
@@ -223,4 +230,3 @@ def get_axis_bbox_dims(axis: Axis):
         raise TypeError
 
     return width, height
-

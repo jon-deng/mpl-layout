@@ -50,7 +50,9 @@ if __name__ == "__main__":
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     layout.add_prim(
-        geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts]),
+        geo.Quadrilateral.from_std(
+            children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+        ),
         "Figure",
     )
     layout.add_constraint(geo.Box.from_std({}), ("Figure",))
@@ -59,7 +61,9 @@ if __name__ == "__main__":
     fig_width, fig_height = 6, 3
     layout.add_constraint(geo.Length.from_std((fig_width,)), ("Figure/Line0",))
     # layout.add_constraint(geo.Length.from_std((fig_height,)), ("Figure/Line1",))
-    layout.add_constraint(geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin"))
+    layout.add_constraint(
+        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+    )
 
     ## Create the axes boxes
     axes_shape = (3, 4)
@@ -69,7 +73,13 @@ if __name__ == "__main__":
     for n in range(num_axes):
         layout.add_prim(
             geo.Axes.from_std(
-                children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])]
+                children=[
+                    geo.Quadrilateral.from_std(
+                        children=[
+                            geo.Point.from_std(vert_coords) for vert_coords in verts
+                        ]
+                    )
+                ]
             ),
             f"Axes{n}",
         )
@@ -79,17 +89,21 @@ if __name__ == "__main__":
     num_row, num_col = axes_shape
     layout.add_constraint(
         geo.Grid.from_std(
-            (axes_shape,
-            (num_col - 1) * [1 / 16],
-            (num_row - 1) * [1 / 16],
-            (num_col - 1) * [1],
-            (num_row - 1) * [1],)
+            (
+                axes_shape,
+                (num_col - 1) * [1 / 16],
+                (num_row - 1) * [1 / 16],
+                (num_col - 1) * [1],
+                (num_row - 1) * [1],
+            )
         ),
         tuple(f"Axes{n}/Frame" for n in range(num_axes)),
     )
 
     # Constrain the first axis aspect ratio
-    layout.add_constraint(geo.RelativeLength.from_std((2,)), ("Axes0/Frame/Line0", "Axes0/Frame/Line1"))
+    layout.add_constraint(
+        geo.RelativeLength.from_std((2,)), ("Axes0/Frame/Line0", "Axes0/Frame/Line1")
+    )
 
     # Constrain top/bottom margins
     margin_top = 1.1

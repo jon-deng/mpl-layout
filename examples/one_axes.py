@@ -15,13 +15,21 @@ if __name__ == "__main__":
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
+    box = geo.Quadrilateral.from_std(
+        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+    )
     layout.add_prim(box, "Figure")
     layout.add_constraint(geo.Box.from_std({}), ("Figure",))
 
     ## Create the axes box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])])
+    box = geo.Axes.from_std(
+        children=[
+            geo.Quadrilateral.from_std(
+                children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+            )
+        ]
+    )
     layout.add_prim(box, "Axes1")
     layout.add_constraint(geo.Box.from_std({}), ("Axes1/Frame",))
 
@@ -36,7 +44,9 @@ if __name__ == "__main__":
         ("Figure/Line1/Point0", "Figure/Line1/Point1"),
     )
 
-    layout.add_constraint(geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin"))
+    layout.add_constraint(
+        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+    )
 
     ## Constrain 'Axes1' margins
     # Constrain left/right margins

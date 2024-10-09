@@ -75,7 +75,6 @@ class Primitive(Node[NDArray]):
     #     keys: tp.Optional[tp.List[str]] = None,
     # ):
 
-
     #     super().__init__(value, children, keys)
 
     @classmethod
@@ -83,7 +82,7 @@ class Primitive(Node[NDArray]):
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None
+        keys: tp.Optional[tp.List[str]] = None,
     ):
         # NOTE: `Primitive` classes specify keys through `Primitive._PRIM_LABELS`
         # This is unlike `Node`, so `keys` is basically ignored!
@@ -180,7 +179,7 @@ class Polygon(Primitive):
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None
+        keys: tp.Optional[tp.List[str]] = None,
     ):
         if not isinstance(children, (tuple, list)):
             return super().from_std(value, children)
@@ -218,8 +217,9 @@ class Quadrilateral(Polygon):
 class Axes(Primitive):
 
     _PARAM_SHAPE = (0,)
-    _PRIM_TYPES = (Quadrilateral, )
+    _PRIM_TYPES = (Quadrilateral,)
     _PRIM_LABELS = ("Frame",)
+
 
 class StandardAxes(Primitive):
 

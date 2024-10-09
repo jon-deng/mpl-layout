@@ -21,12 +21,15 @@ class TestPrimitiveTree:
         verts = np.array([[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]])
 
         layout.add_prim(
-            geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]),
+            geo.Quadrilateral.from_std(
+                children=[geo.Point.from_std(vert) for vert in verts]
+            ),
             "MyFavouriteBox",
         )
         layout.add_constraint(geo.Box.from_std({}), ("MyFavouriteBox",))
         layout.add_constraint(
-            geo.PointLocation.from_std((np.array([0, 0]),)), ("MyFavouriteBox/Line0/Point0",)
+            geo.PointLocation.from_std((np.array([0, 0]),)),
+            ("MyFavouriteBox/Line0/Point0",),
         )
 
         layout.add_constraint(geo.Length.from_std((5.0,)), ("MyFavouriteBox/Line0",))
@@ -42,7 +45,9 @@ class TestPrimitiveTree:
         layout = lay.Layout()
         ## Create an origin point
         layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-        layout.add_constraint(geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",))
+        layout.add_constraint(
+            geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",)
+        )
 
         ## Create the figure box
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
@@ -58,7 +63,9 @@ class TestPrimitiveTree:
         fig_width, fig_height = 6, 3
         layout.add_constraint(geo.Length.from_std((fig_width,)), ("Figure/Line0",))
         # layout.add_constraint(geo.Length.from_std((fig_height,)), ("Figure/Line1",))
-        layout.add_constraint(geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin"))
+        layout.add_constraint(
+            geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+        )
 
         ## Create the axes boxes
         # axes_shape = (3, 4)
@@ -77,19 +84,22 @@ class TestPrimitiveTree:
         ## Constrain the axes in a grid
         num_row, num_col = axes_shape
         layout.add_constraint(
-            geo.Grid.from_std({
-                'shape': axes_shape,
-                'horizontal_margins': (num_col - 1) * [1 / 16],
-                'vertical_margins': (num_row - 1) * [1 / 16],
-                'widths': (num_col - 1) * [1],
-                'heights': (num_row - 1) * [1]
-            }
+            geo.Grid.from_std(
+                {
+                    "shape": axes_shape,
+                    "horizontal_margins": (num_col - 1) * [1 / 16],
+                    "vertical_margins": (num_row - 1) * [1 / 16],
+                    "widths": (num_col - 1) * [1],
+                    "heights": (num_row - 1) * [1],
+                }
             ),
             tuple(f"Axes{n}" for n in range(num_axes)),
         )
 
         # Constrain the first axis aspect ratio
-        layout.add_constraint(geo.RelativeLength.from_std((2,)), ("Axes0/Line0", "Axes0/Line1"))
+        layout.add_constraint(
+            geo.RelativeLength.from_std((2,)), ("Axes0/Line0", "Axes0/Line1")
+        )
 
         # Constrain top/bottom margins
         margin_top = 1.1

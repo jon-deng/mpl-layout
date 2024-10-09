@@ -58,7 +58,10 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     # Create the box with an initial size of 5 by 5 and call it 'Figure'
     layout.add_prim(
-        geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts]), "Figure"
+        geo.Quadrilateral.from_std(
+            children=[geo.Point.from_std(vert) for vert in verts]
+        ),
+        "Figure",
     )
     layout.add_constraint(geo.Box.from_std({}), ("Figure",))
 
@@ -69,7 +72,14 @@ if __name__ == "__main__":
     verts = [[1, 1], [4, 1], [4, 4], [1, 4]]
     # Call the box 'Axes1'
     layout.add_prim(
-        geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts])]), "Axes1"
+        geo.Axes.from_std(
+            children=[
+                geo.Quadrilateral.from_std(
+                    children=[geo.Point.from_std(vert) for vert in verts]
+                )
+            ]
+        ),
+        "Axes1",
     )
     layout.add_constraint(geo.Box.from_std({}), ("Axes1/Frame",))
 
@@ -80,7 +90,14 @@ if __name__ == "__main__":
     verts = [[2, 2], [5, 2], [5, 5], [2, 5]]
     # Call the box 'Axes2'
     layout.add_prim(
-        geo.Axes.from_std(children=[geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert) for vert in verts])]), "Axes2"
+        geo.Axes.from_std(
+            children=[
+                geo.Quadrilateral.from_std(
+                    children=[geo.Point.from_std(vert) for vert in verts]
+                )
+            ]
+        ),
+        "Axes2",
     )
     layout.add_constraint(geo.Box.from_std({}), ("Axes2/Frame",))
 
@@ -100,7 +117,9 @@ if __name__ == "__main__":
 
     # Constrain the bottom corner point of the figure box
     # to be coincident with the origin
-    layout.add_constraint(geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin"))
+    layout.add_constraint(
+        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+    )
 
     plot_layout(layout, "out/2Axes--4.png")
 
@@ -155,8 +174,12 @@ if __name__ == "__main__":
 
     ## Make the top/bottom edges of the right axes ('Axes2') line up with the
     # top/bottom edges of the left axes ('Axes1')
-    layout.add_constraint(geo.Collinear.from_std({}), ("Axes1/Frame/Line0", "Axes2/Frame/Line0"))
-    layout.add_constraint(geo.Collinear.from_std({}), ("Axes1/Frame/Line2", "Axes2/Frame/Line2"))
+    layout.add_constraint(
+        geo.Collinear.from_std({}), ("Axes1/Frame/Line0", "Axes2/Frame/Line0")
+    )
+    layout.add_constraint(
+        geo.Collinear.from_std({}), ("Axes1/Frame/Line2", "Axes2/Frame/Line2")
+    )
 
     plot_layout(layout, "out/2Axes--10.png")
 

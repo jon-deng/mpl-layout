@@ -21,6 +21,7 @@ Constants = tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
 PrimKeys = tp.Tuple[str, ...]
 ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
+
 class Constraint(Node[ConstraintValue]):
     """
     A geometric constraint on primitives
@@ -54,13 +55,12 @@ class Constraint(Node[ConstraintValue]):
     """
 
     ARG_TYPES: tp.Tuple[type[Primitive], ...]
-    CONSTANTS: type[collections.namedtuple] = collections.namedtuple('Constants', ())
+    CONSTANTS: type[collections.namedtuple] = collections.namedtuple("Constants", ())
 
-    CHILD_TYPES: tp.Tuple[type['Constraint'], ...] = ()
+    CHILD_TYPES: tp.Tuple[type["Constraint"], ...] = ()
     CHILD_KEYS: tp.Tuple[str, ...] = ()
     CHILD_CONSTANTS: tp.Callable[
-        [type['Constraint'], Constants],
-        tp.Tuple[Constants, ...]
+        [type["Constraint"], Constants], tp.Tuple[Constants, ...]
     ]
     CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
 
@@ -95,12 +95,12 @@ class Constraint(Node[ConstraintValue]):
         # are simply f'arg{n}' for integer argument numbers `n`
         # Child keys `arg_keys` are assumed to index from `arg_keys`
         if arg_keys is None:
-            arg_keys = tuple(f'arg{n}' for n in range(len(cls.ARG_TYPES)))
+            arg_keys = tuple(f"arg{n}" for n in range(len(cls.ARG_TYPES)))
 
         # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
         def get_parent_arg_number(arg_key: str):
-            arg_number_str = arg_key.split('/', 1)[0]
-            if arg_number_str[:3] == 'arg':
+            arg_number_str = arg_key.split("/", 1)[0]
+            if arg_number_str[:3] == "arg":
                 arg_number = int(arg_number_str[3:])
             else:
                 raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
@@ -116,7 +116,7 @@ class Constraint(Node[ConstraintValue]):
         ]
         child_args = tuple(
             tuple(
-                "/".join([parent_arg_key]+arg_key.split('/', 1)[1:])
+                "/".join([parent_arg_key] + arg_key.split("/", 1)[1:])
                 for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
             )
             for parent_arg_keys, carg_keys in zip(parent_args, cls.CHILD_ARGS)
@@ -125,8 +125,9 @@ class Constraint(Node[ConstraintValue]):
         child_constants = cls.CHILD_CONSTANTS(constants)
         children = {
             key: ChildType.from_std(constant, arg_keys=arg_keys)
-            for key, ChildType, constant, arg_keys
-            in zip(cls.CHILD_KEYS, cls.CHILD_TYPES, child_constants, child_args)
+            for key, ChildType, constant, arg_keys in zip(
+                cls.CHILD_KEYS, cls.CHILD_TYPES, child_constants, child_args
+            )
         }
 
         return cls((constants, arg_keys), children)
@@ -141,8 +142,7 @@ class Constraint(Node[ConstraintValue]):
 
     def __call__(self, prims: tp.Tuple[Primitive, ...]):
         root_prim = Node(
-            np.array([]),
-            {f'arg{n}': prim for n, prim in enumerate(prims)}
+            np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
         return self.assem_res_from_tree(root_prim)
 
@@ -152,7 +152,7 @@ class Constraint(Node[ConstraintValue]):
             constraint.assem_res_atleast_1d(
                 tuple(root_prim[arg_key] for arg_key in constraint.prim_keys)
             )
-            for _, constraint in iter_flat('', self)
+            for _, constraint in iter_flat("", self)
         )
         return jnp.concatenate(residuals)
 
@@ -212,7 +212,7 @@ class XDistance(DirectedDistance):
 
         if isinstance(constants, dict):
             constants = constants.copy()
-            constants.update({'direction': direction})
+            constants.update({"direction": direction})
         elif isinstance(constants, tuple):
             constants = constants[:1] + (direction,)
 
@@ -230,7 +230,7 @@ class YDistance(DirectedDistance):
         direction = np.array([0, 1])
         if isinstance(constants, dict):
             constants = constants.copy()
-            constants.update({'direction': direction})
+            constants.update({"direction": direction})
         elif isinstance(constants, tuple):
             constants = constants[:1] + (direction,)
 
@@ -287,7 +287,7 @@ class Length(Constraint):
         # This sets the length of a line
         (line,) = prims
         vec = line_vector(line)
-        return jnp.sum(vec**2) - self.constants.length ** 2
+        return jnp.sum(vec**2) - self.constants.length**2
 
 
 class RelativeLength(Constraint):
@@ -306,7 +306,7 @@ class RelativeLength(Constraint):
         line0, line1 = prims
         vec_a = line_vector(line0)
         vec_b = line_vector(line1)
-        return jnp.sum(vec_a**2) - self.constants.length ** 2 * jnp.sum(vec_b**2)
+        return jnp.sum(vec_a**2) - self.constants.length**2 * jnp.sum(vec_b**2)
 
 
 class RelativeLengths(Constraint):
@@ -324,18 +324,16 @@ class RelativeLengths(Constraint):
     ):
         _constants = cls.load_constants(constants)
         num_args = len(_constants.lengths) + 1
-        cls.ARG_TYPES = num_args*(pr.Line,)
+        cls.ARG_TYPES = num_args * (pr.Line,)
 
-        cls.CHILD_TYPES = (num_args-1)*(RelativeLength,)
+        cls.CHILD_TYPES = (num_args - 1) * (RelativeLength,)
         cls.CHILD_ARGS = tuple(
-            (f'arg{n}', f'arg{num_args-1}') for n in range(num_args-1)
+            (f"arg{n}", f"arg{num_args-1}") for n in range(num_args - 1)
         )
         cls.CHILD_CONSTANTS = lambda constants: tuple(
             (length,) for length in constants.lengths
         )
-        cls.CHILD_KEYS = tuple(
-            f'RelativeLength{n}' for n in range(num_args-1)
-        )
+        cls.CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(num_args - 1))
 
         return super().from_std(constants, arg_keys)
 
@@ -349,22 +347,27 @@ class LineMidpointXDistance(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple('Constants', ('distance',))
+    CONSTANTS = collections.namedtuple("Constants", ("distance",))
 
     def assem_res(self, prims):
         line0, line1 = prims
-        start_points = (line0['Point0'], line1['Point0'])
-        end_points = (line0['Point1'], line1['Point1'])
-        distance_start = jnp.dot(start_points[1].value - start_points[0].value, np.array([1, 0]))
-        distance_end = jnp.dot(end_points[1].value - end_points[0].value, np.array([1, 0]))
-        return 1/2*(distance_start+distance_end) - self.constants.distance
+        start_points = (line0["Point0"], line1["Point0"])
+        end_points = (line0["Point1"], line1["Point1"])
+        distance_start = jnp.dot(
+            start_points[1].value - start_points[0].value, np.array([1, 0])
+        )
+        distance_end = jnp.dot(
+            end_points[1].value - end_points[0].value, np.array([1, 0])
+        )
+        return 1 / 2 * (distance_start + distance_end) - self.constants.distance
+
 
 class LineMidpointXDistances(Constraint):
     """
     Constrain the x-distance between pairs of line midpoints
     """
 
-    CONSTANTS = collections.namedtuple('Constants', ('distances',))
+    CONSTANTS = collections.namedtuple("Constants", ("distances",))
 
     @classmethod
     def from_std(
@@ -375,11 +378,13 @@ class LineMidpointXDistances(Constraint):
         _constants = cls.load_constants(constants)
         num_child = len(_constants.distances)
 
-        cls.ARG_TYPES = num_child*(pr.Line, pr.Line)
-        cls.CHILD_TYPES = num_child*(LineMidpointXDistance,)
-        cls.CHILD_ARGS = tuple((f'arg{2*n}', f'arg{2*n+1}') for n in range(num_child))
-        cls.CHILD_KEYS = tuple(f'LineMidpointXDistance{n}' for n in range(num_child))
-        cls.CHILD_CONSTANTS = lambda constants: tuple((distance,) for distance in constants.distances)
+        cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
+        cls.CHILD_TYPES = num_child * (LineMidpointXDistance,)
+        cls.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        cls.CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
+        cls.CHILD_CONSTANTS = lambda constants: tuple(
+            (distance,) for distance in constants.distances
+        )
 
         return super().from_std(constants, arg_keys)
 
@@ -393,22 +398,27 @@ class LineMidpointYDistance(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple('Constants', ('distance',))
+    CONSTANTS = collections.namedtuple("Constants", ("distance",))
 
     def assem_res(self, prims):
         line0, line1 = prims
-        start_points = (line0['Point0'], line1['Point0'])
-        end_points = (line0['Point1'], line1['Point1'])
-        distance_start = jnp.dot(start_points[1].value - start_points[0].value, np.array([0, 1]))
-        distance_end = jnp.dot(end_points[1].value - end_points[0].value, np.array([0, 1]))
-        return 1/2*(distance_start+distance_end) - self.constants.distance
+        start_points = (line0["Point0"], line1["Point0"])
+        end_points = (line0["Point1"], line1["Point1"])
+        distance_start = jnp.dot(
+            start_points[1].value - start_points[0].value, np.array([0, 1])
+        )
+        distance_end = jnp.dot(
+            end_points[1].value - end_points[0].value, np.array([0, 1])
+        )
+        return 1 / 2 * (distance_start + distance_end) - self.constants.distance
+
 
 class LineMidpointYDistances(Constraint):
     """
     Constrain the x-distance between pairs of line midpoints
     """
 
-    CONSTANTS = collections.namedtuple('Constants', ('distances',))
+    CONSTANTS = collections.namedtuple("Constants", ("distances",))
 
     @classmethod
     def from_std(
@@ -419,11 +429,13 @@ class LineMidpointYDistances(Constraint):
         _constants = cls.load_constants(constants)
         num_child = len(_constants.distances)
 
-        cls.ARG_TYPES = num_child*(pr.Line, pr.Line)
-        cls.CHILD_TYPES = num_child*(LineMidpointYDistance,)
-        cls.CHILD_ARGS = tuple((f'arg{2*n}', f'arg{2*n+1}') for n in range(num_child))
-        cls.CHILD_KEYS = tuple(f'LineMidpointYDistance{n}' for n in range(num_child))
-        cls.CHILD_CONSTANTS = lambda constants: tuple((distance,) for distance in constants.distances)
+        cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
+        cls.CHILD_TYPES = num_child * (LineMidpointYDistance,)
+        cls.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        cls.CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
+        cls.CHILD_CONSTANTS = lambda constants: tuple(
+            (distance,) for distance in constants.distances
+        )
 
         return super().from_std(constants, arg_keys)
 
@@ -563,12 +575,12 @@ class CollinearLines(Constraint):
         if size < 1:
             raise ValueError()
 
-        cls.ARG_TYPES = size*(pr.Line,)
+        cls.ARG_TYPES = size * (pr.Line,)
 
-        cls.CHILD_TYPES = (size-1)*(Collinear,)
-        cls.CHILD_ARGS = tuple(('arg0', f'arg{n}') for n in range(1, size))
-        cls.CHILD_KEYS = tuple(f'Collinear[0][{n}]' for n in range(1, size))
-        cls.CHILD_CONSTANTS = lambda constants: (constants.size-1)*((),)
+        cls.CHILD_TYPES = (size - 1) * (Collinear,)
+        cls.CHILD_ARGS = tuple(("arg0", f"arg{n}") for n in range(1, size))
+        cls.CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
+        cls.CHILD_CONSTANTS = lambda constants: (constants.size - 1) * ((),)
         return super().from_std(constants, arg_keys)
 
     def assem_res(self, prims):
@@ -586,9 +598,9 @@ class Box(Constraint):
     ARG_TYPES = (pr.Quadrilateral,)
     CONSTANTS = collections.namedtuple("Constants", [])
 
-    CHILD_KEYS = ('HorizontalBottom', 'HorizontalTop', 'VerticalLeft', 'VerticalRight')
+    CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
     CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
-    CHILD_ARGS = (('arg0/Line0',), ('arg0/Line2',), ('arg0/Line3',), ('arg0/Line1',))
+    CHILD_ARGS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
 
     def assem_res(self, prims):
         return np.array([])
@@ -596,12 +608,14 @@ class Box(Constraint):
 
 ## Grid constraints
 
+
 def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     """
     Return a 1D array index from a multi-dimensional array index
     """
     strides = shape[1:] + (1,)
-    return sum(axis_idx*stride for axis_idx, stride in zip(multi_idx, strides))
+    return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
+
 
 class RectilinearGrid(Constraint):
     """
@@ -609,9 +623,7 @@ class RectilinearGrid(Constraint):
     """
 
     ARG_TYPES = None
-    CONSTANTS = collections.namedtuple(
-        "Constants", ("shape",)
-    )
+    CONSTANTS = collections.namedtuple("Constants", ("shape",))
 
     @classmethod
     def from_std(
@@ -623,39 +635,52 @@ class RectilinearGrid(Constraint):
         shape = _constants.shape
 
         num_row, num_col = shape
-        num_args = num_row*num_col
+        num_args = num_row * num_col
 
-        cls.ARG_TYPES = num_args*(pr.Quadrilateral,)
+        cls.ARG_TYPES = num_args * (pr.Quadrilateral,)
 
         # Specify child constraints given the grid shape
 
         # Line up bot/top/left/right
-        CHILD_TYPES = 2*num_row*(CollinearLines,) + 2*num_col*(CollinearLines,)
-        CHILD_ARGS = [
-            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line0' for ncol in range(num_col))
-            for nrow in range(num_row)
-        ] + [
-            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line2' for ncol in range(num_col))
-            for nrow in range(num_row)
-        ] + [
-            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line3' for nrow in range(num_row))
-            for ncol in range(num_col)
-        ] + [
-            tuple(f'arg{idx_1d((nrow, ncol), shape)}/Line1' for nrow in range(num_row))
-            for ncol in range(num_col)
-        ]
-        CHILD_KEYS =(
-            [f'CollinearRowBottom{nrow}' for nrow in range(num_row)]
-            + [f'CollinearRowTop{nrow}' for nrow in range(num_row)]
-            + [f'CollinearColumnLeft{ncol}' for ncol in range(num_col)]
-            + [f'CollinearColumnRight{ncol}' for ncol in range(num_col)]
+        CHILD_TYPES = 2 * num_row * (CollinearLines,) + 2 * num_col * (CollinearLines,)
+        CHILD_ARGS = (
+            [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line0" for ncol in range(num_col)
+                )
+                for nrow in range(num_row)
+            ]
+            + [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line2" for ncol in range(num_col)
+                )
+                for nrow in range(num_row)
+            ]
+            + [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line3" for nrow in range(num_row)
+                )
+                for ncol in range(num_col)
+            ]
+            + [
+                tuple(
+                    f"arg{idx_1d((nrow, ncol), shape)}/Line1" for nrow in range(num_row)
+                )
+                for ncol in range(num_col)
+            ]
+        )
+        CHILD_KEYS = (
+            [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
+            + [f"CollinearRowTop{nrow}" for nrow in range(num_row)]
+            + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
+            + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
         )
 
         cls.CHILD_CONSTANTS = lambda constants: (
             [(constants.shape[1],) for nrow in range(constants.shape[0])]
-            +[(constants.shape[1],) for nrow in range(constants.shape[0])]
-            +[(constants.shape[0],) for ncol in range(constants.shape[1])]
-            +[(constants.shape[0],) for ncol in range(constants.shape[1])]
+            + [(constants.shape[1],) for nrow in range(constants.shape[0])]
+            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
+            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
         )
 
         cls.CHILD_TYPES = CHILD_TYPES
@@ -672,7 +697,8 @@ class Grid(Constraint):
 
     ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
-        "Constants", ("shape", "horizontal_margins", "vertical_margins", "widths", "heights")
+        "Constants",
+        ("shape", "horizontal_margins", "vertical_margins", "widths", "heights"),
     )
 
     @classmethod
@@ -683,59 +709,69 @@ class Grid(Constraint):
     ):
         _constants = cls.load_constants(constants)
         num_args = np.prod(_constants.shape)
-        cls.ARG_TYPES = num_args*(pr.Quadrilateral,)
+        cls.ARG_TYPES = num_args * (pr.Quadrilateral,)
 
         # Children constraints do:
         # 1. Align all quads in a grid
         # 2. Set relative column widths relative to column 0
         # 3. Set relative row heights relative to row 0
         cls.CHILD_TYPES = (
-            RectilinearGrid, RelativeLengths, RelativeLengths, LineMidpointXDistances, LineMidpointYDistances
+            RectilinearGrid,
+            RelativeLengths,
+            RelativeLengths,
+            LineMidpointXDistances,
+            LineMidpointYDistances,
         )
         cls.CHILD_KEYS = (
-            'RectilinearGrid', 'ColumnWidths', 'RowHeights', 'ColumnMargins', 'RowMargins'
+            "RectilinearGrid",
+            "ColumnWidths",
+            "RowHeights",
+            "ColumnMargins",
+            "RowMargins",
         )
 
         shape = _constants.shape
         rows, cols = list(range(shape[0])), list(range(shape[1]))
 
-
         col_labels = (
-            f'arg{idx_1d((0, col+offset), shape)}' for offset in (0, 1) for col in cols[:-1]
+            f"arg{idx_1d((0, col+offset), shape)}"
+            for offset in (0, 1)
+            for col in cols[:-1]
         )
-        col_line_labels = itertools.cycle(('Line1', 'Line3', 'Line1', 'Line3'))
+        col_line_labels = itertools.cycle(("Line1", "Line3", "Line1", "Line3"))
 
         row_labels = (
-            f'arg{idx_1d((row+offset, 0), shape)}' for offset in (0, 1) for row in rows[:-1]
+            f"arg{idx_1d((row+offset, 0), shape)}"
+            for offset in (0, 1)
+            for row in rows[:-1]
         )
-        row_line_labels = itertools.cycle(('Line2', 'Line0', 'Line2', 'Line0'))
-
+        row_line_labels = itertools.cycle(("Line2", "Line0", "Line2", "Line0"))
 
         cls.CHILD_ARGS = (
-            tuple(f'arg{n}' for n in range(num_args)),
+            tuple(f"arg{n}" for n in range(num_args)),
             tuple(
-                f'arg{idx_1d((row, col), shape)}/Line0'
+                f"arg{idx_1d((row, col), shape)}/Line0"
                 for row, col in itertools.product([0], cols[1:] + cols[:1])
             ),
             tuple(
-                f'arg{idx_1d((row, col), shape)}/Line1'
+                f"arg{idx_1d((row, col), shape)}/Line1"
                 for row, col in itertools.product(rows[1:] + rows[:1], [0])
             ),
             tuple(
-                f'{col_label}/{line_label}'
+                f"{col_label}/{line_label}"
                 for col_label, line_label in zip(col_labels, col_line_labels)
             ),
             tuple(
-                f'{row_label}/{line_label}'
+                f"{row_label}/{line_label}"
                 for row_label, line_label in zip(row_labels, row_line_labels)
             ),
         )
         cls.CHILD_CONSTANTS = lambda constants: (
-            {'shape': constants.shape},
-            {'lengths': constants.widths},
-            {'lengths': constants.heights},
-            {'distances': constants.horizontal_margins},
-            {'distances': constants.vertical_margins}
+            {"shape": constants.shape},
+            {"lengths": constants.widths},
+            {"lengths": constants.heights},
+            {"distances": constants.horizontal_margins},
+            {"distances": constants.vertical_margins},
         )
         return super().from_std(constants, arg_keys)
 

@@ -6,7 +6,13 @@ import numpy as np
 
 import matplotlib as mpl
 
-from mpllayout import solver, geometry as geo, layout as lay, matplotlibutils as lplt, constraints as con
+from mpllayout import (
+    solver,
+    geometry as geo,
+    layout as lay,
+    matplotlibutils as lplt,
+    constraints as con,
+)
 
 if __name__ == "__main__":
     layout = lay.Layout()
@@ -17,7 +23,9 @@ if __name__ == "__main__":
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral.from_std(children=[geo.Point.from_std(vert_coords) for vert_coords in verts])
+    box = geo.Quadrilateral.from_std(
+        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+    )
     layout.add_prim(box, "Figure")
     layout.add_constraint(geo.Box.from_std({}), ("Figure",))
 
@@ -32,7 +40,9 @@ if __name__ == "__main__":
     yaxis = geo.Quadrilateral.from_std(
         children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
     )
-    axes = geo.StandardAxes.from_std(children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std()))
+    axes = geo.StandardAxes.from_std(
+        children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std())
+    )
     layout.add_prim(axes, "Axes1")
     layout.add_constraint(geo.Box.from_std({}), ("Axes1/Frame",))
 
@@ -47,7 +57,9 @@ if __name__ == "__main__":
         ("Figure/Line1/Point0", "Figure/Line1/Point1"),
     )
 
-    layout.add_constraint(geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin"))
+    layout.add_constraint(
+        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+    )
 
     ## Constrain 'Axes1' elements
     # Constrain left/right margins
@@ -115,11 +127,13 @@ if __name__ == "__main__":
 
     # Set temporary widths/heights for x/y axis
     dim_labels = ("Height", "Width")
-    for axis_key, line_label, dim_label in zip(("X", "Y"), ("Line1", "Line0"), dim_labels):
+    for axis_key, line_label, dim_label in zip(
+        ("X", "Y"), ("Line1", "Line0"), dim_labels
+    ):
         layout.add_constraint(
             geo.Length.from_std((0.0,)),
             (f"Axes1/{axis_key}Axis/{line_label}",),
-            f"Axes1.{axis_key}Axis.{dim_label}"
+            f"Axes1.{axis_key}Axis.{dim_label}",
         )
 
     # Align x/y axis labels with axis bboxes
@@ -143,8 +157,8 @@ if __name__ == "__main__":
     x = np.linspace(0, 1)
     axs["Axes1"].plot(x, x**2)
 
-    axs["Axes1"].xaxis.set_label_text("My x label", ha='left')
-    axs["Axes1"].yaxis.set_label_text("My y label", ha='left')
+    axs["Axes1"].xaxis.set_label_text("My x label", ha="left")
+    axs["Axes1"].yaxis.set_label_text("My y label", ha="left")
 
     ax = axs["Axes1"]
 
