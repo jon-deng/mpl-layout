@@ -3,6 +3,7 @@ Utilities for creating `matplotlib` plot objects from primitives
 """
 
 import typing as tp
+import warnings
 
 import numpy as np
 
@@ -74,11 +75,12 @@ def update_subplots(
         quad = root_prim[f"{key}/Frame"]
         ax.set_position(rect_from_box(quad, fig_size))
 
-        # Set label positions for each axis
+        # Set x/y axis properties
         axis_prefixes = ("X", "Y")
         axis_tuple = (ax.xaxis, ax.yaxis)
 
         for axis_prefix, axis in zip(axis_prefixes, axis_tuple):
+            # Set the axis label position
             axis_label = f"{axis_prefix}AxisLabel"
             if axis_label in root_prim[key]:
                 axis_label_point: geo.Point = root_prim[f"{key}/{axis_label}"]
@@ -87,8 +89,30 @@ def update_subplots(
                     *(label_coords / fig_size), transform=fig.transFigure
                 )
 
+            # Set the axis tick position
+            axis_bbox = f"{axis_prefix}Axis"
+            if axis_bbox in root_prim[key]:
+                axis_quad = root_prim[f"{key}/{axis_bbox}"]
+                axis_tick_position = find_axis_position(quad, axis_quad)
+                axis.set_ticks_position(axis_tick_position)
+
     return fig, key_to_ax
 
+def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
+    coincident_line = geo.CoincidentLines.from_std({'reverse': True})
+    bottom_res = coincident_line.assem_res((axes_frame['Line0'], axis['Line2']))
+    top_res = coincident_line.assem_res((axes_frame['Line2'],axis['Line0']))
+    left_res = coincident_line.assem_res((axes_frame['Line3'],axis['Line1']))
+    right_res = coincident_line.assem_res((axes_frame['Line1'],axis['Line3']))
+
+    residuals = tuple(np.linalg.norm(res) for res in (bottom_res, top_res, left_res, right_res))
+    residual_positions = ('bottom', 'top', 'left', 'right')
+    print(residuals, residual_positions)
+
+    if not np.isclose(np.min(residuals), 0):
+        warnings.warn("The axis isn't closely aligned with any of the axes sides")
+    position = residual_positions[np.argmin(residuals)]
+    return position
 
 def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float]:
     """
