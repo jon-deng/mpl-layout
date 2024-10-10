@@ -17,34 +17,23 @@ from mpllayout import (
 if __name__ == "__main__":
     layout = lay.Layout()
 
+    ## Create constant constraints
+    # (these have no parameters so are reused a fair bit)
+    BOX = geo.Box.from_std(())
+    COLLINEAR = geo.Collinear.from_std({})
+    COINCIDENT = geo.CoincidentPoints.from_std({})
+
     ## Create an origin point
-    layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
+    layout.add_prim(geo.Point.from_std(), "Origin")
     layout.add_constraint(geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",))
 
-    ## Create the figure box
-    verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    box = geo.Quadrilateral.from_std(
-        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
-    )
-    layout.add_prim(box, "Figure")
-    layout.add_constraint(geo.Box.from_std({}), ("Figure",))
+    ## Create the Figure quad
+    layout.add_prim(geo.Quadrilateral.from_std(), "Figure")
+    layout.add_constraint(BOX, ("Figure",))
 
-    ## Create the axes box
-    verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
-    frame = geo.Quadrilateral.from_std(
-        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
-    )
-    xaxis = geo.Quadrilateral.from_std(
-        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
-    )
-    yaxis = geo.Quadrilateral.from_std(
-        children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
-    )
-    axes = geo.StandardAxes.from_std(
-        children=(frame, xaxis, yaxis, geo.Point.from_std(), geo.Point.from_std())
-    )
-    layout.add_prim(axes, "Axes1")
-    layout.add_constraint(geo.Box.from_std({}), ("Axes1/Frame",))
+    ## Create the Axes quads
+    layout.add_prim(geo.StandardAxes.from_std(), "Axes1")
+    layout.add_constraint(BOX, ("Axes1/Frame",))
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
@@ -86,44 +75,21 @@ if __name__ == "__main__":
         ("Axes1/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
 
-    # Constrain 'Axes1' x/y axis bboxes
-    layout.add_constraint(
-        geo.Box.from_std({}),
-        ("Axes1/XAxis",),
-    )
-    layout.add_constraint(
-        geo.Box.from_std({}),
-        ("Axes1/YAxis",),
-    )
+    # Constrain 'Axes1' x/y axis bboxes to be rectangles
+    layout.add_constraint(BOX, ("Axes1/XAxis",))
+    layout.add_constraint(BOX, ("Axes1/YAxis",))
 
     # Make the x/y axes align the with frame
-    layout.add_constraint(
-        geo.Collinear.from_std({}),
-        ("Axes1/XAxis/Line1", "Axes1/Frame/Line1"),
-    )
-    layout.add_constraint(
-        geo.Collinear.from_std({}),
-        ("Axes1/XAxis/Line3", "Axes1/Frame/Line3"),
-    )
 
-    layout.add_constraint(
-        geo.Collinear.from_std({}),
-        ("Axes1/YAxis/Line0", "Axes1/Frame/Line0"),
-    )
-    layout.add_constraint(
-        geo.Collinear.from_std({}),
-        ("Axes1/YAxis/Line2", "Axes1/Frame/Line2"),
-    )
+    layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line1", "Axes1/Frame/Line1"))
+    layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line3", "Axes1/Frame/Line3"))
+
+    layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line0", "Axes1/Frame/Line0"))
+    layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line2", "Axes1/Frame/Line2"))
 
     # Pin the x/y axis to the frame sie
-    layout.add_constraint(
-        geo.Collinear.from_std({}),
-        ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"),
-    )
-    layout.add_constraint(
-        geo.Collinear.from_std({}),
-        ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"),
-    )
+    layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"))
+    layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"))
 
     # Set temporary widths/heights for x/y axis
     dim_labels = ("Height", "Width")
@@ -137,20 +103,12 @@ if __name__ == "__main__":
         )
 
     # Align x/y axis labels with axis bboxes
-    layout.add_constraint(
-        geo.CoincidentPoints.from_std({}),
-        ("Axes1/XAxis/Line0/Point0", "Axes1/XAxisLabel"),
-    )
+    layout.add_constraint(COINCIDENT, ("Axes1/XAxis/Line0/Point0", "Axes1/XAxisLabel"))
 
-    layout.add_constraint(
-        geo.CoincidentPoints.from_std({}),
-        ("Axes1/YAxis/Line0/Point0", "Axes1/YAxisLabel"),
-    )
+    layout.add_constraint(COINCIDENT, ("Axes1/YAxis/Line0/Point0", "Axes1/YAxisLabel"))
 
     ## Solve the constraints and form the figure/axes layout
-    prim_tree_n, info = solver.solve(
-        layout.root_prim, *layout.flat_constraints()
-    )
+    prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
 
     fig, axs = lplt.subplots(prim_tree_n)
 
@@ -163,9 +121,7 @@ if __name__ == "__main__":
     ax = axs["Axes1"]
 
     lay.update_layout_constraints(layout.root_constraint, axs)
-    prim_tree_n, info = solver.solve(
-        layout.root_prim, *layout.flat_constraints()
-    )
+    prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
     lplt.update_subplots(prim_tree_n, "Figure", fig, axs)
 
-    fig.savefig("out/complete_one_axes_2.png")
+    fig.savefig("out/complete_axes.png")
