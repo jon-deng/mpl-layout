@@ -588,6 +588,27 @@ class CollinearLines(Constraint[Collinear]):
         return np.array([])
 
 
+class CoincidentLines(Constraint):
+    """
+    A constraint on coincide of two lines
+    """
+
+    ARG_TYPES = (pr.Point, pr.Point)
+    CONSTANTS = collections.namedtuple("Constants", ['reverse'])
+
+    def assem_res(self, prims):
+        """
+        Return the coincident error between two lines
+        """
+        line0, line1 = prims
+        if not self.constants.reverse:
+            point0_err = line1['Point0'].value - line0['Point0'].value
+            point1_err = line1['Point1'].value - line0['Point1'].value
+        else:
+            point0_err = line1['Point0'].value - line0['Point1'].value
+            point1_err = line1['Point1'].value - line0['Point0'].value
+        return jnp.concatenate([point0_err, point1_err])
+
 ## Closed polyline constraints
 
 
