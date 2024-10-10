@@ -19,6 +19,7 @@ ArrayShape = tp.Tuple[int, ...]
 
 ChildPrimitive = tp.TypeVar("ChildPrimitive", bound="Primitive")
 
+
 class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
     """
     A geometric primitive
@@ -66,7 +67,6 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
-        keys: tp.Optional[tp.List[str]] = None,
     ):
         # NOTE: `Primitive` classes specify keys through `Primitive.CHILD_KEYS`
         # This is unlike `Node`, so `keys` is basically ignored!
@@ -83,46 +83,26 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
 
         # Create default `children` if unspecified
         if children is None:
-            if isinstance(cls.CHILD_TYPES, tuple):
-                children = tuple(PrimType.from_std() for PrimType in cls.CHILD_TYPES)
-            else:
-                children = ()
-        else:
-            # Validate the number of child primitives
-            if isinstance(children, (list, tuple)) and isinstance(
-                cls.CHILD_TYPES, tuple
-            ):
-                num_child = len(cls.CHILD_TYPES)
-                if len(children) != num_child:
-                    raise ValueError(
-                        f"Expected {num_child} child primitives, got {len(children)}"
-                    )
+            children = tuple(Child.from_std() for Child in cls.CHILD_TYPES)
 
-            # Validate child primitive types
-            child_types = tuple(type(prim) for prim in children)
-            if isinstance(cls.CHILD_TYPES, Primitive):
-                ref_types = cls.CHILD_TYPES
-            else:
-                ref_types = cls.CHILD_TYPES
-
-            type_comparisons = (
-                child_type == ref_type
-                for child_type, ref_type in zip(child_types, ref_types)
+        # Validate the number of child primitives
+        if len(children) != len(cls.CHILD_TYPES):
+            raise ValueError(
+                f"Expected {num_child} child primitives, got {len(children)}"
             )
-            if not all(type_comparisons):
-                raise TypeError(f"Expected child types {ref_types} got {child_types}")
+
+        # Validate child primitive types
+        type_comparisons = (
+            type(child) == ref_type
+            for child, ref_type in zip(children, cls.CHILD_TYPES)
+        )
+        if not all(type_comparisons):
+            raise TypeError(f"Expected child types {ref_types} got {child_types}")
 
         # Create keys from class primitive labels
-        if cls.CHILD_KEYS is None:
-            keys = [f"{type(prim).__name__}{n}" for n, prim in enumerate(children)]
-        elif isinstance(cls.CHILD_KEYS, str):
-            keys = [f"{cls.CHILD_KEYS}{n}" for n in range(len(children))]
-        elif isinstance(cls.CHILD_KEYS, tuple):
-            keys = cls.CHILD_KEYS
-        else:
-            raise TypeError(f"{cls.CHILD_KEYS}")
+        children_map = {key: prim for key, prim in zip(cls.CHILD_KEYS, children)}
 
-        return cls(value, {key: prim for key, prim in zip(keys, children)})
+        return cls(value, children_map)
 
 
 PrimList = tp.List[Primitive]
@@ -148,7 +128,7 @@ class Line(Primitive[Point]):
 
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Point, Point)
-    CHILD_KEYS = ('Point0', 'Point1')
+    CHILD_KEYS = ("Point0", "Point1")
 
 
 class Polygon(Primitive[Line]):
@@ -165,18 +145,19 @@ class Polygon(Primitive[Line]):
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List[Point]] = None,
-        keys: tp.Optional[tp.List[str]] = None,
     ):
         if children is None:
             children = []
 
-        if not hasattr(cls, 'CHILD_TYPES'):
+        if not hasattr(cls, "CHILD_TYPES"):
             cls.CHILD_TYPES = len(children) * (Line,)
-        if not hasattr(cls, 'CHILD_KEYS'):
-            cls.CHILD_KEYS = tuple(f'Line{n}' for n in range(len(children)))
+        if not hasattr(cls, "CHILD_KEYS"):
+            cls.CHILD_KEYS = tuple(f"Line{n}" for n in range(len(children)))
 
         # Polygons contain lines as `CHILD_TYPES` but it's easier to
-        # pass the points the lines pass through as children instead
+        # pass the points the lines pass through as children instead.
+        # The `from_std` constructor therefore accepts points instead of lines
+        # but passes the actual lines to the `Primitive.from_std`
         if all(isinstance(prim, Point) for prim in children):
             lines = cls._points_to_lines(children)
         else:
@@ -204,19 +185,23 @@ class Quadrilateral(Polygon):
 
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Line, Line, Line, Line)
-    CHILD_KEYS = ('Line0', 'Line1', 'Line2', 'Line3')
+    CHILD_KEYS = ("Line0", "Line1", "Line2", "Line3")
 
     @classmethod
     def from_std(
         cls,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List[Point]] = None,
-        keys: tp.Optional[tp.List[str]] = None,
     ):
         if children is None:
-            children = [Point.from_std([0, 0]), Point.from_std([1, 0]), Point.from_std([1, 1]), Point.from_std([0, 1])]
+            children = [
+                Point.from_std([0, 0]),
+                Point.from_std([1, 0]),
+                Point.from_std([1, 1]),
+                Point.from_std([0, 1]),
+            ]
 
-        return super().from_std(value, children, keys)
+        return super().from_std(value, children)
 
 
 class Axes(Primitive[Quadrilateral]):
@@ -224,7 +209,6 @@ class Axes(Primitive[Quadrilateral]):
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Quadrilateral,)
     CHILD_KEYS = ("Frame",)
-
 
 
 class StandardAxes(Primitive[Quadrilateral | Point]):
