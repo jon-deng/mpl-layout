@@ -227,24 +227,27 @@ def update_bbox_dimension_constraints(
 
 
 def get_axis_bbox_dims(axis: Axis):
-    axes = axis.axes
-    fig = axes.figure
-    fig_width, fig_height = fig.get_size_inches()
-    axes_bbox = axes.get_position()
-    axis_bbox = axis.get_tightbbox().transformed(fig.transFigure.inverted())
-    if isinstance(axis, XAxis):
-        width = axes_bbox.width * fig_width
-        if axis.get_ticks_position() == "bottom":
-            height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
-        if axis.get_ticks_position() == "top":
-            height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
-    elif isinstance(axis, YAxis):
-        height = axes_bbox.height * fig_height
-        if axis.get_ticks_position() == "left":
-            width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
-        if axis.get_ticks_position() == "right":
-            width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
-    else:
-        raise TypeError
 
-    return width, height
+    axis_bbox = axis.get_tightbbox()
+    if axis_bbox is None:
+        return (0, 0)
+    else:
+        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
+        fig_width, fig_height = axis.axes.figure.get_size_inches()
+        axes_bbox = axis.axes.get_position()
+        if isinstance(axis, XAxis):
+            width = axes_bbox.width * fig_width
+            if axis.get_ticks_position() == "bottom":
+                height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
+            if axis.get_ticks_position() == "top":
+                height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
+        elif isinstance(axis, YAxis):
+            height = axes_bbox.height * fig_height
+            if axis.get_ticks_position() == "left":
+                width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
+            if axis.get_ticks_position() == "right":
+                width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
+        else:
+            raise TypeError
+
+        return width, height
