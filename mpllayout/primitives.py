@@ -50,24 +50,16 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
 
     PARAM_SHAPE: ArrayShape
         The shape of the parameter vector parameterizing the `Primitive`
-    CHILD_TYPES: tp.Union[
-            tp.Tuple[tp.Type['Primitive'], ...],
-            tp.Type['Primitive']
-        ]
+    CHILD_TYPES: tp.Tuple[tp.Type['Primitive'], ...]
         The types of child primitives parameterizing the `Primitive`
-    CHILD_KEYS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]]
-        Optional labels for the child primitives
+    CHILD_KEYS: tp.Tuple[str, ...]
+        Keys for the child primitives
     """
 
     ## Specific primitive classes should define these to represent different primitives
     PARAM_SHAPE: ArrayShape = (0,)
-    # `CHILD_TYPES` can either be a tuple of types, or a single type.
-    # If it's a single type, then this implies a variable number of child primitives of that type
-    # If it's a tuple of types, then this implies a set of child primitives of the corresponding type
-    CHILD_TYPES: tp.Union[
-        tp.Tuple[tp.Type[ChildPrimitive], ...], tp.Type[ChildPrimitive]
-    ] = ()
-    CHILD_KEYS: tp.Optional[tp.Union[tp.Tuple[str, ...], str]] = None
+    CHILD_TYPES: tp.Tuple[tp.Type[ChildPrimitive], ...]
+    CHILD_KEYS: tp.Tuple[str, ...]
 
     @classmethod
     def from_std(
@@ -154,8 +146,9 @@ class Line(Primitive[Point]):
     A straight line segment between two points
     """
 
-    CHILD_TYPES = (Point, Point)
     PARAM_SHAPE = (0,)
+    CHILD_TYPES = (Point, Point)
+    CHILD_KEYS = ('Point0', 'Point1')
 
 
 class Polygon(Primitive[Line]):
@@ -164,25 +157,32 @@ class Polygon(Primitive[Line]):
     """
 
     PARAM_SHAPE = (0,)
-    CHILD_TYPES = Line
+    CHILD_TYPES: tp.Tuple[Line, ...]
+    CHILD_KEYS: tp.Tuple[str, ...]
 
     @classmethod
     def from_std(
         cls,
         value: tp.Optional[NDArray] = None,
-        children: tp.Optional[tp.List["Primitive"]] = None,
+        children: tp.Optional[tp.List[Point]] = None,
         keys: tp.Optional[tp.List[str]] = None,
     ):
-        if not isinstance(children, (tuple, list)):
-            return super().from_std(value, children)
-        else:
-            # This allows you to input `children` as a series of points rather than lines
-            if all((isinstance(prim, Point) for prim in children)):
-                lines = cls._points_to_lines(children)
-            else:
-                lines = children
+        if children is None:
+            children = []
 
-            return super().from_std(value, lines)
+        if not hasattr(cls, 'CHILD_TYPES'):
+            cls.CHILD_TYPES = len(children) * (Line,)
+        if not hasattr(cls, 'CHILD_KEYS'):
+            cls.CHILD_KEYS = tuple(f'Line{n}' for n in range(len(children)))
+
+        # Polygons contain lines as `CHILD_TYPES` but it's easier to
+        # pass the points the lines pass through as children instead
+        if all(isinstance(prim, Point) for prim in children):
+            lines = cls._points_to_lines(children)
+        else:
+            raise TypeError()
+
+        return super().from_std(value, lines)
 
     @staticmethod
     def _points_to_lines(children: tp.List[Point]) -> tp.List[Line]:
@@ -204,6 +204,19 @@ class Quadrilateral(Polygon):
 
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Line, Line, Line, Line)
+    CHILD_KEYS = ('Line0', 'Line1', 'Line2', 'Line3')
+
+    @classmethod
+    def from_std(
+        cls,
+        value: tp.Optional[NDArray] = None,
+        children: tp.Optional[tp.List[Point]] = None,
+        keys: tp.Optional[tp.List[str]] = None,
+    ):
+        if children is None:
+            children = [Point.from_std([0, 0]), Point.from_std([1, 0]), Point.from_std([1, 1]), Point.from_std([0, 1])]
+
+        return super().from_std(value, children, keys)
 
 
 class Axes(Primitive[Quadrilateral]):
