@@ -23,29 +23,49 @@ ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
 ChildConstraint = tp.TypeVar("ChildConstraint", bound="Constraint")
 
+
 class Constraint(Node[ConstraintValue, ChildConstraint]):
     """
-    A geometric constraint on primitives
+    Geometric constraint on primitives
 
-    A constraint represents a condition on the parameter vectors of geometric
-    primitive(s) that they should satisfy.
+    A geometric constraint is a condition on parameters of geometric primitives.
+    Constraints have a tree structure where each constraint can contain
+    child constraints.
 
     The condition is implemented through a residual function `assem_res` which returns
-     the error in the constraint satisfaction. The constraint is satisfied when
-     `assem_res` returns 0.
+    the error in the constraint satisfaction; when `assem_res(prims)` returns 0,
+    the primitives, `prims`, satisfy the constraint.
 
-    The constraint residual should be implemented using `jax`. This allows automatic
-    differentiation of constraint conditions which is important for numerical solution
-    of constraints.
+    The constraint residual should also be implemented using `jax`. This allows
+    automatic differentiation of constraint conditions which is needed for the numerical
+    solution of constraints.
 
     Parameters
     ----------
-    *args, **kwargs :
-        Parameters for the constraint
+    constants : tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
+        Constants for the constraint
 
-        These control aspects of the constraint, for example, an angle or distance.
+        These constants control aspects of the constraint, for example, an angle or
+        distance. What constants to input are specific to each constraint through the
+        class variable `CONSTANTS`.
+    arg_keys : tp.Tuple[str, ...] | None
+        Strings indicating which primitives `assem_res` applies to
 
-        See `Constraint` subclasses for specific examples.
+        This parameter controls what primitives `assem_res` takes from the
+        root constraint primitive arguments.
+        If the root constraint is `root`, these arguments are given by `root_prims` in
+        `root.assem_res(root_prims)`.
+        Each string in `arg_keys` has the format 'arg{n}/{ChildPrimKey}'.
+        The first part 'arg{n}' indicates which primitive to take from `root_prims`.
+        The second part '/{ChildPrimKey}' indicates which child primitive to take from
+        `root_prims[n]`.
+
+        For example, consider `root.assem_res(root_prims)` where
+        `root_prims = (line0, line1)` contains two `Line` primitives.
+            - The root constraint would have `arg_keys = ('arg0', ..., 'arg{n}')` where
+            `n = len(root_prims)-1`.
+            - A `child` constraint that acts on the `line1`'s first point would have
+            `arg_keys = ('arg1/Point0',)`.
 
     Attributes
     ----------
@@ -594,7 +614,7 @@ class CoincidentLines(Constraint):
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
-    CONSTANTS = collections.namedtuple("Constants", ['reverse'])
+    CONSTANTS = collections.namedtuple("Constants", ["reverse"])
 
     def assem_res(self, prims):
         """
@@ -602,11 +622,11 @@ class CoincidentLines(Constraint):
         """
         line0, line1 = prims
         if not self.constants.reverse:
-            point0_err = line1['Point0'].value - line0['Point0'].value
-            point1_err = line1['Point1'].value - line0['Point1'].value
+            point0_err = line1["Point0"].value - line0["Point0"].value
+            point1_err = line1["Point1"].value - line0["Point1"].value
         else:
-            point0_err = line1['Point0'].value - line0['Point1'].value
-            point1_err = line1['Point1'].value - line0['Point0'].value
+            point0_err = line1["Point0"].value - line0["Point1"].value
+            point1_err = line1["Point1"].value - line0["Point0"].value
         return jnp.concatenate([point0_err, point1_err])
 
 
@@ -716,7 +736,14 @@ class RectilinearGrid(Constraint[CollinearArray]):
         return np.array([])
 
 
-class Grid(Constraint[RectilinearGrid | RelativeLengthArray | XDistanceMidpointsArray | YDistanceMidpointsArray]):
+class Grid(
+    Constraint[
+        RectilinearGrid
+        | RelativeLengthArray
+        | XDistanceMidpointsArray
+        | YDistanceMidpointsArray
+    ]
+):
 
     ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
