@@ -309,7 +309,7 @@ def iter_flat(key: str, node: Node[T, ChildType]):
     else:
         cnodes = [
             iter_flat("/".join((key, ckey)), cnode)
-            for ckey, cnode in zip(node.keys(), node.values())
+            for ckey, cnode in node.items()
         ]
         cnodes = itertools.chain(cnodes)
 
