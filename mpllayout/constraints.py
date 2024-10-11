@@ -238,7 +238,7 @@ class YDistance(DirectedDistance):
         return super().from_std(constants, arg_keys)
 
 
-class PointLocation(Constraint):
+class Fix(Constraint):
     """
     A constraint on the location of a point
     """
@@ -254,7 +254,7 @@ class PointLocation(Constraint):
         return point.value - self.constants.location
 
 
-class CoincidentPoints(Constraint):
+class Coincident(Constraint):
     """
     A constraint on coincide of two points
     """
@@ -310,7 +310,7 @@ class RelativeLength(Constraint):
         return jnp.sum(vec_a**2) - self.constants.length**2 * jnp.sum(vec_b**2)
 
 
-class RelativeLengths(Constraint[RelativeLength]):
+class RelativeLengthArray(Constraint[RelativeLength]):
     """
     A constraint on relative lengths of a set of lines
     """
@@ -342,7 +342,7 @@ class RelativeLengths(Constraint[RelativeLength]):
         return np.array([])
 
 
-class LineMidpointXDistance(Constraint):
+class XDistanceMidpoints(Constraint):
     """
     Constrain the x-distance between two line midpoints
     """
@@ -363,7 +363,7 @@ class LineMidpointXDistance(Constraint):
         return 1 / 2 * (distance_start + distance_end) - self.constants.distance
 
 
-class LineMidpointXDistances(Constraint[LineMidpointXDistance]):
+class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
     """
     Constrain the x-distance between pairs of line midpoints
     """
@@ -380,7 +380,7 @@ class LineMidpointXDistances(Constraint[LineMidpointXDistance]):
         num_child = len(_constants.distances)
 
         cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
-        cls.CHILD_TYPES = num_child * (LineMidpointXDistance,)
+        cls.CHILD_TYPES = num_child * (XDistanceMidpoints,)
         cls.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         cls.CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
         cls.CHILD_CONSTANTS = lambda constants: tuple(
@@ -393,7 +393,7 @@ class LineMidpointXDistances(Constraint[LineMidpointXDistance]):
         return np.array([])
 
 
-class LineMidpointYDistance(Constraint):
+class YDistanceMidpoints(Constraint):
     """
     Constrain the y-distance between two line midpoints
     """
@@ -414,7 +414,7 @@ class LineMidpointYDistance(Constraint):
         return 1 / 2 * (distance_start + distance_end) - self.constants.distance
 
 
-class LineMidpointYDistances(Constraint[LineMidpointXDistance]):
+class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
     """
     Constrain the x-distance between pairs of line midpoints
     """
@@ -431,7 +431,7 @@ class LineMidpointYDistances(Constraint[LineMidpointXDistance]):
         num_child = len(_constants.distances)
 
         cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
-        cls.CHILD_TYPES = num_child * (LineMidpointYDistance,)
+        cls.CHILD_TYPES = num_child * (YDistanceMidpoints,)
         cls.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         cls.CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
         cls.CHILD_CONSTANTS = lambda constants: tuple(
@@ -557,7 +557,7 @@ class Collinear(Constraint):
         )
 
 
-class CollinearLines(Constraint[Collinear]):
+class CollinearArray(Constraint[Collinear]):
     """
     A constraint on the collinearity of 2 or more lines
     """
@@ -609,6 +609,7 @@ class CoincidentLines(Constraint):
             point1_err = line1['Point1'].value - line0['Point0'].value
         return jnp.concatenate([point0_err, point1_err])
 
+
 ## Closed polyline constraints
 
 
@@ -639,7 +640,7 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
 
-class RectilinearGrid(Constraint[CollinearLines]):
+class RectilinearGrid(Constraint[CollinearArray]):
     """
     Constrain quads to a rectilinear grid
     """
@@ -664,7 +665,7 @@ class RectilinearGrid(Constraint[CollinearLines]):
         # Specify child constraints given the grid shape
 
         # Line up bot/top/left/right
-        CHILD_TYPES = 2 * num_row * (CollinearLines,) + 2 * num_col * (CollinearLines,)
+        CHILD_TYPES = 2 * num_row * (CollinearArray,) + 2 * num_col * (CollinearArray,)
         CHILD_ARGS = (
             [
                 tuple(
@@ -715,7 +716,7 @@ class RectilinearGrid(Constraint[CollinearLines]):
         return np.array([])
 
 
-class Grid(Constraint[RectilinearGrid | RelativeLengths | LineMidpointXDistances | LineMidpointYDistances]):
+class Grid(Constraint[RectilinearGrid | RelativeLengthArray | XDistanceMidpointsArray | YDistanceMidpointsArray]):
 
     ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
@@ -739,10 +740,10 @@ class Grid(Constraint[RectilinearGrid | RelativeLengths | LineMidpointXDistances
         # 3. Set relative row heights relative to row 0
         cls.CHILD_TYPES = (
             RectilinearGrid,
-            RelativeLengths,
-            RelativeLengths,
-            LineMidpointXDistances,
-            LineMidpointYDistances,
+            RelativeLengthArray,
+            RelativeLengthArray,
+            XDistanceMidpointsArray,
+            YDistanceMidpointsArray,
         )
         cls.CHILD_KEYS = (
             "RectilinearGrid",

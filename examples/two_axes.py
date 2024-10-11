@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     # Constrain the origin to be at (0, 0)
-    layout.add_constraint(geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",))
+    layout.add_constraint(geo.Fix.from_std((np.array([0, 0]),)), ("Origin",))
 
     plot_layout(layout, "out/2Axes--0.png")
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     # Constrain the bottom corner point of the figure box
     # to be coincident with the origin
     layout.add_constraint(
-        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+        geo.Coincident.from_std({}), ("Figure/Line0/Point0", "Origin")
     )
 
     plot_layout(layout, "out/2Axes--4.png")

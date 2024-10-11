@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     ## Create an origin point
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-    layout.add_constraint(geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",))
+    layout.add_constraint(geo.Fix.from_std((np.array([0, 0]),)), ("Origin",))
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     )
 
     layout.add_constraint(
-        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+        geo.Coincident.from_std({}), ("Figure/Line0/Point0", "Origin")
     )
 
     ## Constrain 'Axes1' margins
