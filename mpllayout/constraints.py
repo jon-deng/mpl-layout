@@ -70,9 +70,23 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     Attributes
     ----------
     ARG_TYPES: tp.Tuple[tp.Type[Primitive], ...]
-        The primitive types accepted by `assem_res`
+        The primitives accepted by `assem_res`
 
-        These are the primitive types the constraint applies on.
+        see `arg_keys` above
+    CONSTANTS: collections.namedtuple('Constants', ...)
+        Constants for the constraint
+
+        These are things like lengths, angles, etc.
+    CHILD_TYPES:
+        Constraint types child constraints
+    CHILD_KEYS:
+        Keys for child constraints
+    CHILD_CONSTANTS:
+        Constants for child constraints
+    CHILD_ARGS:
+        Primitives for child child constraints
+
+        see `arg_keys` above
     """
 
     ARG_TYPES: tp.Tuple[type[Primitive], ...]
