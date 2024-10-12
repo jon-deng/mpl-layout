@@ -146,7 +146,7 @@ class TestPointConstraints(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     def test_PointLocation(self, point):
-        constraint = geo.PointLocation.from_std((point.value,))
+        constraint = geo.Fix.from_std((point.value,))
         res = constraint((point,))
         assert np.all(np.isclose(res, 0))
 
@@ -232,7 +232,7 @@ class TestLineConstraints(GeometryFixtures):
             self.make_relative_line(line, displacement, scale @ rotate)
             for displacement, scale, rotate in zip(displacements, scales, rotates)
         ] + [line]
-        constraint = geo.RelativeLengths.from_std((relative_lengths,))
+        constraint = geo.RelativeLengthArray.from_std((relative_lengths,))
         res = constraint(lines)
         assert np.all(np.isclose(res, 0))
 

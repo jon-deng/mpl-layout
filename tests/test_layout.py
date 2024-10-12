@@ -73,7 +73,7 @@ class TestLayout:
         layout.add_constraint(geo.Box.from_std({}), ("MyBox",))
 
         layout.add_constraint(
-            geo.PointLocation.from_std(((0, 0),)), ("MyBox/Line0/Point0",)
+            geo.Fix.from_std(((0, 0),)), ("MyBox/Line0/Point0",)
         )
 
         pprint(layout.root_prim)
@@ -92,6 +92,6 @@ class TestUtilities:
         layout.add_constraint(geo.Box.from_std({}), ("MyBox",))
 
         layout.add_constraint(
-            geo.PointLocation.from_std(((0, 0),)), ("MyBox/Line0/Point0",)
+            geo.Fix.from_std(((0, 0),)), ("MyBox/Line0/Point0",)
         )
         return layout

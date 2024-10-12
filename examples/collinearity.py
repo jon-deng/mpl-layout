@@ -17,7 +17,7 @@ if __name__ == "__main__":
     ## Create an origin point
     layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
     layout.add_constraint(
-        geo.PointLocation.from_std((np.array([0, 0]),)), (PrimIdx("Origin"),)
+        geo.Fix.from_std((np.array([0, 0]),)), (PrimIdx("Origin"),)
     )
 
     ## Create two lines
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     # Fix LineA
     layout.add_constraint(
-        geo.CoincidentPoints.from_std({}), (PrimIdx("LineA.Point0"), PrimIdx("Origin"))
+        geo.Coincident.from_std({}), (PrimIdx("LineA.Point0"), PrimIdx("Origin"))
     )
     layout.add_constraint(geo.Horizontal.from_std({}), (PrimIdx("LineA"),))
     layout.add_constraint(
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     # Fix LineB
     layout.add_constraint(
-        geo.CoincidentPoints.from_std({}),
+        geo.Coincident.from_std({}),
         (PrimIdx("LineA.Point1"), PrimIdx("LineB.Point0")),
     )
     layout.add_constraint(

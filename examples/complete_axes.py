@@ -21,11 +21,11 @@ if __name__ == "__main__":
     # (these have no parameters so are reused a fair bit)
     BOX = geo.Box.from_std(())
     COLLINEAR = geo.Collinear.from_std({})
-    COINCIDENT = geo.CoincidentPoints.from_std({})
+    COINCIDENT = geo.Coincident.from_std({})
 
     ## Create an origin point
     layout.add_prim(geo.Point.from_std(), "Origin")
-    layout.add_constraint(geo.PointLocation.from_std((np.array([0, 0]),)), ("Origin",))
+    layout.add_constraint(geo.Fix.from_std((np.array([0, 0]),)), ("Origin",))
 
     ## Create the Figure quad
     layout.add_prim(geo.Quadrilateral.from_std(), "Figure")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     )
 
     layout.add_constraint(
-        geo.CoincidentPoints.from_std({}), ("Figure/Line0/Point0", "Origin")
+        geo.Coincident.from_std({}), ("Figure/Line0/Point0", "Origin")
     )
 
     ## Constrain 'Axes1' elements
