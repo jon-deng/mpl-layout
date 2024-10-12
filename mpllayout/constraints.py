@@ -23,6 +23,19 @@ ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
 ChildConstraint = tp.TypeVar("ChildConstraint", bound="Constraint")
 
+def load_constants(constants: Constants, ConstantClass: collections.namedtuple):
+    """
+    Return a `namedtuple` constant from either a `tuple` or `dict`
+    """
+    if isinstance(constants, dict):
+        constants = ConstantClass(**constants)
+    elif isinstance(constants, tuple):
+        constants = ConstantClass(*constants)
+    elif isinstance(constants, ConstantClass):
+        pass
+    else:
+        raise TypeError()
+    return constants
 
 class Constraint(Node[ConstraintValue, ChildConstraint]):
     """
@@ -105,24 +118,12 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         return len(cls.CHILD_TYPES) * ({},)
 
     @classmethod
-    def load_constants(cls, constants: Constants):
-        if isinstance(constants, dict):
-            constants = cls.CONSTANTS(**constants)
-        elif isinstance(constants, tuple):
-            constants = cls.CONSTANTS(*constants)
-        elif isinstance(constants, cls.CONSTANTS):
-            pass
-        else:
-            raise TypeError()
-        return constants
-
-    @classmethod
     def from_std(
         cls,
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        constants = cls.load_constants(constants)
+        constants = load_constants(constants, cls.CONSTANTS)
 
         # `arg_keys` specifies the keys from a root primitive that gives the primitives
         # for `assem_res(prims)`.
@@ -362,7 +363,7 @@ class RelativeLengthArray(Constraint[RelativeLength]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = cls.load_constants(constants)
+        _constants = load_constants(constants, cls.CONSTANTS)
         num_args = len(_constants.lengths) + 1
         cls.ARG_TYPES = num_args * (pr.Line,)
 
@@ -418,7 +419,7 @@ class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = cls.load_constants(constants)
+        _constants = load_constants(constants, cls.CONSTANTS)
         num_child = len(_constants.distances)
 
         cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
@@ -472,7 +473,7 @@ class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = cls.load_constants(constants)
+        _constants = load_constants(constants, cls.CONSTANTS)
         num_child = len(_constants.distances)
 
         cls.ARG_TYPES = num_child * (pr.Line, pr.Line)
@@ -616,7 +617,7 @@ class CollinearArray(Constraint[Collinear]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = cls.load_constants(constants)
+        _constants = load_constants(constants, cls.CONSTANTS)
         size = _constants.size
         if size < 1:
             raise ValueError()
@@ -699,7 +700,7 @@ class RectilinearGrid(Constraint[CollinearArray]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = cls.load_constants(constants)
+        _constants = load_constants(constants, cls.CONSTANTS)
         shape = _constants.shape
 
         num_row, num_col = shape
@@ -785,7 +786,7 @@ class Grid(
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = cls.load_constants(constants)
+        _constants = load_constants(constants, cls.CONSTANTS)
         num_args = np.prod(_constants.shape)
         cls.ARG_TYPES = num_args * (pr.Quadrilateral,)
 
