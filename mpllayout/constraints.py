@@ -70,9 +70,9 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     Attributes
     ----------
     ARG_TYPES: tp.Tuple[tp.Type[Primitive], ...]
-        The primitives accepted by `assem_res`
+        Primitives accepted by `assem_res`
 
-        see `arg_keys` above
+        (see `arg_keys` above)
     CONSTANTS: collections.namedtuple('Constants', ...)
         Constants for the constraint
 
@@ -84,9 +84,9 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     CHILD_CONSTANTS:
         Constants for child constraints
     CHILD_ARGS:
-        Primitives for child child constraints
+        Primitives for child constraints' `assem_res`
 
-        see `arg_keys` above
+        (see `arg_keys` above)
     """
 
     ARG_TYPES: tp.Tuple[type[Primitive], ...]
@@ -217,7 +217,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
 class DirectedDistance(Constraint):
     """
-    A constraint on distance between two points along a direction
+    Constrain the distance between two points along a direction
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
@@ -227,8 +227,7 @@ class DirectedDistance(Constraint):
         """
         Return the distance error between two points along a given direction
 
-        The distance is measured from the first to the second point along a
-        specified direction.
+        The distance is measured from `prims[0]` to `prims[1]` along the direction.
         """
         point0, point1 = prims
         distance = jnp.dot(point1.value - point0.value, self.constants.direction)
@@ -236,6 +235,9 @@ class DirectedDistance(Constraint):
 
 
 class XDistance(DirectedDistance):
+    """
+    Constrain the x-distance between two points
+    """
 
     @classmethod
     def from_std(
@@ -255,6 +257,9 @@ class XDistance(DirectedDistance):
 
 
 class YDistance(DirectedDistance):
+    """
+    Constrain the x-distance between two points
+    """
 
     @classmethod
     def from_std(
@@ -274,7 +279,7 @@ class YDistance(DirectedDistance):
 
 class Fix(Constraint):
     """
-    A constraint on the location of a point
+    Constrain all coordinates of a point
     """
 
     ARG_TYPES = (pr.Point,)
@@ -290,7 +295,7 @@ class Fix(Constraint):
 
 class Coincident(Constraint):
     """
-    A constraint on coincide of two points
+    Constrain two points to be coincident
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
@@ -309,7 +314,7 @@ class Coincident(Constraint):
 
 class Length(Constraint):
     """
-    A constraint on the length of a line
+    Constrain the length of a line
     """
 
     ARG_TYPES = (pr.Line,)
@@ -317,7 +322,7 @@ class Length(Constraint):
 
     def assem_res(self, prims):
         """
-        Return the error in the length of the line
+        Return the length error of a line
         """
         # This sets the length of a line
         (line,) = prims
@@ -327,7 +332,7 @@ class Length(Constraint):
 
 class RelativeLength(Constraint):
     """
-    A constraint on relative length between two lines
+    Constrain the length of a line relative to another line
     """
 
     CONSTANTS = collections.namedtuple("Constants", ["length"])
@@ -335,7 +340,7 @@ class RelativeLength(Constraint):
 
     def assem_res(self, prims):
         """
-        Return the error in the length of the line
+        Return the length error of line `prims[0]` relative to line `prims[1]`
         """
         # This sets the length of a line
         line0, line1 = prims
@@ -346,7 +351,7 @@ class RelativeLength(Constraint):
 
 class RelativeLengthArray(Constraint[RelativeLength]):
     """
-    A constraint on relative lengths of a set of lines
+    Constrain the relative lengths of a set of lines
     """
 
     CONSTANTS = collections.namedtuple("Constants", ("lengths",))
@@ -385,6 +390,9 @@ class XDistanceMidpoints(Constraint):
     CONSTANTS = collections.namedtuple("Constants", ("distance",))
 
     def assem_res(self, prims):
+        """
+        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
+        """
         line0, line1 = prims
         start_points = (line0["Point0"], line1["Point0"])
         end_points = (line0["Point1"], line1["Point1"])
@@ -399,7 +407,7 @@ class XDistanceMidpoints(Constraint):
 
 class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
     """
-    Constrain the x-distance between pairs of line midpoints
+    Constrain the x-distances between a set of line midpoints
     """
 
     CONSTANTS = collections.namedtuple("Constants", ("distances",))
@@ -436,6 +444,9 @@ class YDistanceMidpoints(Constraint):
     CONSTANTS = collections.namedtuple("Constants", ("distance",))
 
     def assem_res(self, prims):
+        """
+        Return the y-distance error from the midpoint of line `prims[0]` to `prims[1]`
+        """
         line0, line1 = prims
         start_points = (line0["Point0"], line1["Point0"])
         end_points = (line0["Point1"], line1["Point1"])
@@ -450,7 +461,7 @@ class YDistanceMidpoints(Constraint):
 
 class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
     """
-    Constrain the x-distance between pairs of line midpoints
+    Constrain the y-distances between a set of line midpoints
     """
 
     CONSTANTS = collections.namedtuple("Constants", ("distances",))
@@ -480,7 +491,7 @@ class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
 
 class Orthogonal(Constraint):
     """
-    A constraint on orthogonality of two lines
+    Constrain two lines to be orthogonal
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
@@ -488,7 +499,7 @@ class Orthogonal(Constraint):
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
-        Return the orthogonal error
+        Return the orthogonal error between two lines
         """
         line0, line1 = prims
         dir0 = line_vector(line0)
@@ -498,7 +509,7 @@ class Orthogonal(Constraint):
 
 class Parallel(Constraint):
     """
-    A constraint on parallelism of two lines
+    Constrain two lines to be parallel
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
@@ -506,7 +517,7 @@ class Parallel(Constraint):
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
-        Return the parallel error
+        Return the parallel error between two lines
         """
         line0, line1 = prims
         dir0 = line_vector(line0)
@@ -516,7 +527,7 @@ class Parallel(Constraint):
 
 class Vertical(Constraint):
     """
-    A constraint that a line must be vertical
+    Constrain a line to be vertical
     """
 
     ARG_TYPES = (pr.Line,)
@@ -524,7 +535,7 @@ class Vertical(Constraint):
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
-        Return the vertical error
+        Return the vertical error for a line
         """
         (line0,) = prims
         dir0 = line_vector(line0)
@@ -533,7 +544,7 @@ class Vertical(Constraint):
 
 class Horizontal(Constraint):
     """
-    A constraint that a line must be horizontal
+    Constrain a line to be horizontal
     """
 
     ARG_TYPES = (pr.Line,)
@@ -541,7 +552,7 @@ class Horizontal(Constraint):
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
-        Return the horizontal error
+        Return the horizontal error for a line
         """
         (line0,) = prims
         dir0 = line_vector(line0)
@@ -550,7 +561,7 @@ class Horizontal(Constraint):
 
 class Angle(Constraint):
     """
-    A constraint on the angle between two lines
+    Constrain the angle between two lines
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
@@ -558,7 +569,7 @@ class Angle(Constraint):
 
     def assem_res(self, prims):
         """
-        Return the angle error
+        Return the angle error between two lines
         """
         line0, line1 = prims
         dir0 = line_vector(line0)
@@ -571,7 +582,7 @@ class Angle(Constraint):
 
 class Collinear(Constraint):
     """
-    A constraint on the collinearity of two lines
+    Constrain two lines to be collinear
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
@@ -579,7 +590,7 @@ class Collinear(Constraint):
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
-        Return the collinearity error
+        Return the collinearity error between two lines
         """
         res_parallel = Parallel.from_std({})
         line0, line1 = prims
@@ -593,7 +604,7 @@ class Collinear(Constraint):
 
 class CollinearArray(Constraint[Collinear]):
     """
-    A constraint on the collinearity of 2 or more lines
+    Constrain a set of lines to be collinear
     """
 
     ARG_TYPES = None
@@ -624,7 +635,7 @@ class CollinearArray(Constraint[Collinear]):
 
 class CoincidentLines(Constraint):
     """
-    A constraint on coincide of two lines
+    Constrain two lines to be coincident
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
@@ -644,12 +655,12 @@ class CoincidentLines(Constraint):
         return jnp.concatenate([point0_err, point1_err])
 
 
-## Closed polyline constraints
+## Polygon constraints
 
 
 class Box(Constraint[Horizontal | Vertical]):
     """
-    Constrain a `Quadrilateral` to have horizontal tops/bottom and vertical sides
+    Constrain a `Quadrilateral` to be rectangular
     """
 
     ARG_TYPES = (pr.Quadrilateral,)
@@ -676,7 +687,7 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
 
 class RectilinearGrid(Constraint[CollinearArray]):
     """
-    Constrain quads to a rectilinear grid
+    Constrain a set of `Quadrilateral`s to lie on a rectilinear grid
     """
 
     ARG_TYPES = None
@@ -758,6 +769,9 @@ class Grid(
         | YDistanceMidpointsArray
     ]
 ):
+    """
+    Constrain a set of `Quadrilateral`s to lie on a dimensioned rectilinear grid
+    """
 
     ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
