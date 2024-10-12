@@ -603,35 +603,24 @@ class Collinear(Constraint):
         )
 
 
-class CollinearArray(Constraint[Collinear]):
-    """
-    Constrain a set of lines to be collinear
-    """
+def GenerateCollinearArray(size: int):
 
-    ARG_TYPES = None
-    CONSTANTS = collections.namedtuple("Constants", ("size",))
+    class CollinearArray(Constraint[Collinear]):
+        """
+        Constrain a set of lines to be collinear
+        """
 
-    @classmethod
-    def from_std(
-        cls,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        _constants = load_constants(constants, cls.CONSTANTS)
-        size = _constants.size
-        if size < 1:
-            raise ValueError()
+        ARG_TYPES = size * (pr.Line,)
 
-        cls.ARG_TYPES = size * (pr.Line,)
+        CHILD_TYPES = (size - 1) * (Collinear,)
+        CHILD_ARGS = tuple((f"arg{n}", f"arg{n+1}") for n in range(size-1))
+        CHILD_KEYS = tuple(f"CollinearLine{n}Line{n+1}]" for n in range(1, size))
+        CHILD_CONSTANTS = lambda constants: (constants.size - 1) * ((),)
 
-        cls.CHILD_TYPES = (size - 1) * (Collinear,)
-        cls.CHILD_ARGS = tuple(("arg0", f"arg{n}") for n in range(1, size))
-        cls.CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        cls.CHILD_CONSTANTS = lambda constants: (constants.size - 1) * ((),)
-        return super().from_std(constants, arg_keys)
+        def assem_res(self, prims):
+            return np.array([])
 
-    def assem_res(self, prims):
-        return np.array([])
+    return CollinearArray
 
 
 class CoincidentLines(Constraint):
@@ -686,57 +675,31 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
 
-class RectilinearGrid(Constraint[CollinearArray]):
-    """
-    Constrain a set of `Quadrilateral`s to lie on a rectilinear grid
-    """
+def GenerateRectilinearGrid(shape: tp.Tuple[int, int]):
 
-    ARG_TYPES = None
-    CONSTANTS = collections.namedtuple("Constants", ("shape",))
+    num_row, num_col = shape
+    rows, cols = range(num_row), range(num_col)
 
-    @classmethod
-    def from_std(
-        cls,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        _constants = load_constants(constants, cls.CONSTANTS)
-        shape = _constants.shape
+    def idx(multi_idx):
+        return idx_1d(multi_idx, shape)
 
-        num_row, num_col = shape
-        num_args = num_row * num_col
+    CollinearRowArray = GenerateCollinearArray(num_row)
+    CollinearColArray = GenerateCollinearArray(num_col)
 
-        cls.ARG_TYPES = num_args * (pr.Quadrilateral,)
+    class RectilinearGrid(Constraint[CollinearRowArray| CollinearColArray]):
+        """
+        Constrain a set of `Quadrilateral`s to lie on a rectilinear grid
+        """
 
-        # Specify child constraints given the grid shape
+        ARG_TYPES = np.prod(shape) * (pr.Quadrilateral,)
+        CONSTANTS = collections.namedtuple("Constants", ())
 
-        # Line up bot/top/left/right
-        CHILD_TYPES = 2 * num_row * (CollinearArray,) + 2 * num_col * (CollinearArray,)
+        CHILD_TYPES = 2 * num_row * (CollinearRowArray,) + 2 * num_col * (CollinearColArray,)
         CHILD_ARGS = (
-            [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line0" for ncol in range(num_col)
-                )
-                for nrow in range(num_row)
-            ]
-            + [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line2" for ncol in range(num_col)
-                )
-                for nrow in range(num_row)
-            ]
-            + [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line3" for nrow in range(num_row)
-                )
-                for ncol in range(num_col)
-            ]
-            + [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line1" for nrow in range(num_row)
-                )
-                for ncol in range(num_col)
-            ]
+            [tuple(f"arg{idx((row, col))}/Line0" for col in cols) for row in rows]
+            + [tuple(f"arg{idx((row, col))}/Line2" for col in cols) for row in rows]
+            + [tuple(f"arg{idx((row, col))}/Line3" for row in rows) for col in cols]
+            + [tuple(f"arg{idx((row, col))}/Line1" for row in rows) for col in cols]
         )
         CHILD_KEYS = (
             [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
@@ -745,21 +708,14 @@ class RectilinearGrid(Constraint[CollinearArray]):
             + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
         )
 
-        cls.CHILD_CONSTANTS = lambda constants: (
-            [(constants.shape[1],) for nrow in range(constants.shape[0])]
-            + [(constants.shape[1],) for nrow in range(constants.shape[0])]
-            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
-            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
-        )
+        def CHILD_CONSTANTS(constants: Constants):
+            child_constants = (2*num_row + 2*num_col) * ()
+            return child_constants
 
-        cls.CHILD_TYPES = CHILD_TYPES
-        cls.CHILD_ARGS = CHILD_ARGS
-        cls.CHILD_KEYS = CHILD_KEYS
+        def assem_res(self, prims):
+            return np.array([])
 
-        return super().from_std(constants, arg_keys)
-
-    def assem_res(self, prims):
-        return np.array([])
+    return RectilinearGrid
 
 
 def line_vector(line: pr.Line):
