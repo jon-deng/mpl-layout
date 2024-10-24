@@ -87,10 +87,10 @@ class TestPrimitiveTree:
             geo.Grid.from_std(
                 {
                     "shape": axes_shape,
-                    "horizontal_margins": (num_col - 1) * [1 / 16],
-                    "vertical_margins": (num_row - 1) * [1 / 16],
-                    "widths": (num_col - 1) * [1],
-                    "heights": (num_row - 1) * [1],
+                    "col_margins": (num_col - 1) * [1 / 16],
+                    "row_margins": (num_row - 1) * [1 / 16],
+                    "col_widths": (num_col - 1) * [1],
+                    "row_heights": (num_row - 1) * [1],
                 }
             ),
             tuple(f"Axes{n}" for n in range(num_axes)),

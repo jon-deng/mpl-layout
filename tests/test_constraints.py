@@ -268,10 +268,10 @@ class TestQuadConstraints(GeometryFixtures):
         row_margins = 3 * np.ones(num_row - 1)
 
         grid_kwargs = {
-            "horizontal_margins": col_margins,
-            "vertical_margins": row_margins,
-            "widths": rel_col_widths,
-            "heights": rel_row_heights,
+            "col_margins": col_margins,
+            "row_margins": row_margins,
+            "col_widths": rel_col_widths,
+            "row_heights": rel_row_heights,
         }
         return grid_kwargs
 
@@ -284,10 +284,10 @@ class TestQuadConstraints(GeometryFixtures):
         origin = np.random.rand(2)
         origin = np.zeros(2)
 
-        col_margins = rel_grid_dimensions["horizontal_margins"]
-        row_margins = rel_grid_dimensions["vertical_margins"]
-        rel_col_widths = rel_grid_dimensions["widths"]
-        rel_row_heights = rel_grid_dimensions["heights"]
+        col_margins = rel_grid_dimensions["col_margins"]
+        row_margins = rel_grid_dimensions["row_margins"]
+        rel_col_widths = rel_grid_dimensions["col_widths"]
+        rel_row_heights = rel_grid_dimensions["row_heights"]
 
         origin_width, origin_height = grid_origin_dimensions
         col_widths = origin_width * np.concatenate(([1], rel_col_widths))

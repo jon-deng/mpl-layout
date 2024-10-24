@@ -778,7 +778,7 @@ class Grid(
     ARG_TYPES = None
     CONSTANTS = collections.namedtuple(
         "Constants",
-        ("shape", "horizontal_margins", "vertical_margins", "widths", "heights"),
+        ("shape", "col_margins", "row_margins", "col_widths", "row_heights"),
     )
 
     @classmethod
@@ -837,10 +837,10 @@ class Grid(
         )
         cls.CHILD_CONSTANTS = lambda constants: (
             {"shape": constants.shape},
-            {"lengths": constants.widths},
-            {"lengths": constants.heights},
-            {"distances": constants.horizontal_margins},
-            {"distances": constants.vertical_margins},
+            {"lengths": constants.col_widths},
+            {"lengths": constants.row_heights},
+            {"distances": constants.col_margins},
+            {"distances": constants.row_margins},
         )
         return super().from_std(constants, arg_keys)
 
