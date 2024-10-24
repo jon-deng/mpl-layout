@@ -402,6 +402,7 @@ class XDistanceMidpoints(Constraint):
         distance_end = jnp.dot(
             end_points[1].value - end_points[0].value, np.array([1, 0])
         )
+        # distance_end = 0
         return 1 / 2 * (distance_start + distance_end) - self.constants.distance
 
 
@@ -456,6 +457,7 @@ class YDistanceMidpoints(Constraint):
         distance_end = jnp.dot(
             end_points[1].value - end_points[0].value, np.array([0, 1])
         )
+        # distance_end = 0
         return 1 / 2 * (distance_start + distance_end) - self.constants.distance
 
 
@@ -811,19 +813,14 @@ class Grid(
         shape = _constants.shape
         rows, cols = list(range(shape[0])), list(range(shape[1]))
 
-        col_labels = (
-            f"arg{idx_1d((0, col+offset), shape)}"
-            for offset in (0, 1)
+        col_margin_line_labels = itertools.chain.from_iterable(
+            (f"arg{idx_1d((0, col), shape)}/Line1", f"arg{idx_1d((0, col+1), shape)}/Line3")
             for col in cols[:-1]
         )
-        col_line_labels = itertools.cycle(("Line1", "Line3"))
-
-        row_labels = (
-            f"arg{idx_1d((row+offset, 0), shape)}"
-            for offset in (1, 0)
+        row_margin_line_labels = itertools.chain.from_iterable(
+            (f"arg{idx_1d((row+1, 0), shape)}/Line2", f"arg{idx_1d((row, 0), shape)}/Line0")
             for row in rows[:-1]
         )
-        row_line_labels = itertools.cycle(("Line2", "Line0"))
 
         cls.CHILD_ARGS = (
             tuple(f"arg{n}" for n in range(num_args)),
@@ -835,14 +832,8 @@ class Grid(
                 f"arg{idx_1d((row, col), shape)}/Line1"
                 for row, col in itertools.product(rows[1:] + rows[:1], [0])
             ),
-            tuple(
-                f"{col_label}/{line_label}"
-                for col_label, line_label in zip(col_labels, col_line_labels)
-            ),
-            tuple(
-                f"{row_label}/{line_label}"
-                for row_label, line_label in zip(row_labels, row_line_labels)
-            ),
+            tuple(col_margin_line_labels),
+            tuple(row_margin_line_labels),
         )
         cls.CHILD_CONSTANTS = lambda constants: (
             {"shape": constants.shape},
