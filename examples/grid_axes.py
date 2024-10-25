@@ -146,4 +146,4 @@ if __name__ == "__main__":
     # x = np.linspace(0, 1)
     # axs['Axes1'].plot(x, x**2)
 
-    fig.savefig("grid_axes.png")
+    fig.savefig("out/grid_axes.png")

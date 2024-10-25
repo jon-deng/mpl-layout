@@ -32,7 +32,7 @@ if __name__ == "__main__":
     layout.add_constraint(BOX, ("Figure",))
 
     ## Create the Axes quads
-    layout.add_prim(geo.StandardAxes.from_std(), "Axes1")
+    layout.add_prim(geo.AxesXY.from_std(), "Axes1")
     layout.add_constraint(BOX, ("Axes1/Frame",))
 
     ## Constrain the figure size

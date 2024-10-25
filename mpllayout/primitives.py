@@ -211,7 +211,14 @@ class Axes(Primitive[Quadrilateral]):
     CHILD_KEYS = ("Frame",)
 
 
-class StandardAxes(Primitive[Quadrilateral | Point]):
+class AxesX(Primitive[Quadrilateral | Point]):
+
+    PARAM_SHAPE = (0,)
+    CHILD_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
+    CHILD_KEYS = ("Frame", "XAxis", "XAxisLabel")
+
+
+class AxesXY(Primitive[Quadrilateral | Point]):
 
     PARAM_SHAPE = (0,)
     CHILD_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
