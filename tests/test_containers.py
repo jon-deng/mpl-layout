@@ -13,13 +13,13 @@ class TestNode:
 
     @pytest.fixture()
     def node(self):
-        childd = cn.Node(99, {})
-        childe = cn.Node(9, {})
-        childb = cn.Node(2, {"d": childd, "e": childe})
+        childd = cn.Node.from_tree(99, {})
+        childe = cn.Node.from_tree(9, {})
+        childb = cn.Node.from_tree(2, {"d": childd, "e": childe})
 
-        childa = cn.Node(1, {})
-        childc = cn.Node(3, {})
-        node = cn.Node(0, {"a": childa, "b": childb, "c": childc})
+        childa = cn.Node.from_tree(1, {})
+        childc = cn.Node.from_tree(3, {})
+        node = cn.Node.from_tree(0, {"a": childa, "b": childb, "c": childc})
         return node
 
     def test_repr(self, node: cn.Node):
@@ -73,24 +73,30 @@ class TestOptionalKeyNode:
 
     @pytest.fixture()
     def node(self):
-        childd = cn.OptionalKeyNode(99, {})
-        childe = cn.OptionalKeyNode(9, {})
-        childb = cn.OptionalKeyNode(2, {"d": childd, "e": childe})
+        childd = cn.OptionalKeyNode.from_tree(99, {})
+        childe = cn.OptionalKeyNode.from_tree(9, {})
+        childb = cn.OptionalKeyNode.from_tree(2, {"d": childd, "e": childe})
 
-        childa = cn.OptionalKeyNode(1, {})
-        childc = cn.OptionalKeyNode(3, {})
-        node = cn.OptionalKeyNode(0, {"a": childa, "b": childb, "c": childc})
+        childa = cn.OptionalKeyNode.from_tree(1, {})
+        childc = cn.OptionalKeyNode.from_tree(3, {})
+        node = cn.OptionalKeyNode.from_tree(0, {"a": childa, "b": childb, "c": childc})
 
         return node
 
     def test_add_child(self, node: cn.OptionalKeyNode):
 
         # Try adding 2 children
-        children = [cn.OptionalKeyNode(-1, {}), cn.OptionalKeyNode(-1, {})]
+        children = [
+            cn.OptionalKeyNode.from_tree(-1, {}),
+            cn.OptionalKeyNode.from_tree(-1, {}),
+        ]
         for child in children:
             node.add_child("", child)
 
         # Try adding 2 grand-children
-        children = [cn.OptionalKeyNode(-1, {}), cn.OptionalKeyNode(-1, {})]
+        children = [
+            cn.OptionalKeyNode.from_tree(-1, {}),
+            cn.OptionalKeyNode.from_tree(-1, {}),
+        ]
         for child in children:
             node.add_child("OptionalKeyNode1/", child)

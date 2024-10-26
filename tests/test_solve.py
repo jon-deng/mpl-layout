@@ -21,19 +21,17 @@ class TestPrimitiveTree:
         verts = np.array([[0.1, 0.2], [1.0, 2.0], [2.0, 2.0], [3.0, 3.0]])
 
         layout.add_prim(
-            geo.Quadrilateral.from_std(
-                children=[geo.Point.from_std(vert) for vert in verts]
-            ),
+            geo.Quadrilateral(children=[geo.Point(vert) for vert in verts]),
             "MyFavouriteBox",
         )
-        layout.add_constraint(geo.Box.from_std({}), ("MyFavouriteBox",))
+        layout.add_constraint(geo.Box({}), ("MyFavouriteBox",))
         layout.add_constraint(
-            geo.Fix.from_std((np.array([0, 0]),)),
+            geo.Fix((np.array([0, 0]),)),
             ("MyFavouriteBox/Line0/Point0",),
         )
 
-        layout.add_constraint(geo.Length.from_std((5.0,)), ("MyFavouriteBox/Line0",))
-        layout.add_constraint(geo.Length.from_std((5.1,)), ("MyFavouriteBox/Line1",))
+        layout.add_constraint(geo.Length((5.0,)), ("MyFavouriteBox/Line0",))
+        layout.add_constraint(geo.Length((5.1,)), ("MyFavouriteBox/Line1",))
         return layout
 
     @pytest.fixture(params=[(5, 6)])
@@ -44,28 +42,24 @@ class TestPrimitiveTree:
     def layout_grid(self, axes_shape):
         layout = lay.Layout()
         ## Create an origin point
-        layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-        layout.add_constraint(
-            geo.Fix.from_std((np.array([0, 0]),)), ("Origin",)
-        )
+        layout.add_prim(geo.Point([0, 0]), "Origin")
+        layout.add_constraint(geo.Fix((np.array([0, 0]),)), ("Origin",))
 
         ## Create the figure box
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         layout.add_prim(
-            geo.Quadrilateral.from_std(
-                children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+            geo.Quadrilateral(
+                children=[geo.Point(vert_coords) for vert_coords in verts]
             ),
             "Figure",
         )
-        layout.add_constraint(geo.Box.from_std({}), ("Figure",))
+        layout.add_constraint(geo.Box({}), ("Figure",))
 
         ## Constrain the figure size and position
         fig_width, fig_height = 6, 3
-        layout.add_constraint(geo.Length.from_std((fig_width,)), ("Figure/Line0",))
-        # layout.add_constraint(geo.Length.from_std((fig_height,)), ("Figure/Line1",))
-        layout.add_constraint(
-            geo.Coincident.from_std({}), ("Figure/Line0/Point0", "Origin")
-        )
+        layout.add_constraint(geo.Length((fig_width,)), ("Figure/Line0",))
+        # layout.add_constraint(geo.Length((fig_height,)), ("Figure/Line1",))
+        layout.add_constraint(geo.Coincident({}), ("Figure/Line0/Point0", "Origin"))
 
         ## Create the axes boxes
         # axes_shape = (3, 4)
@@ -74,17 +68,17 @@ class TestPrimitiveTree:
         verts = np.array([[0, 0], [5, 0], [5, 5], [0, 5]])
         for n in range(num_axes):
             layout.add_prim(
-                geo.Quadrilateral.from_std(
-                    children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
+                geo.Quadrilateral(
+                    children=[geo.Point(vert_coords) for vert_coords in verts]
                 ),
                 f"Axes{n}",
             )
-            layout.add_constraint(geo.Box.from_std({}), (f"Axes{n}",))
+            layout.add_constraint(geo.Box({}), (f"Axes{n}",))
 
         ## Constrain the axes in a grid
         num_row, num_col = axes_shape
         layout.add_constraint(
-            geo.Grid.from_std(
+            geo.Grid(
                 {
                     "shape": axes_shape,
                     "col_margins": (num_col - 1) * [1 / 16],
@@ -97,19 +91,17 @@ class TestPrimitiveTree:
         )
 
         # Constrain the first axis aspect ratio
-        layout.add_constraint(
-            geo.RelativeLength.from_std((2,)), ("Axes0/Line0", "Axes0/Line1")
-        )
+        layout.add_constraint(geo.RelativeLength((2,)), ("Axes0/Line0", "Axes0/Line1"))
 
         # Constrain top/bottom margins
         margin_top = 1.1
         margin_bottom = 0.5
         layout.add_constraint(
-            geo.DirectedDistance.from_std((margin_top, np.array([0, 1]))),
+            geo.DirectedDistance((margin_top, np.array([0, 1]))),
             ("Axes0/Line1/Point1", "Figure/Line1/Point1"),
         )
         layout.add_constraint(
-            geo.DirectedDistance.from_std((margin_bottom, np.array([0, -1]))),
+            geo.DirectedDistance((margin_bottom, np.array([0, -1]))),
             (f"Axes{num_axes-1}/Line1/Point0", "Figure/Line1/Point0"),
         )
 
@@ -117,11 +109,11 @@ class TestPrimitiveTree:
         margin_left = 0.2
         margin_right = 0.3
         layout.add_constraint(
-            geo.DirectedDistance.from_std((margin_left, np.array([-1, 0]))),
+            geo.DirectedDistance((margin_left, np.array([-1, 0]))),
             ("Axes0/Line0/Point0", "Figure/Line0/Point0"),
         )
         layout.add_constraint(
-            geo.DirectedDistance.from_std((margin_right, np.array([1, 0]))),
+            geo.DirectedDistance((margin_right, np.array([1, 0]))),
             (f"Axes{num_col-1}/Line1/Point1", "Figure/Line1/Point1"),
         )
         return layout

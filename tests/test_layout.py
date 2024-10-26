@@ -18,17 +18,17 @@ class TestPrimitiveTree:
         return cn.Node(np.array([]), {})
 
     def test_set_prim(self, prim_node):
-        prim_node.add_child("MyBox", geo.Quadrilateral.from_std())
+        prim_node.add_child("MyBox", geo.Quadrilateral())
 
         pprint(f"Keys:")
         pprint(prim_node["MyBox"].keys())
 
     def test_build_primtree(self, prim_node):
-        point_a = geo.Point.from_std([0, 0])
-        point_b = geo.Point.from_std([1, 1])
+        point_a = geo.Point([0, 0])
+        point_b = geo.Point([1, 1])
         prim_node.add_child("PointA", point_a)
-        prim_node.add_child("LineA", geo.Line.from_std([], (point_a, point_b)))
-        prim_node.add_child("MySpecialBox", geo.Quadrilateral.from_std())
+        prim_node.add_child("LineA", geo.Line([], (point_a, point_b)))
+        prim_node.add_child("MySpecialBox", geo.Quadrilateral())
 
         prim_graph, prims = lat.build_prim_graph(prim_node)
 
@@ -69,12 +69,10 @@ class TestLayout:
     def test_layout(self):
         layout = lat.Layout()
 
-        layout.add_prim(geo.Quadrilateral.from_std(), "MyBox")
-        layout.add_constraint(geo.Box.from_std({}), ("MyBox",))
+        layout.add_prim(geo.Quadrilateral(), "MyBox")
+        layout.add_constraint(geo.Box({}), ("MyBox",))
 
-        layout.add_constraint(
-            geo.Fix.from_std(((0, 0),)), ("MyBox/Line0/Point0",)
-        )
+        layout.add_constraint(geo.Fix(((0, 0),)), ("MyBox/Line0/Point0",))
 
         pprint(layout.root_prim)
         constraints, constraint_graph = layout.flat_constraints()
@@ -88,10 +86,8 @@ class TestUtilities:
     def layout(self):
         layout = lat.Layout()
 
-        layout.add_prim(geo.Quadrilateral.from_std(), "MyBox")
-        layout.add_constraint(geo.Box.from_std({}), ("MyBox",))
+        layout.add_prim(geo.Quadrilateral(), "MyBox")
+        layout.add_constraint(geo.Box({}), ("MyBox",))
 
-        layout.add_constraint(
-            geo.Fix.from_std(((0, 0),)), ("MyBox/Line0/Point0",)
-        )
+        layout.add_constraint(geo.Fix(((0, 0),)), ("MyBox/Line0/Point0",))
         return layout
