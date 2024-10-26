@@ -45,26 +45,22 @@ if __name__ == "__main__":
     layout = lay.Layout()
 
     ## Create an origin point
-    layout.add_prim(geo.Point.from_std([0, 0]), "Origin")
-    layout.add_constraint(geo.Fix.from_std((np.array([0, 0]),)), ("Origin",))
+    layout.add_prim(geo.Point([0, 0]), "Origin")
+    layout.add_constraint(geo.Fix((np.array([0, 0]),)), ("Origin",))
 
     ## Create the figure box
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     layout.add_prim(
-        geo.Quadrilateral.from_std(
-            children=[geo.Point.from_std(vert_coords) for vert_coords in verts]
-        ),
+        geo.Quadrilateral(children=[geo.Point(vert_coords) for vert_coords in verts]),
         "Figure",
     )
-    layout.add_constraint(geo.Box.from_std({}), ("Figure",))
+    layout.add_constraint(geo.Box({}), ("Figure",))
 
     ## Constrain the figure size and position
     fig_width, fig_height = 6, 3
-    layout.add_constraint(geo.Length.from_std((fig_width,)), ("Figure/Line0",))
-    # layout.add_constraint(geo.Length.from_std((fig_height,)), ("Figure/Line1",))
-    layout.add_constraint(
-        geo.Coincident.from_std({}), ("Figure/Line0/Point0", "Origin")
-    )
+    layout.add_constraint(geo.Length((fig_width,)), ("Figure/Line0",))
+    # layout.add_constraint(geo.Length((fig_height,)), ("Figure/Line1",))
+    layout.add_constraint(geo.Coincident({}), ("Figure/Line0/Point0", "Origin"))
 
     ## Create the axes boxes
     axes_shape = (3, 4)
@@ -73,23 +69,21 @@ if __name__ == "__main__":
     verts = [[0, 0], [5, 0], [5, 5], [0, 5]]
     for n in range(num_axes):
         layout.add_prim(
-            geo.Axes.from_std(
+            geo.Axes(
                 children=[
-                    geo.Quadrilateral.from_std(
-                        children=[
-                            geo.Point.from_std(vert_coords) for vert_coords in verts
-                        ]
+                    geo.Quadrilateral(
+                        children=[geo.Point(vert_coords) for vert_coords in verts]
                     )
                 ]
             ),
             f"Axes{n}",
         )
-        layout.add_constraint(geo.Box.from_std({}), (f"Axes{n}/Frame",))
+        layout.add_constraint(geo.Box({}), (f"Axes{n}/Frame",))
 
     ## Constrain the axes in a grid
     num_row, num_col = axes_shape
     layout.add_constraint(
-        geo.Grid.from_std(
+        geo.Grid(
             (
                 axes_shape,
                 (num_col - 1) * [1 / 16],
@@ -103,18 +97,18 @@ if __name__ == "__main__":
 
     # Constrain the first axis aspect ratio
     layout.add_constraint(
-        geo.RelativeLength.from_std((2,)), ("Axes0/Frame/Line0", "Axes0/Frame/Line1")
+        geo.RelativeLength((2,)), ("Axes0/Frame/Line0", "Axes0/Frame/Line1")
     )
 
     # Constrain top/bottom margins
     margin_top = 1.1
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.DirectedDistance.from_std((margin_top, np.array([0, 1]))),
+        geo.DirectedDistance((margin_top, np.array([0, 1]))),
         ("Axes0/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
     layout.add_constraint(
-        geo.DirectedDistance.from_std((margin_bottom, np.array([0, -1]))),
+        geo.DirectedDistance((margin_bottom, np.array([0, -1]))),
         (f"Axes{num_axes-1}/Frame/Line1/Point0", "Figure/Line1/Point0"),
     )
 
@@ -122,18 +116,16 @@ if __name__ == "__main__":
     margin_left = 0.2
     margin_right = 0.3
     layout.add_constraint(
-        geo.DirectedDistance.from_std((margin_left, np.array([-1, 0]))),
+        geo.DirectedDistance((margin_left, np.array([-1, 0]))),
         ("Axes0/Frame/Line0/Point0", "Figure/Line0/Point0"),
     )
     layout.add_constraint(
-        geo.DirectedDistance.from_std((margin_right, np.array([1, 0]))),
+        geo.DirectedDistance((margin_right, np.array([1, 0]))),
         (f"Axes{num_col-1}/Frame/Line1/Point1", "Figure/Line1/Point1"),
     )
 
     ## Solve the constraints and form the figure/axes layout
-    prim_tree_n, info = solver.solve(
-        layout.root_prim, *layout.flat_constraints()
-    )
+    prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
     print(info)
 
     # plot_layout(layout, "grid_axes.png")
