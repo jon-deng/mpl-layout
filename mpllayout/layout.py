@@ -92,11 +92,15 @@ class Layout:
     def flat_constraints(self):
         constraints = []
         constraint_graph = []
-        for constraint, global_arg_keys in zip(self.root_constraint, self.root_constraint_graph):
+        for constraint, global_arg_keys in zip(
+            self.root_constraint, self.root_constraint_graph
+        ):
             constraint: geo.Constraint
-            arg_key_replacements = {keya: keyb for keya, keyb in zip(constraint.arg_keys, global_arg_keys)}
-            for _, child_constraint in iter_flat('', constraint):
-                split_args = (key.split('/', 1) for key in child_constraint.arg_keys)
+            arg_key_replacements = {
+                keya: keyb for keya, keyb in zip(constraint.arg_keys, global_arg_keys)
+            }
+            for _, child_constraint in iter_flat("", constraint):
+                split_args = (key.split("/", 1) for key in child_constraint.arg_keys)
                 global_args = tuple(
                     "/".join([arg_key_replacements[split_arg[0]]] + split_arg[1:])
                     for split_arg in split_args
@@ -219,7 +223,7 @@ def update_bbox_dimension_constraints(
     constraint_labels = [f"{bbox_key}.{dim_label}" for dim_label in dim_labels]
     for dim_label, dim in zip(constraint_labels, dims):
         if dim_label in constraints:
-            constraints[dim_label] = geo.Length.from_std((dim,))
+            constraints[dim_label] = geo.Length((dim,))
         else:
             warnings.warn(f"'{bbox_key}' is missing a '{dim_label}' constraint")
 

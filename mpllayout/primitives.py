@@ -62,9 +62,8 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
     CHILD_TYPES: tp.Tuple[tp.Type[ChildPrimitive], ...]
     CHILD_KEYS: tp.Tuple[str, ...]
 
-    @classmethod
-    def from_std(
-        cls,
+    def __init__(
+        self,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List["Primitive"]] = None,
     ):
@@ -73,7 +72,7 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
 
         # Create default `value` if unspecified
         if value is None:
-            value = np.zeros(cls.PARAM_SHAPE, dtype=float)
+            value = np.zeros(self.PARAM_SHAPE, dtype=float)
         elif isinstance(value, (list, tuple)):
             value = np.array(value)
         elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
@@ -83,10 +82,10 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
 
         # Create default `children` if unspecified
         if children is None:
-            children = tuple(Child.from_std() for Child in cls.CHILD_TYPES)
+            children = tuple(Child() for Child in self.CHILD_TYPES)
 
         # Validate the number of child primitives
-        if len(children) != len(cls.CHILD_TYPES):
+        if len(children) != len(self.CHILD_TYPES):
             raise ValueError(
                 f"Expected {num_child} child primitives, got {len(children)}"
             )
@@ -94,15 +93,15 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
         # Validate child primitive types
         type_comparisons = (
             type(child) == ref_type
-            for child, ref_type in zip(children, cls.CHILD_TYPES)
+            for child, ref_type in zip(children, self.CHILD_TYPES)
         )
         if not all(type_comparisons):
             raise TypeError(f"Expected child types {ref_types} got {child_types}")
 
         # Create keys from class primitive labels
-        children_map = {key: prim for key, prim in zip(cls.CHILD_KEYS, children)}
+        children_map = {key: prim for key, prim in zip(self.CHILD_KEYS, children)}
 
-        return cls(value, children_map)
+        super().__init__(value, children_map)
 
 
 PrimList = tp.List[Primitive]
@@ -140,30 +139,29 @@ class Polygon(Primitive[Line]):
     CHILD_TYPES: tp.Tuple[Line, ...]
     CHILD_KEYS: tp.Tuple[str, ...]
 
-    @classmethod
-    def from_std(
-        cls,
+    def __init__(
+        self,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List[Point]] = None,
     ):
         if children is None:
             children = []
 
-        if not hasattr(cls, "CHILD_TYPES"):
-            cls.CHILD_TYPES = len(children) * (Line,)
-        if not hasattr(cls, "CHILD_KEYS"):
-            cls.CHILD_KEYS = tuple(f"Line{n}" for n in range(len(children)))
+        if not hasattr(self, "CHILD_TYPES"):
+            self.CHILD_TYPES = len(children) * (Line,)
+        if not hasattr(self, "CHILD_KEYS"):
+            self.CHILD_KEYS = tuple(f"Line{n}" for n in range(len(children)))
 
         # Polygons contain lines as `CHILD_TYPES` but it's easier to
         # pass the points the lines pass through as children instead.
-        # The `from_std` constructor therefore accepts points instead of lines
-        # but passes the actual lines to the `Primitive.from_std`
+        # The constructor therefore accepts points instead of lines
+        # but passes the actual lines to the `Primitive`
         if all(isinstance(prim, Point) for prim in children):
-            lines = cls._points_to_lines(children)
+            lines = self._points_to_lines(children)
         else:
             raise TypeError()
 
-        return super().from_std(value, lines)
+        super().__init__(value, lines)
 
     @staticmethod
     def _points_to_lines(children: tp.List[Point]) -> tp.List[Line]:
@@ -171,7 +169,7 @@ class Polygon(Primitive[Line]):
         Return a sequence of joined lines through a set of points
         """
         lines = [
-            Line.from_std(np.array([]), [pointa, pointb])
+            Line(np.array([]), [pointa, pointb])
             for pointa, pointb in zip(children[:], children[1:] + children[:1])
         ]
 
@@ -187,21 +185,20 @@ class Quadrilateral(Polygon):
     CHILD_TYPES = (Line, Line, Line, Line)
     CHILD_KEYS = ("Line0", "Line1", "Line2", "Line3")
 
-    @classmethod
-    def from_std(
-        cls,
+    def __init__(
+        self,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List[Point]] = None,
     ):
         if children is None:
             children = [
-                Point.from_std([0, 0]),
-                Point.from_std([1, 0]),
-                Point.from_std([1, 1]),
-                Point.from_std([0, 1]),
+                Point([0, 0]),
+                Point([1, 0]),
+                Point([1, 1]),
+                Point([0, 1]),
             ]
 
-        return super().from_std(value, children)
+        super().__init__(value, children)
 
 
 class Axes(Primitive[Quadrilateral]):

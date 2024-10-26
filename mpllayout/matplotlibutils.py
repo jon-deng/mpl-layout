@@ -98,21 +98,25 @@ def update_subplots(
 
     return fig, key_to_ax
 
-def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
-    coincident_line = geo.CoincidentLines.from_std({'reverse': True})
-    bottom_res = coincident_line.assem_res((axes_frame['Line0'], axis['Line2']))
-    top_res = coincident_line.assem_res((axes_frame['Line2'],axis['Line0']))
-    left_res = coincident_line.assem_res((axes_frame['Line3'],axis['Line1']))
-    right_res = coincident_line.assem_res((axes_frame['Line1'],axis['Line3']))
 
-    residuals = tuple(np.linalg.norm(res) for res in (bottom_res, top_res, left_res, right_res))
-    residual_positions = ('bottom', 'top', 'left', 'right')
+def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
+    coincident_line = geo.CoincidentLines({"reverse": True})
+    bottom_res = coincident_line.assem_res((axes_frame["Line0"], axis["Line2"]))
+    top_res = coincident_line.assem_res((axes_frame["Line2"], axis["Line0"]))
+    left_res = coincident_line.assem_res((axes_frame["Line3"], axis["Line1"]))
+    right_res = coincident_line.assem_res((axes_frame["Line1"], axis["Line3"]))
+
+    residuals = tuple(
+        np.linalg.norm(res) for res in (bottom_res, top_res, left_res, right_res)
+    )
+    residual_positions = ("bottom", "top", "left", "right")
     print(residuals, residual_positions)
 
     if not np.isclose(np.min(residuals), 0):
         warnings.warn("The axis isn't closely aligned with any of the axes sides")
     position = residual_positions[np.argmin(residuals)]
     return position
+
 
 def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float]:
     """
