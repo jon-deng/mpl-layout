@@ -21,6 +21,7 @@ T = tp.TypeVar("T")
 ChildType = tp.TypeVar("ChildType", bound="Node")
 AnyNode = tp.TypeVar("AnyNode", bound="Node")
 
+
 class Node(tp.Generic[T, ChildType]):
     """
     Tree structure with labelled child nodes
@@ -39,6 +40,12 @@ class Node(tp.Generic[T, ChildType]):
         assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
+
+    @classmethod
+    def from_tree(cls, value: None | T, children: tp.Mapping[str, ChildType]):
+        node = super().__new__(cls)
+        Node.__init__(node, value, children)
+        return node
 
     @property
     def children(self):
@@ -230,6 +237,12 @@ class OptionalKeyNode(Node[T, ChildType]):
         self._child_counter = ItemCounter()
         super().__init__(value, children)
 
+    @classmethod
+    def from_tree(cls, value: None | T, children: tp.Mapping[str, ChildType]):
+        node = super().__new__(cls)
+        OptionalKeyNode.__init__(node, value, children)
+        return node
+
     def add_child_nonrecursive(self, key: str, child: AnyNode):
         """
         Add a primitive indexed by a key
@@ -308,8 +321,7 @@ def iter_flat(key: str, node: Node[T, ChildType]):
         nodes = [(key, node)]
     else:
         cnodes = [
-            iter_flat("/".join((key, ckey)), cnode)
-            for ckey, cnode in node.items()
+            iter_flat("/".join((key, ckey)), cnode) for ckey, cnode in node.items()
         ]
         cnodes = itertools.chain(cnodes)
 
@@ -332,7 +344,7 @@ def unflatten(
     node_structs = node_structs[1:]
 
     if num_child == 0:
-        node = NodeType(value, {})
+        node = NodeType.from_tree(value, {})
     else:
         ckeys = []
         children = []
@@ -345,7 +357,9 @@ def unflatten(
             ckeys.append(ckey)
             children.append(child)
 
-        node = NodeType(value, {key: child for key, child in zip(ckeys, children)})
+        node = NodeType.from_tree(
+            value, {key: child for key, child in zip(ckeys, children)}
+        )
 
     return node, node_structs
 
@@ -360,16 +374,16 @@ Keys = tp.List[str]
 AuxData = tp.Tuple[Keys]
 
 
-def _make_flatten_unflatten(NodeClass: tp.Type[Node[T, ChildType]]):
+def _make_flatten_unflatten(NodeType: tp.Type[Node[T, ChildType]]):
 
-    def _flatten_node(node: NodeClass) -> tp.Tuple[FlatNode, AuxData]:
+    def _flatten_node(node: NodeType) -> tp.Tuple[FlatNode, AuxData]:
         flat_node = (node.value, node.children_map)
         aux_data = None
         return (flat_node, aux_data)
 
-    def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeClass:
+    def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeType:
         value, children = flat_node
-        return NodeClass(value, children)
+        return NodeType.from_tree(value, children)
 
     return _flatten_node, _unflatten_node
 
