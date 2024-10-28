@@ -24,6 +24,19 @@ ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
 ChildConstraint = tp.TypeVar("ChildConstraint", bound="Constraint")
 
+def load_named_tuple(
+        NamedTuple: collections.namedtuple,
+        args: tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
+    ):
+    if isinstance(args, dict):
+        args = NamedTuple(**args)
+    elif isinstance(args, tuple):
+        args = NamedTuple(*args)
+    elif isinstance(args, NamedTuple):
+        pass
+    else:
+        raise TypeError()
+    return args
 
 class Constraint(Node[ConstraintValue, ChildConstraint]):
     """
@@ -109,18 +122,6 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         # Use default constants if not specified
         return len(cls.CHILD_TYPES) * ({},)
 
-    @classmethod
-    def load_constants(cls, constants: Constants):
-        if isinstance(constants, dict):
-            constants = cls.CONSTANTS(**constants)
-        elif isinstance(constants, tuple):
-            constants = cls.CONSTANTS(*constants)
-        elif isinstance(constants, cls.CONSTANTS):
-            pass
-        else:
-            raise TypeError()
-        return constants
-
     def __init__(
         self,
         constants: Constants = None,
@@ -128,7 +129,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     ):
         if constants is None:
             constants = ()
-        constants = self.load_constants(constants)
+        constants = load_named_tuple(self.CONSTANTS, constants)
 
         # `arg_keys` specifies the keys from a root primitive that gives the primitives
         # for `assem_res(prims)`.
@@ -183,8 +184,9 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
     def __call__(self, prims: tp.Tuple[Primitive, ...], params: Parameters):
         root_prim = Node(
-            np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
+            np.array(()), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
+        params = load_named_tuple(self.ARG_PARAMETERS, params)
         return self.assem_res_from_tree(root_prim, params)
 
     def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive], params: Parameters):
@@ -221,6 +223,22 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
 ## Constraints on points
 
+class Fix(Constraint):
+    """
+    Constrain all coordinates of a point
+    """
+
+    ARG_TYPES = (pr.Point,)
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("location",))
+    CONSTANTS = collections.namedtuple("Constants", ())
+
+    def assem_res(self, prims, params):
+        """
+        Return the location error for a point
+        """
+        (point,) = prims
+        return point.value - params.location
+
 
 class DirectedDistance(Constraint):
     """
@@ -228,7 +246,8 @@ class DirectedDistance(Constraint):
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
-    CONSTANTS = collections.namedtuple("Constants", ["distance", "direction"])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance", "direction"))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -246,56 +265,35 @@ class XDistance(DirectedDistance):
     Constrain the x-distance between two points
     """
 
-    def __init__(
-        self,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        direction = np.array([1, 0])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
 
-        if isinstance(constants, dict):
-            constants = constants.copy()
-            constants.update({"direction": direction})
-        elif isinstance(constants, tuple):
-            constants = constants[:1] + (direction,)
+    def assem_res(self, prims, params):
+        """
+        Return the distance error between two points along a given direction
 
-        super().__init__(constants, arg_keys)
+        The distance is measured from `prims[0]` to `prims[1]` along the direction.
+        """
+        distance, direction = params[0], np.array([1, 0])
+        params = super().ARG_PARAMETERS(distance, direction)
+        return super().assem_res(prims, params)
 
 
 class YDistance(DirectedDistance):
     """
-    Constrain the x-distance between two points
+    Constrain the y-distance between two points
     """
 
-    def __init__(
-        self,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        direction = np.array([0, 1])
-        if isinstance(constants, dict):
-            constants = constants.copy()
-            constants.update({"direction": direction})
-        elif isinstance(constants, tuple):
-            constants = constants[:1] + (direction,)
-
-        super().__init__(constants, arg_keys)
-
-
-class Fix(Constraint):
-    """
-    Constrain all coordinates of a point
-    """
-
-    ARG_TYPES = (pr.Point,)
-    CONSTANTS = collections.namedtuple("Constants", ["location"])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
 
     def assem_res(self, prims, params):
         """
-        Return the location error for a point
+        Return the distance error between two points along a given direction
+
+        The distance is measured from `prims[0]` to `prims[1]` along the direction.
         """
-        (point,) = prims
-        return point.value - params.location
+        distance, direction = params[0], np.array([0, 1])
+        params = super().ARG_PARAMETERS(distance, direction)
+        return super().assem_res(prims, params)
 
 
 class Coincident(Constraint):
@@ -304,7 +302,8 @@ class Coincident(Constraint):
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -323,7 +322,8 @@ class Length(Constraint):
     """
 
     ARG_TYPES = (pr.Line,)
-    CONSTANTS = collections.namedtuple("Constants", ["length"])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -340,8 +340,9 @@ class RelativeLength(Constraint):
     Constrain the length of a line relative to another line
     """
 
-    CONSTANTS = collections.namedtuple("Constants", ["length"])
     ARG_TYPES = (pr.Line, pr.Line)
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -359,14 +360,16 @@ class RelativeLengthArray(Constraint[RelativeLength]):
     Constrain the relative lengths of a set of lines
     """
 
-    CONSTANTS = collections.namedtuple("Constants", ("lengths",))
+    ARG_TYPES = (pr.Line, pr.Line)
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("lengths",))
+    CONSTANTS = collections.namedtuple("Constants", ("size",))
 
     def __init__(
         self,
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = self.load_constants(constants)
+        _constants = load_named_tuple(self.CONSTANTS, constants)
         num_args = len(_constants.lengths) + 1
         self.ARG_TYPES = num_args * (pr.Line,)
 
@@ -382,7 +385,7 @@ class RelativeLengthArray(Constraint[RelativeLength]):
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 class XDistanceMidpoints(Constraint):
@@ -391,7 +394,8 @@ class XDistanceMidpoints(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple("Constants", ("distance",))
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -422,7 +426,7 @@ class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = self.load_constants(constants)
+        _constants = load_named_tuple(self.CONSTANTS, constants)
         num_child = len(_constants.distances)
 
         self.ARG_TYPES = num_child * (pr.Line, pr.Line)
@@ -436,7 +440,7 @@ class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 class YDistanceMidpoints(Constraint):
@@ -445,7 +449,8 @@ class YDistanceMidpoints(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple("Constants", ("distance",))
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -476,7 +481,7 @@ class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = self.load_constants(constants)
+        _constants = load_named_tuple(self.CONSTANTS, constants)
         num_child = len(_constants.distances)
 
         self.ARG_TYPES = num_child * (pr.Line, pr.Line)
@@ -490,7 +495,7 @@ class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 class Orthogonal(Constraint):
@@ -499,7 +504,8 @@ class Orthogonal(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -517,7 +523,8 @@ class Parallel(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -535,7 +542,8 @@ class Vertical(Constraint):
     """
 
     ARG_TYPES = (pr.Line,)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -552,7 +560,8 @@ class Horizontal(Constraint):
     """
 
     ARG_TYPES = (pr.Line,)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -569,7 +578,8 @@ class Angle(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple("Constants", ["angle"])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("angle",))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -590,7 +600,8 @@ class Collinear(Constraint):
     """
 
     ARG_TYPES = (pr.Line, pr.Line)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -619,7 +630,7 @@ class CollinearArray(Constraint[Collinear]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = self.load_constants(constants)
+        _constants = load_named_tuple(self.CONSTANTS, constants)
         size = _constants.size
         if size < 1:
             raise ValueError()
@@ -633,7 +644,7 @@ class CollinearArray(Constraint[Collinear]):
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 class CoincidentLines(Constraint):
@@ -642,7 +653,8 @@ class CoincidentLines(Constraint):
     """
 
     ARG_TYPES = (pr.Point, pr.Point)
-    CONSTANTS = collections.namedtuple("Constants", ["reverse"])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ("reverse",))
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     def assem_res(self, prims, params):
         """
@@ -667,14 +679,15 @@ class Box(Constraint[Horizontal | Vertical]):
     """
 
     ARG_TYPES = (pr.Quadrilateral,)
-    CONSTANTS = collections.namedtuple("Constants", [])
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+    CONSTANTS = collections.namedtuple("Constants", ())
 
     CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
     CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
     CHILD_ARGS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 ## Grid constraints
@@ -694,6 +707,7 @@ class RectilinearGrid(Constraint[CollinearArray]):
     """
 
     ARG_TYPES = None
+    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
     CONSTANTS = collections.namedtuple("Constants", ("shape",))
 
     def __init__(
@@ -701,7 +715,7 @@ class RectilinearGrid(Constraint[CollinearArray]):
         constants: Constants,
         arg_keys: tp.Tuple[str, ...] = None,
     ):
-        _constants = self.load_constants(constants)
+        _constants = load_named_tuple(self.CONSTANTS, constants)
         shape = _constants.shape
 
         num_row, num_col = shape
@@ -760,7 +774,7 @@ class RectilinearGrid(Constraint[CollinearArray]):
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 class Grid(
@@ -787,7 +801,7 @@ class Grid(
         arg_keys: tp.Tuple[str, ...] = None,
     ):
 
-        _constants = self.load_constants(constants)
+        _constants = load_named_tuple(self.CONSTANTS, constants)
         num_args = np.prod(_constants.shape)
         self.ARG_TYPES = num_args * (pr.Quadrilateral,)
 
@@ -852,7 +866,7 @@ class Grid(
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
-        return np.array([])
+        return np.array(())
 
 
 def line_vector(line: pr.Line):
