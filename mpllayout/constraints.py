@@ -38,6 +38,7 @@ def load_named_tuple(
         raise TypeError()
     return args
 
+
 class Constraint(Node[ConstraintValue, ChildConstraint]):
     """
     Geometric constraint on primitives
@@ -106,38 +107,9 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         (see `arg_keys` above)
     """
 
-    ARG_TYPES: tp.Tuple[type[Primitive], ...]
-    ARG_PARAMETERS: type[collections.namedtuple] = collections.namedtuple("Parameters", ())
-    CONSTANTS: type[collections.namedtuple] = collections.namedtuple("Constants", ())
-
-    CHILD_TYPES: tp.Tuple[type["Constraint"], ...] = ()
-    CHILD_KEYS: tp.Tuple[str, ...] = ()
-    CHILD_PARAMETERS: tp.Callable[
-        [type["Constraint"], Constants], tp.Tuple[Constants, ...]
-    ]
-    CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
-
+    # Common utility function for creating children constraints
     @classmethod
-    def CHILD_PARAMETERS(cls, parameters: Parameters):
-        # Use default constants if not specified
-        return len(cls.CHILD_TYPES) * ({},)
-
-    def __init__(
-        self,
-        constants: Constants = None,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        if constants is None:
-            constants = ()
-        constants = load_named_tuple(self.CONSTANTS, constants)
-
-        # `arg_keys` specifies the keys from a root primitive that gives the primitives
-        # for `assem_res(prims)`.
-        # If `arg_keys` is not supplied (the constraint is top-level constraint) then these
-        # are simply f'arg{n}' for integer argument numbers `n`
-        # Child keys `arg_keys` are assumed to index from `arg_keys`
-        if arg_keys is None:
-            arg_keys = tuple(f"arg{n}" for n in range(len(self.ARG_TYPES)))
+    def init_children(cls, arg_keys, CHILD_KEYS, CHILD_TYPES, CHILD_ARGS):
 
         # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
         def get_parent_arg_number(arg_key: str):
@@ -150,7 +122,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
         parent_args_numbers = [
             tuple(get_parent_arg_number(arg_key) for arg_key in carg_keys)
-            for carg_keys in self.CHILD_ARGS
+            for carg_keys in CHILD_ARGS
         ]
         parent_args = [
             tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
@@ -161,22 +133,47 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
                 "/".join([parent_arg_key] + arg_key.split("/", 1)[1:])
                 for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
             )
-            for parent_arg_keys, carg_keys in zip(parent_args, self.CHILD_ARGS)
+            for parent_arg_keys, carg_keys in zip(parent_args, CHILD_ARGS)
         )
 
-        child_constants = self.CHILD_PARAMETERS(constants)
         children = {
-            key: ChildType(constant, arg_keys=arg_keys)
-            for key, ChildType, constant, arg_keys in zip(
-                self.CHILD_KEYS, self.CHILD_TYPES, child_constants, child_args
+            key: ChildType(arg_keys)
+            for key, ChildType, arg_keys in zip(
+                CHILD_KEYS, CHILD_TYPES, child_args
             )
         }
+        return children
 
-        super().__init__((constants, arg_keys), children)
+    def split_child_params(cls, parameters: Parameters):
+        raise NotImplementedError()
 
-    # @property
-    # def constants(self):
-    #     return self.value[0]
+    def params_tree(self, parameters: Parameters):
+        keys, child_constraints = self.keys(), self.children
+        child_parameters = self.split_child_params(parameters)
+        children = {
+            key: child_constraint.params_tree(child_params)
+            for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
+        }
+        root_params = Node(parameters, children)
+        return root_params
+
+    def __init__(
+        self,
+        constants: Constants,
+        arg_keys: tp.Tuple[str, ...],
+        arg_types: tp.Tuple[type[Primitive], ...],
+        arg_parameters: tp.Tuple[tp.Any, ...],
+        children: tp.Mapping[str, "Constraint"]
+    ):
+        super().__init__((constants, arg_keys, arg_types, arg_parameters), children)
+
+    @property
+    def constants(self):
+        return self.value[0]
+
+    @property
+    def Parameters(self):
+        return self.value[3]
 
     @property
     def arg_keys(self):
@@ -186,17 +183,18 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         root_prim = Node(
             np.array(()), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
-        params = load_named_tuple(self.ARG_PARAMETERS, params)
-        return self.assem_res_from_tree(root_prim, params)
+        root_params = self.params_tree(load_named_tuple(self.Parameters, params))
+        params = load_named_tuple(self.Parameters, params)
+        return self.assem_res_from_tree(root_prim, root_params)
 
-    def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive], params: Parameters):
+    def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive], root_params: Parameters):
         # flat_constraints = flatten('', self)
         residuals = tuple(
             constraint.assem_res_atleast_1d(
                 tuple(root_prim[arg_key] for arg_key in constraint.arg_keys),
-                params
+                params.value
             )
-            for _, constraint in iter_flat("", self)
+            for (_, constraint), (_, params) in zip(iter_flat("", self), iter_flat("", root_params))
         )
         return jnp.concatenate(residuals)
 
@@ -221,9 +219,92 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         raise NotImplementedError()
 
 
+class StaticConstraint(Constraint):
+    """
+    Constraint with predefined number of children
+
+    To specify a `StaticConstraint` you have to define class variables
+
+    """
+
+    CONSTANTS: type[collections.namedtuple] = collections.namedtuple("Constants", ())
+    ARG_TYPES: tp.Tuple[type[Primitive], ...]
+    ARG_PARAMETERS: type[collections.namedtuple] = collections.namedtuple("Parameters", ())
+
+    CHILD_KEYS: tp.Tuple[str, ...] = ()
+    CHILD_TYPES: tp.Tuple[type["Constraint"], ...] = ()
+    CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
+
+    split_child_params: tp.Callable[
+        [type["Constraint"], Constants], tp.Tuple[Constants, ...]
+    ]
+
+    def split_child_params(self, parameters: Parameters):
+        return len(self.CHILD_KEYS) * (collections.namedtuple("Parameters", ()),)
+
+    def __init__(self, arg_keys: tp.Tuple[str, ...]=None):
+
+        constants = self.CONSTANTS
+
+        # `arg_keys` specifies the keys from a root primitive that gives the primitives
+        # for `assem_res(prims)`.
+        # If `arg_keys` is not supplied (the constraint is top-level constraint) then these
+        # are simply f'arg{n}' for integer argument numbers `n`
+        # Child keys `arg_keys` are assumed to index from `arg_keys`
+        if arg_keys is None:
+            arg_keys = tuple(f"arg{n}" for n in range(len(self.ARG_TYPES)))
+
+        children = self.init_children(arg_keys, self.CHILD_KEYS, self.CHILD_TYPES, self.CHILD_ARGS)
+
+        super().__init__(constants, arg_keys, self.ARG_TYPES, self.ARG_PARAMETERS, children)
+
+
+class DynamicConstraint(Constraint):
+    """
+    Constraint with dynamic number of children depending on a shape
+    """
+
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int, ...]):
+        num_args = np.prod(shape)
+
+        ARG_TYPES = num_args * (pr.Line,)
+        ARG_PARAMETERS: type[collections.namedtuple] = collections.namedtuple("Parameters", ())
+
+        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(num_args - 1))
+        CHILD_TYPES = (num_args - 1) * (RelativeLength,)
+        CHILD_ARGS = tuple(
+            (f"arg{n}", f"arg{num_args-1}") for n in range(num_args - 1)
+        )
+
+        return (ARG_TYPES, ARG_PARAMETERS), (CHILD_KEYS, CHILD_TYPES, CHILD_ARGS)
+
+    def split_child_params(self, parameters):
+        raise NotImplementedError()
+
+    def __init__(self, shape: tp.Tuple[int, ...], arg_keys: tp.Tuple[str, ...]=None):
+
+        constants = collections.namedtuple("Constants", ("shape",))(shape)
+
+        (ARG_TYPES, ARG_PARAMETERS), (CHILD_KEYS, CHILD_ARGS, CHILD_TYPES) = self.init_tree(shape)
+
+        # `arg_keys` specifies the keys from a root primitive that gives the primitives
+        # for `assem_res(prims)`.
+        # If `arg_keys` is not supplied (the constraint is top-level constraint) then these
+        # are simply f'arg{n}' for integer argument numbers `n`
+        # Child keys `arg_keys` are assumed to index from `arg_keys`
+        if arg_keys is None:
+            arg_keys = tuple(f"arg{n}" for n in range(len(ARG_TYPES)))
+
+
+        children = self.init_children(arg_keys, CHILD_KEYS, CHILD_ARGS, CHILD_TYPES)
+
+        super().__init__(constants, arg_keys, ARG_TYPES, ARG_PARAMETERS, children)
+
+
 ## Constraints on points
 
-class Fix(Constraint):
+class Fix(StaticConstraint):
     """
     Constrain all coordinates of a point
     """
@@ -240,7 +321,7 @@ class Fix(Constraint):
         return point.value - params.location
 
 
-class DirectedDistance(Constraint):
+class DirectedDistance(StaticConstraint):
     """
     Constrain the distance between two points along a direction
     """
@@ -296,7 +377,7 @@ class YDistance(DirectedDistance):
         return super().assem_res(prims, params)
 
 
-class Coincident(Constraint):
+class Coincident(StaticConstraint):
     """
     Constrain two points to be coincident
     """
@@ -316,7 +397,7 @@ class Coincident(Constraint):
 ## Line constraints
 
 
-class Length(Constraint):
+class Length(StaticConstraint):
     """
     Constrain the length of a line
     """
@@ -335,7 +416,7 @@ class Length(Constraint):
         return jnp.sum(vec**2) - params.length**2
 
 
-class RelativeLength(Constraint):
+class RelativeLength(StaticConstraint):
     """
     Constrain the length of a line relative to another line
     """
@@ -355,40 +436,42 @@ class RelativeLength(Constraint):
         return jnp.sum(vec_a**2) - params.length**2 * jnp.sum(vec_b**2)
 
 
-class RelativeLengthArray(Constraint[RelativeLength]):
+class RelativeLengthArray(DynamicConstraint):
     """
-    Constrain the relative lengths of a set of lines
+    Constrain the lengths of a set of lines relative to the last
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("lengths",))
-    CONSTANTS = collections.namedtuple("Constants", ("size",))
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int] | int):
+        if isinstance(shape, int):
+            shape = (shape,)
 
-    def __init__(
-        self,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        _constants = load_named_tuple(self.CONSTANTS, constants)
-        num_args = len(_constants.lengths) + 1
-        self.ARG_TYPES = num_args * (pr.Line,)
+        num_args = np.prod(shape)
 
-        self.CHILD_TYPES = (num_args - 1) * (RelativeLength,)
-        self.CHILD_ARGS = tuple(
+        ARG_TYPES = num_args * (pr.Line,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("lengths",))
+
+        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(num_args - 1))
+        CHILD_TYPES = (num_args - 1) * (RelativeLength,)
+        CHILD_ARGS = tuple(
             (f"arg{n}", f"arg{num_args-1}") for n in range(num_args - 1)
         )
-        self.CHILD_PARAMETERS = lambda constants: tuple(
-            (length,) for length in constants.lengths
-        )
-        self.CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(num_args - 1))
 
-        super().__init__(constants, arg_keys)
+        return (ARG_TYPES, ARG_PARAMETERS), (CHILD_KEYS, CHILD_TYPES, CHILD_ARGS)
+
+    def split_child_params(self, parameters):
+        num_args = np.prod(self.constants.shape)
+
+        return tuple(
+            child.Parameters(length)
+            for child, length in zip(self.children, parameters.lengths)
+        )
 
     def assem_res(self, prims, params):
-        return np.array(())
+        return np.array([])
 
 
-class XDistanceMidpoints(Constraint):
+class XDistanceMidpoints(StaticConstraint):
     """
     Constrain the x-distance between two line midpoints
     """
@@ -433,7 +516,7 @@ class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
         self.CHILD_TYPES = num_child * (XDistanceMidpoints,)
         self.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         self.CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
-        self.CHILD_PARAMETERS = lambda constants: tuple(
+        self.split_child_params = lambda constants: tuple(
             (distance,) for distance in constants.distances
         )
 
@@ -443,7 +526,7 @@ class XDistanceMidpointsArray(Constraint[XDistanceMidpoints]):
         return np.array(())
 
 
-class YDistanceMidpoints(Constraint):
+class YDistanceMidpoints(StaticConstraint):
     """
     Constrain the y-distance between two line midpoints
     """
@@ -488,7 +571,7 @@ class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
         self.CHILD_TYPES = num_child * (YDistanceMidpoints,)
         self.CHILD_ARGS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         self.CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
-        self.CHILD_PARAMETERS = lambda constants: tuple(
+        self.split_child_params = lambda constants: tuple(
             (distance,) for distance in constants.distances
         )
 
@@ -498,7 +581,7 @@ class YDistanceMidpointsArray(Constraint[YDistanceMidpoints]):
         return np.array(())
 
 
-class Orthogonal(Constraint):
+class Orthogonal(StaticConstraint):
     """
     Constrain two lines to be orthogonal
     """
@@ -517,7 +600,7 @@ class Orthogonal(Constraint):
         return jnp.dot(dir0, dir1)
 
 
-class Parallel(Constraint):
+class Parallel(StaticConstraint):
     """
     Constrain two lines to be parallel
     """
@@ -536,7 +619,7 @@ class Parallel(Constraint):
         return jnp.cross(dir0, dir1)
 
 
-class Vertical(Constraint):
+class Vertical(StaticConstraint):
     """
     Constrain a line to be vertical
     """
@@ -554,7 +637,7 @@ class Vertical(Constraint):
         return jnp.dot(dir0, np.array([1, 0]))
 
 
-class Horizontal(Constraint):
+class Horizontal(StaticConstraint):
     """
     Constrain a line to be horizontal
     """
@@ -572,7 +655,7 @@ class Horizontal(Constraint):
         return jnp.dot(dir0, np.array([0, 1]))
 
 
-class Angle(Constraint):
+class Angle(StaticConstraint):
     """
     Constrain the angle between two lines
     """
@@ -594,7 +677,7 @@ class Angle(Constraint):
         return jnp.arccos(jnp.dot(dir0, dir1)) - params.angle
 
 
-class Collinear(Constraint):
+class Collinear(StaticConstraint):
     """
     Constrain two lines to be collinear
     """
@@ -640,14 +723,14 @@ class CollinearArray(Constraint[Collinear]):
         self.CHILD_TYPES = (size - 1) * (Collinear,)
         self.CHILD_ARGS = tuple(("arg0", f"arg{n}") for n in range(1, size))
         self.CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        self.CHILD_PARAMETERS = lambda constants: (constants.size - 1) * ((),)
+        self.split_child_params = lambda constants: (constants.size - 1) * ((),)
         super().__init__(constants, arg_keys)
 
     def assem_res(self, prims, params):
         return np.array(())
 
 
-class CoincidentLines(Constraint):
+class CoincidentLines(StaticConstraint):
     """
     Constrain two lines to be coincident
     """
@@ -673,7 +756,7 @@ class CoincidentLines(Constraint):
 ## Polygon constraints
 
 
-class Box(Constraint[Horizontal | Vertical]):
+class Box(StaticConstraint):
     """
     Constrain a `Quadrilateral` to be rectangular
     """
@@ -760,7 +843,7 @@ class RectilinearGrid(Constraint[CollinearArray]):
             + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
         )
 
-        self.CHILD_PARAMETERS = lambda constants: (
+        self.split_child_params = lambda constants: (
             [(constants.shape[1],) for nrow in range(constants.shape[0])]
             + [(constants.shape[1],) for nrow in range(constants.shape[0])]
             + [(constants.shape[0],) for ncol in range(constants.shape[1])]
@@ -855,7 +938,7 @@ class Grid(
             tuple(col_margin_line_labels),
             tuple(row_margin_line_labels),
         )
-        self.CHILD_PARAMETERS = lambda constants: (
+        self.split_child_params = lambda constants: (
             {"shape": constants.shape},
             {"lengths": constants.col_widths},
             {"lengths": constants.row_heights},
