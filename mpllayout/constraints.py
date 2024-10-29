@@ -690,44 +690,41 @@ class Collinear(StaticConstraint):
         """
         Return the collinearity error between two lines
         """
-        res_parallel = Parallel({})
+        res_parallel = Parallel()
         line0, line1 = prims
         line2 = pr.Line(children=(line1[0], line0[0]))
         # line3 = primitives.Line(children=(line1['Point0'], line0['Point1']))
 
         return jnp.concatenate(
-            [res_parallel((line0, line1)), res_parallel((line0, line2))]
+            [res_parallel((line0, line1), ()), res_parallel((line0, line2), ())]
         )
 
 
-class CollinearArray(Constraint[Collinear]):
+class CollinearArray(DynamicConstraint):
     """
     Constrain a set of lines to be collinear
     """
 
-    ARG_TYPES = None
-    CONSTANTS = collections.namedtuple("Constants", ("size",))
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int]):
+        size = np.prod(shape)
 
-    def __init__(
-        self,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        _constants = load_named_tuple(self.CONSTANTS, constants)
-        size = _constants.size
-        if size < 1:
-            raise ValueError()
+        ARG_TYPES = size * (pr.Line,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
 
-        self.ARG_TYPES = size * (pr.Line,)
+        CHILD_TYPES = (size - 1) * (Collinear,)
+        CHILD_ARGS = tuple(("arg0", f"arg{n}") for n in range(1, size))
+        CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
 
-        self.CHILD_TYPES = (size - 1) * (Collinear,)
-        self.CHILD_ARGS = tuple(("arg0", f"arg{n}") for n in range(1, size))
-        self.CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        self.split_child_params = lambda constants: (constants.size - 1) * ((),)
-        super().__init__(constants, arg_keys)
+        return (ARG_TYPES, ARG_PARAMETERS), (CHILD_KEYS, CHILD_TYPES, CHILD_ARGS)
+
+    def split_child_params(self, parameters):
+        num_args = np.prod(self.constants.shape)
+
+        return tuple(child.Parameters() for child in self.children)
 
     def assem_res(self, prims, params):
-        return np.array(())
+        return np.array([])
 
 
 class CoincidentLines(StaticConstraint):
@@ -784,77 +781,52 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
 
-class RectilinearGrid(Constraint[CollinearArray]):
+class RectilinearGrid(DynamicConstraint):
     """
     Constrain a set of `Quadrilateral`s to lie on a rectilinear grid
     """
 
-    ARG_TYPES = None
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ("shape",))
-
-    def __init__(
-        self,
-        constants: Constants,
-        arg_keys: tp.Tuple[str, ...] = None,
-    ):
-        _constants = load_named_tuple(self.CONSTANTS, constants)
-        shape = _constants.shape
-
+    @classmethod
+    def init_tree(self, shape: tp.Tuple[int, ...]):
         num_row, num_col = shape
-        num_args = num_row * num_col
+        num_args = np.prod(shape)
 
-        self.ARG_TYPES = num_args * (pr.Quadrilateral,)
+        ARG_TYPES = num_args * (pr.Quadrilateral,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        def idx(i, j):
+            return idx_1d((i, j), shape)
 
         # Specify child constraints given the grid shape
-
-        # Line up bot/top/left/right
+        # Line up bottom/top and left/right
         CHILD_TYPES = 2 * num_row * (CollinearArray,) + 2 * num_col * (CollinearArray,)
-        CHILD_ARGS = (
-            [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line0" for ncol in range(num_col)
-                )
-                for nrow in range(num_row)
-            ]
-            + [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line2" for ncol in range(num_col)
-                )
-                for nrow in range(num_row)
-            ]
-            + [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line3" for nrow in range(num_row)
-                )
-                for ncol in range(num_col)
-            ]
-            + [
-                tuple(
-                    f"arg{idx_1d((nrow, ncol), shape)}/Line1" for nrow in range(num_row)
-                )
-                for ncol in range(num_col)
-            ]
-        )
+        align_bottom = [
+            tuple(f"arg{idx(nrow, ncol)}/Line0" for ncol in range(num_col))
+            for nrow in range(num_row)
+        ]
+        align_top = [
+            tuple(f"arg{idx(nrow, ncol)}/Line2" for ncol in range(num_col))
+            for nrow in range(num_row)
+        ]
+        align_left = [
+            tuple(f"arg{idx(nrow, ncol)}/Line3" for nrow in range(num_row))
+            for ncol in range(num_col)
+        ]
+        align_right = [
+            tuple(f"arg{idx(nrow, ncol)}/Line1" for nrow in range(num_row))
+            for ncol in range(num_col)
+        ]
+        CHILD_ARGS = align_bottom + align_top + align_left + align_right
         CHILD_KEYS = (
             [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
             + [f"CollinearRowTop{nrow}" for nrow in range(num_row)]
             + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
             + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
         )
+        return (ARG_TYPES, ARG_PARAMETERS), (CHILD_KEYS, CHILD_TYPES, CHILD_ARGS)
 
-        self.split_child_params = lambda constants: (
-            [(constants.shape[1],) for nrow in range(constants.shape[0])]
-            + [(constants.shape[1],) for nrow in range(constants.shape[0])]
-            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
-            + [(constants.shape[0],) for ncol in range(constants.shape[1])]
-        )
-
-        self.CHILD_TYPES = CHILD_TYPES
-        self.CHILD_ARGS = CHILD_ARGS
-        self.CHILD_KEYS = CHILD_KEYS
-
-        super().__init__(constants, arg_keys)
+    def split_child_params(self, parameters):
+        return tuple(child.Parameters() for child in self.children)
 
     def assem_res(self, prims, params):
         return np.array(())
