@@ -386,5 +386,6 @@ class TestQuadConstraints(GeometryFixtures):
 
     def test_Box(self, quad_box: geo.Quadrilateral):
         res = geo.Box()((quad_box,), ())
+        print(res)
 
         assert np.all(np.isclose(res, 0))

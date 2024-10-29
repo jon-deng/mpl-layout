@@ -107,42 +107,31 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         (see `arg_keys` above)
     """
 
-    # Common utility function for creating children constraints
-    @classmethod
-    def init_children(cls, arg_keys, CHILD_KEYS, CHILD_TYPES, CHILD_ARGS):
+    # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
+    # def child_keys
+    #     def get_parent_arg_number(arg_key: str):
+    #         arg_number_str = arg_key.split("/", 1)[0]
+    #         if arg_number_str[:3] == "arg":
+    #             arg_number = int(arg_number_str[3:])
+    #         else:
+    #             raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
+    #         return arg_number
 
-        # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
-        def get_parent_arg_number(arg_key: str):
-            arg_number_str = arg_key.split("/", 1)[0]
-            if arg_number_str[:3] == "arg":
-                arg_number = int(arg_number_str[3:])
-            else:
-                raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
-            return arg_number
-
-        parent_args_numbers = [
-            tuple(get_parent_arg_number(arg_key) for arg_key in carg_keys)
-            for carg_keys in CHILD_ARGS
-        ]
-        parent_args = [
-            tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
-            for parent_arg_nums in parent_args_numbers
-        ]
-        child_args = tuple(
-            tuple(
-                "/".join([parent_arg_key] + arg_key.split("/", 1)[1:])
-                for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
-            )
-            for parent_arg_keys, carg_keys in zip(parent_args, CHILD_ARGS)
-        )
-
-        children = {
-            key: ChildType(arg_keys)
-            for key, ChildType, arg_keys in zip(
-                CHILD_KEYS, CHILD_TYPES, child_args
-            )
-        }
-        return children
+    #     parent_args_numbers = [
+    #         tuple(get_parent_arg_number(arg_key) for arg_key in carg_keys)
+    #         for carg_keys in CHILD_ARGS
+    #     ]
+    #     parent_args = [
+    #         tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
+    #         for parent_arg_nums in parent_args_numbers
+    #     ]
+    #     child_args = tuple(
+    #         tuple(
+    #             "/".join([parent_arg_key] + arg_key.split("/", 1)[1:])
+    #             for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
+    #         )
+    #         for parent_arg_keys, carg_keys in zip(parent_args, CHILD_ARGS)
+    #     )
 
     def split_child_params(cls, parameters: Parameters):
         raise NotImplementedError()
@@ -160,12 +149,12 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     def __init__(
         self,
         constants: Constants,
-        arg_keys: tp.Tuple[str, ...],
         arg_types: tp.Tuple[type[Primitive], ...],
-        arg_parameters: tp.Tuple[tp.Any, ...],
+        Param: tp.Tuple[tp.Any, ...],
+        child_arg_keys: tp.Tuple[str, ...],
         children: tp.Mapping[str, "Constraint"]
     ):
-        super().__init__((constants, arg_keys, arg_types, arg_parameters), children)
+        super().__init__((constants, arg_types, Param, child_arg_keys), children)
 
     @property
     def constants(self):
@@ -173,11 +162,11 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
     @property
     def Parameters(self):
-        return self.value[3]
+        return self.value[2]
 
     @property
     def arg_keys(self):
-        return self.value[1]
+        return self.value[3]
 
     def __call__(self, prims: tp.Tuple[Primitive, ...], params: Parameters):
         root_prim = Node(
@@ -232,8 +221,7 @@ class StaticConstraint(Constraint):
     ARG_PARAMETERS: type[collections.namedtuple] = collections.namedtuple("Parameters", ())
 
     CHILD_KEYS: tp.Tuple[str, ...] = ()
-    CHILD_TYPES: tp.Tuple[type["Constraint"], ...] = ()
-    CHILD_ARGS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
+    CHILD_CONSTRAINTS: tp.Tuple["Constraint", ...] = ()
 
     split_child_params: tp.Callable[
         [type["Constraint"], Constants], tp.Tuple[Constants, ...]
@@ -254,9 +242,12 @@ class StaticConstraint(Constraint):
         if arg_keys is None:
             arg_keys = tuple(f"arg{n}" for n in range(len(self.ARG_TYPES)))
 
-        children = self.init_children(arg_keys, self.CHILD_KEYS, self.CHILD_TYPES, self.CHILD_ARGS)
+        children = {
+            key: constraint
+            for key, constraint in zip(self.CHILD_KEYS, self.CHILD_CONSTRAINTS)
+        }
 
-        super().__init__(constants, arg_keys, self.ARG_TYPES, self.ARG_PARAMETERS, children)
+        super().__init__(constants, self.ARG_TYPES, self.ARG_PARAMETERS, arg_keys, children)
 
 
 class DynamicConstraint(Constraint):
@@ -763,7 +754,7 @@ class Box(StaticConstraint):
     CONSTANTS = collections.namedtuple("Constants", ())
 
     CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
-    CHILD_TYPES = (Horizontal, Horizontal, Vertical, Vertical)
+    CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
     CHILD_ARGS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
 
     def assem_res(self, prims, params):
