@@ -46,16 +46,30 @@ class GeometryFixtures:
         coords = (origin, origin + line_vec)
         return geo.Line(value=[], children=tuple(geo.Point(x) for x in coords))
 
-    def make_relative_line(
+    def make_relline_about_start(
         self, line: geo.Line, translation: NDArray, deformation: NDArray
     ):
         """
-        Return a `geo.Line` translated and deformed from a given line
+        Return a `geo.Line` deformed about it's start point then translated
         """
-        lineb_origin = line[0].value + translation
         lineb_vec = line[1].value - line[0].value
         lineb_vec = deformation @ lineb_vec
-        return self.make_line(lineb_origin, lineb_vec)
+
+        lineb_start = line[0].value + translation
+        return self.make_line(lineb_start, lineb_vec)
+
+    def make_relline_about_mid(
+        self, line: geo.Line, translation: NDArray, deformation: NDArray
+    ):
+        """
+        Return a `geo.Line` deformed about it's midpoint then translated
+        """
+        lineb_vec = line[1].value - line[0].value
+        lineb_vec = deformation @ lineb_vec
+
+        lineb_mid = 1/2*(line[0].value + line[1].value) + translation
+        lineb_start = lineb_mid - lineb_vec/2
+        return self.make_line(lineb_start, lineb_vec)
 
     ## Quadrilateral creation
     def make_quad(self, displacement, deformation):
@@ -205,7 +219,7 @@ class TestLineConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def parallel_lines(self, line, displacement):
-        lineb = self.make_relative_line(line, displacement, self.make_rotation(0))
+        lineb = self.make_relline_about_start(line, displacement, self.make_rotation(0))
         return (line, lineb)
 
     def test_Parallel(self, parallel_lines):
@@ -214,7 +228,7 @@ class TestLineConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def orthogonal_lines(self, line, displacement):
-        lineb = self.make_relative_line(
+        lineb = self.make_relline_about_start(
             line, displacement, self.make_rotation(np.pi / 2)
         )
         return (line, lineb)
@@ -232,7 +246,7 @@ class TestLineConstraints(GeometryFixtures):
         theta = 2 * np.pi * np.random.rand()
         rotate = self.make_rotation(theta)
 
-        lineb = self.make_relative_line(line, displacement, scale @ rotate)
+        lineb = self.make_relline_about_start(line, displacement, scale @ rotate)
         res = geo.RelativeLength()((lineb, line), (relative_length,))
         assert np.all(np.isclose(res, 0))
 
@@ -244,7 +258,7 @@ class TestLineConstraints(GeometryFixtures):
         scale = np.random.rand() * np.diag(np.ones(2))
         rotate = self.make_rotation(angle)
 
-        lineb = self.make_relative_line(line, displacement, scale @ rotate)
+        lineb = self.make_relline_about_start(line, displacement, scale @ rotate)
         res = geo.Angle()((line, lineb), (angle,))
         assert np.all(np.isclose(res, 0))
 
@@ -267,7 +281,7 @@ class TestLineConstraints(GeometryFixtures):
         rotates = [self.make_rotation(theta) for theta in thetas]
 
         lines = [
-            self.make_relative_line(line, displacement, scale @ rotate)
+            self.make_relline_about_start(line, displacement, scale @ rotate)
             for displacement, scale, rotate in zip(displacements, scales, rotates)
         ] + [line]
         constraint = geo.RelativeLengthArray(num_lines)
@@ -277,7 +291,7 @@ class TestLineConstraints(GeometryFixtures):
     def test_Collinear(self, line):
         line_vec = geo.line_vector(line)
 
-        lineb = self.make_relative_line(
+        lineb = self.make_relline_about_start(
             line, np.random.rand()*line_vec, np.diag(np.ones(2))
         )
         res = geo.Collinear()((line, lineb), ())
@@ -289,15 +303,75 @@ class TestLineConstraints(GeometryFixtures):
 
         dists = np.random.rand(num_lines-1)
         lines = (line,) + tuple(
-            self.make_relative_line(line, dist*line_vec, np.diag(np.ones(2)))
+            self.make_relline_about_start(line, dist*line_vec, np.diag(np.ones(2)))
             for dist in dists
         )
-        print(len(lines))
         res = geo.CollinearArray(num_lines)(lines, ())
         assert np.all(np.isclose(res, 0))
 
     def test_CoincidentLines(self, line):
         res = geo.CoincidentLines()((line, line), (False,))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def distance(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def unit_direction(self):
+        vec = np.random.rand(2)
+        return vec/np.linalg.norm(vec)
+
+    def test_XDistanceMidpoints(self, line, distance, unit_direction):
+        # Create the shifted line by rotating about the midpoint then translating
+        theta = np.random.rand()
+        displacement = distance/unit_direction[0] * unit_direction
+        lineb = self.make_relline_about_mid(line, displacement, self.make_rotation(theta))
+
+        res = geo.XDistanceMidpoints()((line, lineb), (distance,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_XDistanceMidpointsArray(self, line, unit_direction):
+        distances = np.random.rand(5)
+        N = len(distances)
+
+        # Create the shifted line by rotating about the midpoint then translating
+        thetas = np.random.rand(N)
+        rotations = [self.make_rotation(theta) for theta in thetas]
+        displacements = [
+            distance/unit_direction[0] * unit_direction for distance in distances
+        ]
+        lineas = [
+            self.make_relline_about_mid(line, displacement, rotation)
+            for displacement, rotation in zip(displacements, rotations)
+        ]
+
+        # Create the shifted line by rotating about the midpoint then translating
+        thetas = np.random.rand(N)
+        rotations = [self.make_rotation(theta) for theta in thetas]
+        displacements = [
+            distance/unit_direction[0] * unit_direction for distance in distances
+        ]
+        linebs = [
+            self.make_relline_about_mid(linea, displacement, rotation)
+            for linea, displacement, rotation in zip(lineas, displacements, rotations)
+        ]
+
+        lines = tuple(
+            itertools.chain.from_iterable(
+                (linea, lineb) for linea, lineb in zip(lineas, linebs)
+            )
+        )
+        res = geo.XDistanceMidpointsArray(N)(lines, (distances,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_YDistanceMidpoints(self, line, distance, unit_direction):
+        # Create the shifted line by rotating about the midpoint then translating
+        theta = np.random.rand()
+        displacement = distance/unit_direction[1] * unit_direction
+        lineb = self.make_relline_about_mid(line, displacement, self.make_rotation(theta))
+
+        res = geo.YDistanceMidpoints()((line, lineb), (distance,))
         assert np.all(np.isclose(res, 0))
 
 
@@ -368,7 +442,7 @@ class TestQuadConstraints(GeometryFixtures):
         rel_grid_dimensions: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
     ):
         # {"shape": grid_shape, **rel_grid_dimensions}
-        res = geo.Grid()(quads, rel_grid_dimensions)
+        res = geo.Grid(grid_shape)(quads, rel_grid_dimensions)
         assert np.all(np.isclose(res, 0))
 
     def test_RectilinearGrid(
