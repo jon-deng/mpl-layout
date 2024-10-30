@@ -107,32 +107,6 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         (see `arg_keys` above)
     """
 
-    # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
-    # def child_keys
-    #     def get_parent_arg_number(arg_key: str):
-    #         arg_number_str = arg_key.split("/", 1)[0]
-    #         if arg_number_str[:3] == "arg":
-    #             arg_number = int(arg_number_str[3:])
-    #         else:
-    #             raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
-    #         return arg_number
-
-    #     parent_args_numbers = [
-    #         tuple(get_parent_arg_number(arg_key) for arg_key in carg_keys)
-    #         for carg_keys in CHILD_ARGS
-    #     ]
-    #     parent_args = [
-    #         tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
-    #         for parent_arg_nums in parent_args_numbers
-    #     ]
-    #     child_args = tuple(
-    #         tuple(
-    #             "/".join([parent_arg_key] + arg_key.split("/", 1)[1:])
-    #             for parent_arg_key, arg_key in zip(parent_arg_keys, carg_keys)
-    #         )
-    #         for parent_arg_keys, carg_keys in zip(parent_args, CHILD_ARGS)
-    #     )
-
     def split_child_params(cls, parameters: Parameters):
         raise NotImplementedError()
 
@@ -151,39 +125,79 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         constants: Constants,
         arg_types: tp.Tuple[type[Primitive], ...],
         Param: tp.Tuple[tp.Any, ...],
-        child_arg_keys: tp.Tuple[str, ...],
+        children_argkeys: tp.Tuple[str, ...],
         children: tp.Mapping[str, "Constraint"]
     ):
-        super().__init__((constants, arg_types, Param, child_arg_keys), children)
+        super().__init__((constants, arg_types, Param, children_argkeys), children)
 
     @property
     def constants(self):
         return self.value[0]
 
     @property
+    def arg_types(self):
+        return self.value[1]
+
+    @property
     def Parameters(self):
         return self.value[2]
 
     @property
-    def arg_keys(self):
+    def children_argkeys(self):
         return self.value[3]
+
+    # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
+    def root_argkeys(self, arg_keys: tp.Tuple[str, ...]):
+
+        def parent_argnum_from_key(arg_key: str):
+            arg_number_str = arg_key.split("/", 1)[0]
+            if arg_number_str[:3] == "arg":
+                arg_number = int(arg_number_str[3:])
+            else:
+                raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
+            return arg_number
+
+        # Find child arg keys for each constraints
+        parent_argnums = [
+            tuple(parent_argnum_from_key(arg_key) for arg_key in carg_keys)
+            for carg_keys in self.children_argkeys
+        ]
+        parent_argkeys = [
+            tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
+            for parent_arg_nums in parent_argnums
+        ]
+        children_argkeys = tuple(
+            tuple(
+                parent_argkey + "/" + child_argkey.split("/", 1)[1]
+                for parent_argkey, child_argkey in zip(parent_argkeys, child_argkeys)
+            )
+            for parent_argkeys, child_argkeys in zip(parent_argkeys, self.children_argkeys)
+        )
+
+        children = {
+            key: child.root_argkeys(child_argkeys)
+            for (key, child), child_argkeys in zip(self.children_map.items(), children_argkeys)
+        }
+        return Node(arg_keys, children)
 
     def __call__(self, prims: tp.Tuple[Primitive, ...], params: Parameters):
         root_prim = Node(
-            np.array(()), {f"arg{n}": prim for n, prim in enumerate(prims)}
+            np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
         root_params = self.params_tree(load_named_tuple(self.Parameters, params))
         params = load_named_tuple(self.Parameters, params)
         return self.assem_res_from_tree(root_prim, root_params)
 
     def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive], root_params: Parameters):
-        # flat_constraints = flatten('', self)
+        flat_argkeys = (x[1].value for x in iter_flat("", self.root_argkeys(tuple(root_prim.keys()))))
+        flat_constraints = (x[1] for x in iter_flat("", self))
+        flat_params = (x[1].value for x in iter_flat("", root_params))
+
         residuals = tuple(
             constraint.assem_res_atleast_1d(
-                tuple(root_prim[arg_key] for arg_key in constraint.arg_keys),
-                params.value
+                tuple(root_prim[arg_key] for arg_key in argkeys), params
             )
-            for (_, constraint), (_, params) in zip(iter_flat("", self), iter_flat("", root_params))
+            for constraint, argkeys, params in zip(flat_constraints, flat_argkeys, flat_params)
         )
         return jnp.concatenate(residuals)
 
@@ -222,6 +236,7 @@ class StaticConstraint(Constraint):
 
     CHILD_KEYS: tp.Tuple[str, ...] = ()
     CHILD_CONSTRAINTS: tp.Tuple["Constraint", ...] = ()
+    CHILDREN_ARGKEYS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
 
     split_child_params: tp.Callable[
         [type["Constraint"], Constants], tp.Tuple[Constants, ...]
@@ -234,20 +249,12 @@ class StaticConstraint(Constraint):
 
         constants = self.CONSTANTS
 
-        # `arg_keys` specifies the keys from a root primitive that gives the primitives
-        # for `assem_res(prims)`.
-        # If `arg_keys` is not supplied (the constraint is top-level constraint) then these
-        # are simply f'arg{n}' for integer argument numbers `n`
-        # Child keys `arg_keys` are assumed to index from `arg_keys`
-        if arg_keys is None:
-            arg_keys = tuple(f"arg{n}" for n in range(len(self.ARG_TYPES)))
-
         children = {
             key: constraint
             for key, constraint in zip(self.CHILD_KEYS, self.CHILD_CONSTRAINTS)
         }
 
-        super().__init__(constants, self.ARG_TYPES, self.ARG_PARAMETERS, arg_keys, children)
+        super().__init__(constants, self.ARG_TYPES, self.ARG_PARAMETERS, self.CHILDREN_ARGKEYS, children)
 
 
 class DynamicConstraint(Constraint):
@@ -755,7 +762,7 @@ class Box(StaticConstraint):
 
     CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
     CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
-    CHILD_ARGS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
+    CHILDREN_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
 
     def assem_res(self, prims, params):
         return np.array(())
