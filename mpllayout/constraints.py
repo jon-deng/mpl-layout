@@ -815,7 +815,7 @@ class Box(StaticConstraint):
 
         CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
         CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
-        CHILDREN_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
+        CHILD_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
