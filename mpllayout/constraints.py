@@ -241,7 +241,7 @@ class StaticConstraint(Constraint):
     def split_child_params(self, parameters: Parameters):
         return tuple(child.Parameters() for child in self.children)
 
-    def __init__(self, arg_keys: tp.Tuple[str, ...]=None):
+    def __init__(self):
         (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree()
 
         constants = collections.namedtuple("Constants", ())
@@ -266,7 +266,7 @@ class DynamicConstraint(Constraint):
     def split_child_params(self, parameters):
         raise NotImplementedError()
 
-    def __init__(self, shape: tp.Tuple[int, ...], arg_keys: tp.Tuple[str, ...]=None):
+    def __init__(self, shape: tp.Tuple[int, ...]):
 
         constants = collections.namedtuple("Constants", ("shape",))(shape)
 
