@@ -229,30 +229,29 @@ class StaticConstraint(Constraint):
     To specify a `StaticConstraint` you have to define class variables
 
     """
-    ARG_TYPES: tp.Tuple[type[Primitive], ...]
-    ARG_PARAMETERS: type[collections.namedtuple] = collections.namedtuple("Parameters", ())
-
-    CHILD_KEYS: tp.Tuple[str, ...] = ()
-    CHILD_CONSTRAINTS: tp.Tuple["Constraint", ...] = ()
-    CHILDREN_ARGKEYS: tp.Tuple[tp.Tuple[str, ...], ...] = ()
 
     split_child_params: tp.Callable[
         [type["Constraint"], Constants], tp.Tuple[Constants, ...]
     ]
 
+    @classmethod
+    def init_tree(cls):
+        raise NotImplementedError()
+
     def split_child_params(self, parameters: Parameters):
-        return len(self.CHILD_KEYS) * (collections.namedtuple("Parameters", ()),)
+        return tuple(child.Parameters() for child in self.children)
 
     def __init__(self, arg_keys: tp.Tuple[str, ...]=None):
+        (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree()
 
         constants = collections.namedtuple("Constants", ())
 
         children = {
             key: constraint
-            for key, constraint in zip(self.CHILD_KEYS, self.CHILD_CONSTRAINTS)
+            for key, constraint in zip(CHILD_KEYS, CHILD_CONSTRAINTS)
         }
 
-        super().__init__(constants, self.ARG_TYPES, self.ARG_PARAMETERS, self.CHILDREN_ARGKEYS, children)
+        super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
 
 
 class DynamicConstraint(Constraint):
@@ -285,9 +284,14 @@ class Fix(StaticConstraint):
     Constrain all coordinates of a point
     """
 
-    ARG_TYPES = (pr.Point,)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("location",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("location",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -302,9 +306,14 @@ class DirectedDistance(StaticConstraint):
     Constrain the distance between two points along a direction
     """
 
-    ARG_TYPES = (pr.Point, pr.Point)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance", "direction"))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Point)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance", "direction"))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -317,12 +326,19 @@ class DirectedDistance(StaticConstraint):
         return distance - params.distance
 
 
-class XDistance(DirectedDistance):
+class XDistance(StaticConstraint):
     """
     Constrain the x-distance between two points
     """
 
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Point)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -330,17 +346,27 @@ class XDistance(DirectedDistance):
 
         The distance is measured from `prims[0]` to `prims[1]` along the direction.
         """
+        directed_distance = DirectedDistance()
+
         distance, direction = params[0], np.array([1, 0])
-        params = super().ARG_PARAMETERS(distance, direction)
-        return super().assem_res(prims, params)
+        params = directed_distance.Parameters(distance, direction)
+
+        return directed_distance.assem_res(prims, params)
 
 
-class YDistance(DirectedDistance):
+class YDistance(StaticConstraint):
     """
     Constrain the y-distance between two points
     """
 
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Point)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -348,9 +374,12 @@ class YDistance(DirectedDistance):
 
         The distance is measured from `prims[0]` to `prims[1]` along the direction.
         """
+        directed_distance = DirectedDistance()
+
         distance, direction = params[0], np.array([0, 1])
-        params = super().ARG_PARAMETERS(distance, direction)
-        return super().assem_res(prims, params)
+        params = directed_distance.Parameters(distance, direction)
+
+        return directed_distance.assem_res(prims, params)
 
 
 class Coincident(StaticConstraint):
@@ -358,9 +387,14 @@ class Coincident(StaticConstraint):
     Constrain two points to be coincident
     """
 
-    ARG_TYPES = (pr.Point, pr.Point)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Point)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -368,7 +402,6 @@ class Coincident(StaticConstraint):
         """
         point0, point1 = prims
         return point0.value - point1.value
-
 
 ## Line constraints
 
@@ -378,9 +411,14 @@ class Length(StaticConstraint):
     Constrain the length of a line
     """
 
-    ARG_TYPES = (pr.Line,)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -397,9 +435,14 @@ class RelativeLength(StaticConstraint):
     Constrain the length of a line relative to another line
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -450,9 +493,14 @@ class XDistanceMidpoints(StaticConstraint):
     Constrain the x-distance between two line midpoints
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -501,9 +549,14 @@ class YDistanceMidpoints(StaticConstraint):
     Constrain the y-distance between two line midpoints
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -550,9 +603,14 @@ class Orthogonal(StaticConstraint):
     Constrain two lines to be orthogonal
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -569,9 +627,14 @@ class Parallel(StaticConstraint):
     Constrain two lines to be parallel
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -588,9 +651,14 @@ class Vertical(StaticConstraint):
     Constrain a line to be vertical
     """
 
-    ARG_TYPES = (pr.Line,)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -606,9 +674,14 @@ class Horizontal(StaticConstraint):
     Constrain a line to be horizontal
     """
 
-    ARG_TYPES = (pr.Line,)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -624,9 +697,14 @@ class Angle(StaticConstraint):
     Constrain the angle between two lines
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("angle",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("angle",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -646,9 +724,14 @@ class Collinear(StaticConstraint):
     Constrain two lines to be collinear
     """
 
-    ARG_TYPES = (pr.Line, pr.Line)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line, pr.Line)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -693,9 +776,14 @@ class CoincidentLines(StaticConstraint):
     Constrain two lines to be coincident
     """
 
-    ARG_TYPES = (pr.Point, pr.Point)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ("reverse",))
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Point)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ("reverse",))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         """
@@ -719,13 +807,16 @@ class Box(StaticConstraint):
     Constrain a `Quadrilateral` to be rectangular
     """
 
-    ARG_TYPES = (pr.Quadrilateral,)
-    ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-    CONSTANTS = collections.namedtuple("Constants", ())
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Quadrilateral,)
+        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        CONSTANTS = collections.namedtuple("Constants", ())
 
-    CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
-    CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
-    CHILDREN_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
+        CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
+        CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
+        CHILDREN_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def assem_res(self, prims, params):
         return np.array(())
