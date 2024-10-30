@@ -97,7 +97,7 @@ class Layout:
         ):
             constraint: geo.Constraint
             arg_key_replacements = {
-                keya: keyb for keya, keyb in zip(constraint.child_arg_keys, global_arg_keys)
+                keya: keyb for keya, keyb in zip(constraint.children_arg_keys, global_arg_keys)
             }
             for _, child_constraint in iter_flat("", constraint):
                 split_args = (key.split("/", 1) for key in child_constraint.arg_keys)
