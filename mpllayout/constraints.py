@@ -254,6 +254,10 @@ class DynamicConstraint(Constraint):
         super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
 
 
+class ConstraintNode(Node[ConstraintValue, Constraint]):
+    pass
+
+
 ## Constraints on points
 
 class Fix(StaticConstraint):
