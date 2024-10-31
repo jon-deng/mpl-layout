@@ -164,24 +164,33 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
     def CHILDREN_PRIM_KEYS(self):
         return self.value[3]
 
-    def __call__(self, prims: tp.Tuple[Primitive, ...], params: RES_PARAMS_TYPE):
-        root_prim = Node(
+    def __call__(
+            self,
+            prims: tp.Tuple[Primitive, ...],
+            params: tp.Tuple[tp.Any, ...] | tp.Mapping[str, tp.Any]
+        ):
+        root_prim = pr.PrimitiveNode(
             np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
-        root_params = self.root_params(load_named_tuple(self.RES_PARAMS_TYPE, params))
-        params = load_named_tuple(self.RES_PARAMS_TYPE, params)
-        return self.assem_res_from_tree(root_prim, root_params)
+        root_prim_keys = self.root_prim_keys(root_prim.keys())
+        root_params = self.root_params(params)
+        return self.assem_res_from_tree(root_prim, root_prim_keys, root_params)
 
-    def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive], root_params: RES_PARAMS_TYPE):
-        flat_argkeys = (x[1].value for x in iter_flat("", self.root_prim_keys(tuple(root_prim.keys()))))
-        flat_constraints = (x[1] for x in iter_flat("", self))
-        flat_params = (x[1].value for x in iter_flat("", root_params))
+    def assem_res_from_tree(
+            self,
+            root_prim: pr.PrimitiveNode,
+            root_prim_keys: PrimKeysNode,
+            root_params: PrimParamsNode,
+        ):
+        flat_constraints = (x for _, x in iter_flat("", self))
+        flat_prim_keys = (x.value for _, x in iter_flat("", root_prim_keys))
+        flat_params = (x.value for _, x in iter_flat("", root_params))
 
         residuals = tuple(
             constraint.assem_res_atleast_1d(
                 tuple(root_prim[arg_key] for arg_key in argkeys), params
             )
-            for constraint, argkeys, params in zip(flat_constraints, flat_argkeys, flat_params)
+            for constraint, argkeys, params in zip(flat_constraints, flat_prim_keys, flat_params)
         )
         return jnp.concatenate(residuals)
 
