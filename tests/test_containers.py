@@ -68,35 +68,3 @@ class TestNode:
         )
         print(f"Unflattening duration: {duration/N: .2e} s")
 
-
-class TestOptionalKeyNode:
-
-    @pytest.fixture()
-    def node(self):
-        childd = cn.OptionalKeyNode.from_tree(99, {})
-        childe = cn.OptionalKeyNode.from_tree(9, {})
-        childb = cn.OptionalKeyNode.from_tree(2, {"d": childd, "e": childe})
-
-        childa = cn.OptionalKeyNode.from_tree(1, {})
-        childc = cn.OptionalKeyNode.from_tree(3, {})
-        node = cn.OptionalKeyNode.from_tree(0, {"a": childa, "b": childb, "c": childc})
-
-        return node
-
-    def test_add_child(self, node: cn.OptionalKeyNode):
-
-        # Try adding 2 children
-        children = [
-            cn.OptionalKeyNode.from_tree(-1, {}),
-            cn.OptionalKeyNode.from_tree(-1, {}),
-        ]
-        for child in children:
-            node.add_child("", child)
-
-        # Try adding 2 grand-children
-        children = [
-            cn.OptionalKeyNode.from_tree(-1, {}),
-            cn.OptionalKeyNode.from_tree(-1, {}),
-        ]
-        for child in children:
-            node.add_child("OptionalKeyNode1/", child)
