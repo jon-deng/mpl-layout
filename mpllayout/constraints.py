@@ -18,7 +18,7 @@ Primitive = pr.Primitive
 
 
 Constants = tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
-Parameters = tp.Tuple[tp.Any, ...]
+Parameters = tp.Tuple[tp.Any, ...] | tp.Mapping[str, tp.Any]
 PrimKeys = tp.Tuple[str, ...]
 ConstraintValue = tp.Tuple[Constants, PrimKeys]
 
@@ -66,14 +66,14 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     Parameters
     ----------
     # TODO: Remove the constants attribute?
-    constants: collections.namedtuple('Constants', ...)
+    res_constants: collections.namedtuple('Constants', ...)
         Constants for the constraint
 
         Currently this is either empty or stores a shape
-    arg_types: tp.Tuple[tp.Type[Primitive], ...]
+    res_arg_types: tp.Tuple[tp.Type[Primitive], ...]
         Primitive types for `assem_res`
-    Param: tp.Tuple[tp.Type[Primitive], ...]
-        Primitive parameter vector tuple
+    res_param_type: tp.Tuple[tp.Type[Primitive], ...]
+        Primitive parameter vector named tuple
     children_primkeys: tp.Tuple[PrimKeys, ...]
         Primitive key tuples for each child constraint
 
@@ -92,13 +92,13 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
     def __init__(
         self,
-        constants: Constants,
-        arg_types: tp.Tuple[type[Primitive], ...],
-        Param: tp.Tuple[tp.Any, ...],
+        res_constants: Constants,
+        res_arg_types: tp.Tuple[type[Primitive], ...],
+        res_params_type: tp.Tuple[tp.Any, ...],
         children_primkeys: tp.Tuple[PrimKeys, ...],
         children: tp.Mapping[str, "Constraint"]
     ):
-        super().__init__((constants, arg_types, Param, children_primkeys), children)
+        super().__init__((res_constants, res_arg_types, res_params_type, children_primkeys), children)
 
     def split_child_params(cls, parameters: Parameters):
         raise NotImplementedError()
