@@ -18,13 +18,17 @@ Primitive = pr.Primitive
 
 
 ResConstants = namedtuple("Constants", ())
+
 ResParams = namedtuple("Parameters", ())
+ResParamsType = type[ResParams]
+
+ResPrims = tp.Tuple[Primitive, ...]
 ResPrimTypes = tp.Tuple[type[Primitive], ...]
 
 PrimKeys = tp.Tuple[str, ...]
 ChildrenPrimKeys = tp.Tuple[PrimKeys, ...]
 
-ConstraintValue = tp.Tuple[ResConstants, ResPrimTypes, ResParams, ChildrenPrimKeys]
+ConstraintValue = tp.Tuple[ResConstants, ResPrimTypes, ResParamsType, ChildrenPrimKeys]
 
 def load_named_tuple(
         NamedTuple: namedtuple,
@@ -96,7 +100,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         self,
         res_constants: ResConstants,
         res_prim_types: ResPrimTypes,
-        res_params_type: ResParams,
+        res_params_type: ResParamsType,
         children_prim_keys: ChildrenPrimKeys,
         children: tp.Mapping[str, "Constraint"]
     ):
@@ -117,7 +121,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         root_params = PrimParamsNode(parameters, children)
         return root_params
 
-    def root_prim_keys(self, prim_keys: tp.Tuple[str, ...]):
+    def root_prim_keys(self, prim_keys: PrimKeys):
         # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
 
         def parent_argnum_from_key(arg_key: str):
@@ -196,10 +200,14 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         )
         return jnp.concatenate(residuals)
 
-    def assem_res_atleast_1d(self, prims: tp.Tuple[Primitive, ...], params: RES_PARAMS_TYPE) -> NDArray:
+    def assem_res_atleast_1d(
+            self, prims: ResPrims, params: ResParams
+        ) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims, params))
 
-    def assem_res(self, prims: tp.Tuple[Primitive, ...], params: RES_PARAMS_TYPE) -> NDArray:
+    def assem_res(
+            self, prims: ResPrims, params: ResParams
+        ) -> NDArray:
         """
         Return a residual vector representing the constraint satisfaction
 
