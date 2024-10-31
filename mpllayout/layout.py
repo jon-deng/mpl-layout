@@ -98,19 +98,21 @@ class Layout:
         return self._root_constraint_param
 
     def flat_constraints(self):
-        # TODO: You can just flatten all the constraints + graph + args trees
+        # The `[1:]` removes the 'root' constraint which is just a container
         constraints = [
             node for _, node in iter_flat('', self.root_constraint)
-        ]
+        ][1:]
         constraints_argkeys = [
             node.value for _, node in iter_flat('', self.root_constraint_graph)
-        ]
+        ][1:]
         constraints_param = [
             node.value for _, node in iter_flat('', self.root_constraint_param)
-        ]
+        ][1:]
 
-        # The `[1:]` removes the 'root' constraint which is just a container
-        return constraints[1:], constraints_argkeys[1:], constraints_param[1:]
+        constraints = [c.assem_res_atleast_1d for c in constraints]
+
+
+        return constraints, constraints_argkeys, constraints_param
 
     def add_prim(self, prim: geo.Primitive, key: str):
         """
