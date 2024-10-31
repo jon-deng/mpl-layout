@@ -57,55 +57,40 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
 
     Parameters
     ----------
-    constants : tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
+    # TODO: Remove the constants attribute?
+    constants: collections.namedtuple('Constants', ...)
         Constants for the constraint
 
-        These constants control aspects of the constraint, for example, the shape of
-        a grid.
-    arg_keys : tp.Tuple[str, ...] | None
-        Strings indicating which primitives `assem_res` applies to
+        Currently this is either empty or stores a shape
+    arg_types: tp.Tuple[tp.Type[Primitive], ...]
+        Primitive types for `assem_res`
+    Param: tp.Tuple[tp.Type[Primitive], ...]
+        Primitive parameter vector tuple
+    children_primkeys: tp.Tuple[PrimKeys, ...]
+        Primitive key tuples for each child constraint
 
-        This parameter controls what primitives `assem_res` takes from the
-        root constraint primitive arguments.
-        If the root constraint is `root`, these arguments are given by `root_prims` in
-        `root.assem_res(root_prims, params)`.
-        Each string in `arg_keys` has the format 'arg{n}/{ChildPrimKey}'.
-        The first part 'arg{n}' indicates which primitive to take from `root_prims`.
-        The second part '/{ChildPrimKey}' indicates which child primitive to take from
-        `root_prims[n]`.
+        For a given child constraint, a tuple of primitive keys indicates a subset of
+        parent primitives to form child constraint primitive arguments.
 
-        For example, consider `root.assem_res(root_prims, params)` where
-        `root_prims = (line0, line1)` contains two `Line` primitives.
-            - The root constraint would have `arg_keys = ('arg0', ..., 'arg{n}')` where
-            `n = len(root_prims)-1`.
-            - A `child` constraint that acts on the `line1`'s first point would have
-            `arg_keys = ('arg1/Point0',)`.
-
-    Attributes
-    ----------
-    ARG_TYPES: tp.Tuple[tp.Type[Primitive], ...]
-        Primitives accepted by `assem_res`
-
-        (see `arg_keys` above)
-    ARG_PARAMETERS: tp.Tuple[tp.Type[Primitive], ...]
-        Parameters accept by `assem_res`
-
-        (see `arg_keys` above)
-    CONSTANTS: collections.namedtuple('Constants', ...)
-        Constants for the constraint
-
-        These are things like lengths, angles, etc.
-    CHILD_TYPES:
-        Constraint types child constraints
-    CHILD_KEYS:
-        Keys for child constraints
-    CHILD_CONSTANTS:
-        Constants for child constraints
-    CHILD_ARGS:
-        Primitives for child constraints' `assem_res`
-
-        (see `arg_keys` above)
+        Consider a parent constraint with residual
+            ```parent.assem_res(prims, param)```
+        and the nth child constraint with primitive key tuple
+            ```children_primkeys[n] = ('arg0', 'arg3/Line2')```.
+        This indicates the nth child constraint should be evaluated with
+            ```parent.children[n].assem_res((prims[0], prims[3]['Line0']))```
+    children: tp.Mapping[str, "Constraint"]
+        A dictionary of child constraints
     """
+
+    def __init__(
+        self,
+        constants: Constants,
+        arg_types: tp.Tuple[type[Primitive], ...],
+        Param: tp.Tuple[tp.Any, ...],
+        children_primkeys: tp.Tuple[PrimKeys, ...],
+        children: tp.Mapping[str, "Constraint"]
+    ):
+        super().__init__((constants, arg_types, Param, children_primkeys), children)
 
     def split_child_params(cls, parameters: Parameters):
         raise NotImplementedError()
@@ -121,16 +106,6 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         }
         root_params = Node(parameters, children)
         return root_params
-
-    def __init__(
-        self,
-        constants: Constants,
-        arg_types: tp.Tuple[type[Primitive], ...],
-        Param: tp.Tuple[tp.Any, ...],
-        children_argkeys: tp.Tuple[str, ...],
-        children: tp.Mapping[str, "Constraint"]
-    ):
-        super().__init__((constants, arg_types, Param, children_argkeys), children)
 
     @property
     def constants(self):
