@@ -110,11 +110,13 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     def split_child_params(cls, parameters: Parameters):
         raise NotImplementedError()
 
-    def params_tree(self, parameters: Parameters):
+    def root_param(self, parameters: Parameters):
+        parameters = load_named_tuple(self.Parameters, parameters)
+
         keys, child_constraints = self.keys(), self.children
         child_parameters = self.split_child_params(parameters)
         children = {
-            key: child_constraint.params_tree(child_params)
+            key: child_constraint.root_param(child_params)
             for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
         }
         root_params = Node(parameters, children)
@@ -184,7 +186,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         root_prim = Node(
             np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
-        root_params = self.params_tree(load_named_tuple(self.Parameters, params))
+        root_params = self.root_param(load_named_tuple(self.Parameters, params))
         params = load_named_tuple(self.Parameters, params)
         return self.assem_res_from_tree(root_prim, root_params)
 
