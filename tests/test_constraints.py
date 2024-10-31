@@ -288,7 +288,7 @@ class TestLineConstraints(GeometryFixtures):
             self.make_relline_about_start(line, displacement, scale @ rotate)
             for displacement, scale, rotate in zip(displacements, scales, rotates)
         ] + [line]
-        constraint = geo.RelativeLengthArray(num_lines)
+        constraint = geo.RelativeLengthArray(len(relative_lengths))
         res = constraint(lines, (relative_lengths,))
         assert np.all(np.isclose(res, 0))
 
