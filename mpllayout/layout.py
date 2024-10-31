@@ -201,26 +201,31 @@ from matplotlib.axes import Axes
 from matplotlib.axis import Axis, XAxis, YAxis
 
 
-def update_layout_constraints(constraints: Node, axs: tp.Mapping[str, Axes]) -> Node:
+def update_layout_constraints(
+        root_constraint: Node,
+        root_constraint_param: Node,
+        axs: tp.Mapping[str, Axes]
+    ) -> Node:
     # Update constraints based on bboxes
     from mpllayout.containers import Node
 
     # Update x/y axis bbox dimensions
     for ax_key, ax in axs.items():
         dims = get_axis_bbox_dims(ax.xaxis)
-        constraints = update_bbox_dimension_constraints(
-            constraints, f"{ax_key}.XAxis", *dims
+        root_constraint_param = update_bbox_dimension_constraints(
+           root_constraint, root_constraint_param, f"{ax_key}.XAxis", *dims
         )
 
         dims = get_axis_bbox_dims(ax.yaxis)
-        constraints = update_bbox_dimension_constraints(
-            constraints, f"{ax_key}.YAxis", *dims
+        root_constraint_param = update_bbox_dimension_constraints(
+            root_constraint, root_constraint_param, f"{ax_key}.YAxis", *dims
         )
-    return constraints
+    return root_constraint_param
 
 
 def update_bbox_dimension_constraints(
-    constraints: Node,
+    root_constraint: Node,
+    root_constraint_param: Node,
     bbox_key: str,
     width: float,
     height: float,
@@ -229,12 +234,13 @@ def update_bbox_dimension_constraints(
     dim_labels = ("Width", "Height")
     constraint_labels = [f"{bbox_key}.{dim_label}" for dim_label in dim_labels]
     for dim_label, dim in zip(constraint_labels, dims):
-        if dim_label in constraints:
-            constraints[dim_label] = geo.Length((dim,))
+        if dim_label in root_constraint_param:
+            constraint = root_constraint[dim_label]
+            root_constraint_param[dim_label] = constraint.root_param((dim,))
         else:
             warnings.warn(f"'{bbox_key}' is missing a '{dim_label}' constraint")
 
-    return constraints
+    return root_constraint_param
 
 
 def get_axis_bbox_dims(axis: Axis):
