@@ -902,7 +902,7 @@ class Grid(DynamicConstraint):
         ARG_TYPES = num_args * (pr.Quadrilateral,)
         ARG_PARAMETERS = collections.namedtuple(
             "Parameters",
-            ("col_margins", "row_margins", "col_widths", "row_heights"),
+            ("col_widths", "row_heights", "col_margins", "row_margins"),
         )
 
         # Children constraints do:
@@ -924,33 +924,33 @@ class Grid(DynamicConstraint):
             YDistanceMidpointsArray(num_row-1),
         )
 
+        def idx(i, j):
+            return idx_1d((i, j), shape)
         rows, cols = list(range(shape[0])), list(range(shape[1]))
 
+        rectilineargrid_args = tuple(f"arg{n}" for n in range(num_args))
+
+        colwidth_args = tuple(
+            f"arg{idx(row, col)}/Line0"
+            for row, col in itertools.product([0], cols[1:] + cols[:1])
+        )
+        rowheight_args = tuple(
+            f"arg{idx(row, col)}/Line1"
+            for row, col in itertools.product(rows[1:] + rows[:1], [0])
+        )
         col_margin_line_labels = itertools.chain.from_iterable(
-            (
-                f"arg{idx_1d((0, col), shape)}/Line1",
-                f"arg{idx_1d((0, col+1), shape)}/Line3",
-            )
+            (f"arg{idx(0, col)}/Line1", f"arg{idx(0, col+1)}/Line3")
             for col in cols[:-1]
         )
         row_margin_line_labels = itertools.chain.from_iterable(
-            (
-                f"arg{idx_1d((row+1, 0), shape)}/Line2",
-                f"arg{idx_1d((row, 0), shape)}/Line0",
-            )
+            (f"arg{idx(row+1, 0)}/Line2", f"arg{idx(row, 0)}/Line0")
             for row in rows[:-1]
         )
 
         CHILD_ARGKEYS = (
-            tuple(f"arg{n}" for n in range(num_args)),
-            tuple(
-                f"arg{idx_1d((row, col), shape)}/Line0"
-                for row, col in itertools.product([0], cols[1:] + cols[:1])
-            ),
-            tuple(
-                f"arg{idx_1d((row, col), shape)}/Line1"
-                for row, col in itertools.product(rows[1:] + rows[:1], [0])
-            ),
+            rectilineargrid_args,
+            colwidth_args,
+            rowheight_args,
             tuple(col_margin_line_labels),
             tuple(row_margin_line_labels),
         )
