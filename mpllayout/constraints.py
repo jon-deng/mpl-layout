@@ -5,7 +5,7 @@ Geometric constraints
 import typing as tp
 from numpy.typing import NDArray
 
-import collections
+from collections import namedtuple
 import itertools
 
 import numpy as np
@@ -17,15 +17,15 @@ from .containers import Node, iter_flat
 Primitive = pr.Primitive
 
 
-Constants = tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
-Parameters = tp.Tuple[tp.Any, ...] | tp.Mapping[str, tp.Any]
-PrimKeys = tp.Tuple[str, ...]
-ConstraintValue = tp.Tuple[Constants, PrimKeys]
+Constants = namedtuple("Constants", ())
+Parameters = namedtuple("Parameters", ())
 
-ChildConstraint = tp.TypeVar("ChildConstraint", bound="Constraint")
+PrimTypes = tp.Tuple[type[Primitive], ...]
+PrimKeys = tp.Tuple[str, ...]
+ConstraintValue = tp.Tuple[Constants, PrimTypes, Parameters, tp.Tuple[PrimKeys, ...]]
 
 def load_named_tuple(
-        NamedTuple: collections.namedtuple,
+        NamedTuple: namedtuple,
         args: tp.Mapping[str, tp.Any] | tp.Tuple[tp.Any, ...]
     ):
     if isinstance(args, dict):
@@ -47,7 +47,7 @@ class PrimParamsNode(Node[Parameters, "PrimParamsNode"]):
     pass
 
 
-class Constraint(Node[ConstraintValue, ChildConstraint]):
+class Constraint(Node[ConstraintValue, "Constraint"]):
     """
     Geometric constraint on primitives
 
@@ -66,13 +66,13 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
     Parameters
     ----------
     # TODO: Remove the constants attribute?
-    res_constants: collections.namedtuple('Constants', ...)
+    res_constants: namedtuple('Constants', ...)
         Constants for the constraint
 
         Currently this is either empty or stores a shape
     res_arg_types: tp.Tuple[tp.Type[Primitive], ...]
         Primitive types for `assem_res`
-    res_param_type: tp.Tuple[tp.Type[Primitive], ...]
+    res_params_type: tp.Tuple[tp.Type[Primitive], ...]
         Primitive parameter vector named tuple
     children_primkeys: tp.Tuple[PrimKeys, ...]
         Primitive key tuples for each child constraint
@@ -94,7 +94,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
         self,
         res_constants: Constants,
         res_arg_types: tp.Tuple[type[Primitive], ...],
-        res_params_type: tp.Tuple[tp.Any, ...],
+        res_params_type: Parameters,
         children_primkeys: tp.Tuple[PrimKeys, ...],
         children: tp.Mapping[str, "Constraint"]
     ):
@@ -233,7 +233,7 @@ class StaticConstraint(Constraint):
     def __init__(self):
         (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree()
 
-        constants = collections.namedtuple("Constants", ())
+        constants = namedtuple("Constants", ())
 
         children = {
             key: constraint
@@ -257,7 +257,7 @@ class DynamicConstraint(Constraint):
 
     def __init__(self, shape: tp.Tuple[int, ...]):
 
-        constants = collections.namedtuple("Constants", ("shape",))(shape)
+        constants = namedtuple("Constants", ("shape",))(shape)
 
         (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree(shape)
 
@@ -276,7 +276,7 @@ class Fix(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("location",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("location",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -298,7 +298,7 @@ class DirectedDistance(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance", "direction"))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "direction"))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -323,7 +323,7 @@ class XDistance(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -351,7 +351,7 @@ class YDistance(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -379,7 +379,7 @@ class Coincident(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -403,7 +403,7 @@ class Length(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -427,7 +427,7 @@ class RelativeLength(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("length",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -454,7 +454,7 @@ class RelativeLengthArray(DynamicConstraint):
         size = np.prod(shape)
 
         ARG_TYPES = size * (pr.Line,) + (pr.Line,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("lengths",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("lengths",))
 
         CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(size))
         CHILD_CONSTRAINTS = (size) * (RelativeLength(),)
@@ -485,7 +485,7 @@ class XDistanceMidpoints(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -509,14 +509,14 @@ class XDistanceMidpointsArray(DynamicConstraint):
     Constrain the x-distances between a set of line midpoints
     """
 
-    CONSTANTS = collections.namedtuple("Constants", ("distances",))
+    CONSTANTS = namedtuple("Constants", ("distances",))
 
     @classmethod
     def init_tree(cls, shape: tp.Tuple[int, ...]):
         num_child = np.prod(shape)
 
         ARG_TYPES = num_child * (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distances",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
         CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
         CHILD_CONSTRAINTS = num_child * (XDistanceMidpoints(),)
@@ -541,7 +541,7 @@ class YDistanceMidpoints(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distance",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -570,7 +570,7 @@ class YDistanceMidpointsArray(DynamicConstraint):
         num_child = np.prod(shape)
 
         ARG_TYPES = num_child * (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("distances",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
         CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
         CHILD_CONSTRAINTS = num_child * (YDistanceMidpoints(),)
@@ -595,7 +595,7 @@ class Orthogonal(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -619,7 +619,7 @@ class Parallel(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -643,7 +643,7 @@ class Vertical(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -666,7 +666,7 @@ class Horizontal(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -689,7 +689,7 @@ class Angle(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("angle",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("angle",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -716,7 +716,7 @@ class Collinear(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -746,7 +746,7 @@ class CollinearArray(DynamicConstraint):
         size = np.prod(shape)
 
         ARG_TYPES = size * (pr.Line, )
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
         CHILD_ARGKEYS = tuple(("arg0", f"arg{n}") for n in range(1, size))
         CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
         CHILD_CONSTRAINTS = size * (Collinear(),)
@@ -768,7 +768,7 @@ class CoincidentLines(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ("reverse",))
+        ARG_PARAMETERS = namedtuple("Parameters", ("reverse",))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -799,8 +799,8 @@ class Box(StaticConstraint):
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
-        CONSTANTS = collections.namedtuple("Constants", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
+        CONSTANTS = namedtuple("Constants", ())
 
         CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
         CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
@@ -833,7 +833,7 @@ class RectilinearGrid(DynamicConstraint):
         num_row, num_col = shape
 
         ARG_TYPES = size * (pr.Quadrilateral,)
-        ARG_PARAMETERS = collections.namedtuple("Parameters", ())
+        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         def idx(i, j):
             return idx_1d((i, j), shape)
@@ -887,7 +887,7 @@ class Grid(DynamicConstraint):
         num_row, num_col = shape
 
         ARG_TYPES = num_args * (pr.Quadrilateral,)
-        ARG_PARAMETERS = collections.namedtuple(
+        ARG_PARAMETERS = namedtuple(
             "Parameters",
             ("col_widths", "row_heights", "col_margins", "row_margins"),
         )
