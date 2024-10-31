@@ -10,8 +10,12 @@ from numpy.typing import NDArray
 import itertools
 
 import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
 
 from mpllayout import geometry as geo
+from mpllayout import ui
+from mpllayout.containers import Node
 
 
 class GeometryFixtures:
@@ -400,16 +404,16 @@ class TestQuadConstraints(GeometryFixtures):
 
         ## Specific sizes and margins
         rel_col_widths = 2 * np.ones(num_col - 1)
-        col_margins = 1 * np.ones(num_col - 1)
+        col_margins = 0.2 * np.ones(num_col - 1)
 
-        rel_row_heights = 6 * np.ones(num_row - 1)
-        row_margins = 3 * np.ones(num_row - 1)
+        rel_row_heights = 3 * np.ones(num_row - 1)
+        row_margins = 0.1 * np.ones(num_row - 1)
 
         grid_kwargs = {
-            "col_margins": col_margins,
-            "row_margins": row_margins,
             "col_widths": rel_col_widths,
             "row_heights": rel_row_heights,
+            "col_margins": col_margins,
+            "row_margins": row_margins,
         }
         return grid_kwargs
 
@@ -441,7 +445,19 @@ class TestQuadConstraints(GeometryFixtures):
         grid_shape: tp.Tuple[int, int],
         rel_grid_dimensions: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
     ):
-        # {"shape": grid_shape, **rel_grid_dimensions}
+        root_prim = Node(None, {f'Quad{n}': quad for n, quad in enumerate(quads)})
+
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        ax.grid(which='both', axis='both')
+        ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+        ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+        ax.set_aspect(1)
+        # ax.set_xlim(0, 10)
+        # ax.set_ylim(0, 10)
+        ui.plot_prims(ax, root_prim)
+
+        fig.savefig(f"out/quad_grid_{grid_shape}.png")
+
         res = geo.Grid(grid_shape)(quads, rel_grid_dimensions)
         assert np.all(np.isclose(res, 0))
 
