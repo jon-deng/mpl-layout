@@ -464,16 +464,16 @@ class RelativeLengthArray(DynamicConstraint):
 
     @classmethod
     def init_tree(cls, shape: tp.Tuple[int, ...]):
-        num_args = np.prod(shape)
+        size = np.prod(shape)
 
-        ARG_TYPES = num_args * (pr.Line,)
+        ARG_TYPES = size * (pr.Line,) + (pr.Line,)
         ARG_PARAMETERS = collections.namedtuple("Parameters", ("lengths",))
 
-        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(num_args - 1))
-        CHILD_CONSTRAINTS = (num_args - 1) * (RelativeLength(),)
+        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(size))
+        CHILD_CONSTRAINTS = (size) * (RelativeLength(),)
         CHILD_ARGKEYS = tuple(
-            (f"arg{n}", f"arg{num_args-1}")
-            for n in range(num_args - 1)
+            (f"arg{n}", f"arg{size}")
+            for n in range(size)
         )
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
