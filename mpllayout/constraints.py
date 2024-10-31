@@ -117,7 +117,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         root_params = PrimParamsNode(parameters, children)
         return root_params
 
-    def root_prim_keys(self, arg_keys: tp.Tuple[str, ...]):
+    def root_prim_keys(self, prim_keys: tp.Tuple[str, ...]):
         # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
 
         def parent_argnum_from_key(arg_key: str):
@@ -128,28 +128,25 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
                 raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
             return arg_number
 
-        # Find child arg keys for each constraints
-        parent_argnums = [
-            tuple(parent_argnum_from_key(arg_key) for arg_key in carg_keys)
-            for carg_keys in self.CHILDREN_PRIM_KEYS
-        ]
-        parent_argkeys = [
-            tuple(arg_keys[parent_arg_num] for parent_arg_num in parent_arg_nums)
-            for parent_arg_nums in parent_argnums
-        ]
-        children_argkeys = tuple(
+        def replace_prim_key_prefix(arg_key: str, parent_prim_keys):
+            split_key = arg_key.split("/", 1)
+            prefix, postfix = split_key[0], split_key[1:]
+            new_prefix = parent_prim_keys[parent_argnum_from_key(arg_key)]
+            return "/".join([new_prefix] + postfix)
+
+        # For each child, find the parent primitive part of its argument tuple
+        children_prim_keys = tuple(
             tuple(
-                "/".join([parent_argkey] + child_argkey.split("/", 1)[1:])
-                for parent_argkey, child_argkey in zip(parent_argkeys, child_argkeys)
+                replace_prim_key_prefix(prim_key, prim_keys) for prim_key in prim_keys
             )
-            for parent_argkeys, child_argkeys in zip(parent_argkeys, self.CHILDREN_PRIM_KEYS)
+            for prim_keys in self.CHILDREN_PRIM_KEYS
         )
 
         children = {
             key: child.root_prim_keys(child_argkeys)
-            for (key, child), child_argkeys in zip(self.children_map.items(), children_argkeys)
+            for (key, child), child_argkeys in zip(self.children_map.items(), children_prim_keys)
         }
-        return PrimKeysNode(arg_keys, children)
+        return PrimKeysNode(prim_keys, children)
 
     @property
     def RES_CONSTANTS(self):
