@@ -100,11 +100,12 @@ def update_subplots(
 
 
 def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
-    coincident_line = geo.CoincidentLines({"reverse": True})
-    bottom_res = coincident_line.assem_res((axes_frame["Line0"], axis["Line2"]))
-    top_res = coincident_line.assem_res((axes_frame["Line2"], axis["Line0"]))
-    left_res = coincident_line.assem_res((axes_frame["Line3"], axis["Line1"]))
-    right_res = coincident_line.assem_res((axes_frame["Line1"], axis["Line3"]))
+    coincident_line = geo.CoincidentLines()
+    params = {"reverse": True}
+    bottom_res = coincident_line((axes_frame["Line0"], axis["Line2"]), params)
+    top_res = coincident_line((axes_frame["Line2"], axis["Line0"]), params)
+    left_res = coincident_line((axes_frame["Line3"], axis["Line1"]), params)
+    right_res = coincident_line((axes_frame["Line1"], axis["Line3"]), params)
 
     residuals = tuple(
         np.linalg.norm(res) for res in (bottom_res, top_res, left_res, right_res)
