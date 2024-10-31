@@ -117,24 +117,8 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         root_params = PrimParamsNode(parameters, children)
         return root_params
 
-    @property
-    def RES_CONSTANTS(self):
-        return self.value[0]
-
-    @property
-    def RES_PRIM_TYPES(self):
-        return self.value[1]
-
-    @property
-    def RES_PARAMS_TYPE(self):
-        return self.value[2]
-
-    @property
-    def CHILDREN_PRIM_KEYS(self):
-        return self.value[3]
-
-    # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
     def root_prim_keys(self, arg_keys: tp.Tuple[str, ...]):
+        # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
 
         def parent_argnum_from_key(arg_key: str):
             arg_number_str = arg_key.split("/", 1)[0]
@@ -166,6 +150,22 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
             for (key, child), child_argkeys in zip(self.children_map.items(), children_argkeys)
         }
         return PrimKeysNode(arg_keys, children)
+
+    @property
+    def RES_CONSTANTS(self):
+        return self.value[0]
+
+    @property
+    def RES_PRIM_TYPES(self):
+        return self.value[1]
+
+    @property
+    def RES_PARAMS_TYPE(self):
+        return self.value[2]
+
+    @property
+    def CHILDREN_PRIM_KEYS(self):
+        return self.value[3]
 
     def __call__(self, prims: tp.Tuple[Primitive, ...], params: RES_PARAMS_TYPE):
         root_prim = Node(
