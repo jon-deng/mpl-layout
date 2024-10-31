@@ -153,8 +153,8 @@ class Layout:
         if key == "":
             key = self._constraint_key_counter.add_item_to_nodes(constraint, *nodes)
         self.root_constraint.add_child(key, constraint)
-        self.root_constraint_graph.add_child(key, constraint.root_argkeys(prim_keys))
-        self.root_constraint_param.add_child(key, constraint.root_param(param))
+        self.root_constraint_graph.add_child(key, constraint.root_prim_keys(prim_keys))
+        self.root_constraint_param.add_child(key, constraint.root_params(param))
 
 def build_prim_graph(
     root_prim: geo.Primitive,

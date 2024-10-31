@@ -102,16 +102,16 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
     ):
         super().__init__((res_constants, res_prim_types, res_params_type, children_prim_keys), children)
 
-    def split_child_params(cls, parameters: ResParams):
+    def split_children_params(cls, parameters: ResParams):
         raise NotImplementedError()
 
-    def root_param(self, parameters: ResParams):
+    def root_params(self, parameters: ResParams):
         parameters = load_named_tuple(self.RES_PARAMS_TYPE, parameters)
 
         keys, child_constraints = self.keys(), self.children
-        child_parameters = self.split_child_params(parameters)
+        child_parameters = self.split_children_params(parameters)
         children = {
-            key: child_constraint.root_param(child_params)
+            key: child_constraint.root_params(child_params)
             for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
         }
         root_params = PrimParamsNode(parameters, children)
@@ -134,7 +134,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         return self.value[3]
 
     # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
-    def root_argkeys(self, arg_keys: tp.Tuple[str, ...]):
+    def root_prim_keys(self, arg_keys: tp.Tuple[str, ...]):
 
         def parent_argnum_from_key(arg_key: str):
             arg_number_str = arg_key.split("/", 1)[0]
@@ -162,7 +162,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         )
 
         children = {
-            key: child.root_argkeys(child_argkeys)
+            key: child.root_prim_keys(child_argkeys)
             for (key, child), child_argkeys in zip(self.children_map.items(), children_argkeys)
         }
         return PrimKeysNode(arg_keys, children)
@@ -171,12 +171,12 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         root_prim = Node(
             np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
         )
-        root_params = self.root_param(load_named_tuple(self.RES_PARAMS_TYPE, params))
+        root_params = self.root_params(load_named_tuple(self.RES_PARAMS_TYPE, params))
         params = load_named_tuple(self.RES_PARAMS_TYPE, params)
         return self.assem_res_from_tree(root_prim, root_params)
 
     def assem_res_from_tree(self, root_prim: Node[NDArray, pr.Primitive], root_params: RES_PARAMS_TYPE):
-        flat_argkeys = (x[1].value for x in iter_flat("", self.root_argkeys(tuple(root_prim.keys()))))
+        flat_argkeys = (x[1].value for x in iter_flat("", self.root_prim_keys(tuple(root_prim.keys()))))
         flat_constraints = (x[1] for x in iter_flat("", self))
         flat_params = (x[1].value for x in iter_flat("", root_params))
 
@@ -221,7 +221,7 @@ class StaticConstraint(Constraint):
 
     """
 
-    split_child_params: tp.Callable[
+    split_children_params: tp.Callable[
         [type["Constraint"], ResConstants], tp.Tuple[ResConstants, ...]
     ]
 
@@ -229,7 +229,7 @@ class StaticConstraint(Constraint):
     def init_tree(cls):
         raise NotImplementedError()
 
-    def split_child_params(self, parameters: ResParams):
+    def split_children_params(self, parameters: ResParams):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
     def __init__(self):
@@ -254,7 +254,7 @@ class DynamicConstraint(Constraint):
     def init_tree(cls, shape: tp.Tuple[int, ...]):
         raise NotImplementedError()
 
-    def split_child_params(self, parameters):
+    def split_children_params(self, parameters):
         raise NotImplementedError()
 
     def __init__(self, shape: tp.Tuple[int, ...]):
@@ -467,7 +467,7 @@ class RelativeLengthArray(DynamicConstraint):
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def split_child_params(self, parameters):
+    def split_children_params(self, parameters):
         num_args = np.prod(self.RES_CONSTANTS.shape)
 
         return tuple(
@@ -525,7 +525,7 @@ class XDistanceMidpointsArray(DynamicConstraint):
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def split_child_params(self, params):
+    def split_children_params(self, params):
         return tuple(
             child.RES_PARAMS_TYPE(distance)
             for child, distance in zip(self.children, params.distances)
@@ -579,7 +579,7 @@ class YDistanceMidpointsArray(DynamicConstraint):
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def split_child_params(self, params):
+    def split_children_params(self, params):
         return tuple(
             child.RES_PARAMS_TYPE(distance)
             for child, distance in zip(self.children, params.distances)
@@ -755,7 +755,7 @@ class CollinearArray(DynamicConstraint):
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def split_child_params(self, parameters):
+    def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
     def assem_res(self, prims, params):
@@ -871,7 +871,7 @@ class RectilinearGrid(DynamicConstraint):
         )
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def split_child_params(self, parameters):
+    def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
     def assem_res(self, prims, params):
@@ -946,7 +946,7 @@ class Grid(DynamicConstraint):
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def split_child_params(self, params):
+    def split_children_params(self, params):
         values = (
             (),
             (params.col_widths,),
