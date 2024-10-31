@@ -217,50 +217,6 @@ class Node(tp.Generic[T, ChildType]):
             self.children_map[key] = child
 
 
-class OptionalKeyNode(Node[T, ChildType]):
-    """
-    Tree structure with labelled child nodes
-
-    Keys can be supplied optionally because instances will automatically assign keys.
-
-    Parameters
-    ----------
-    value: T
-        A value associated with the node
-    children: tp.Tuple[Node, ...]
-        Child nodes
-    labels: tp.Tuple[str, ...]
-        Child node labels
-    """
-
-    def __init__(self, value: None | T, children: tp.Mapping[str, ChildType]):
-        self._child_counter = ItemCounter()
-        super().__init__(value, children)
-
-    @classmethod
-    def from_tree(cls, value: None | T, children: tp.Mapping[str, ChildType]):
-        node = super().__new__(cls)
-        OptionalKeyNode.__init__(node, value, children)
-        return node
-
-    def add_child_nonrecursive(self, key: str, child: AnyNode):
-        """
-        Add a primitive indexed by a key
-
-        Base case of recursive `add_child`
-        """
-        # Assign an automatic key if none is supplied
-        if key == "":
-            key = self._child_counter.add_item_until_valid(
-                child, lambda key: key not in self
-            )
-
-        if key in self.children_map:
-            raise KeyError(f"{key}")
-        else:
-            self.children_map[key] = child
-
-
 V = tp.TypeVar("V")
 
 
@@ -304,6 +260,12 @@ class ItemCounter(tp.Generic[V]):
             key = self.add_item(item)
 
         return key
+
+    def add_item_to_nodes(self, item: V, *nodes: tp.Tuple[Node, ...]):
+        def valid(key):
+            key_notin_nodes = (key not in node for node in nodes)
+            return all(key_notin_nodes)
+        return self.add_item_until_valid(item, valid)
 
 
 ## Manual flattening/unflattening implementation

@@ -30,7 +30,7 @@ import warnings
 import numpy as np
 
 from . import geometry as geo
-from .containers import Node, OptionalKeyNode, iter_flat, flatten, unflatten
+from .containers import Node, ItemCounter, iter_flat, flatten, unflatten
 
 IntGraph = tp.List[tp.Tuple[int, ...]]
 StrGraph = tp.List[tp.Tuple[str, ...]]
@@ -56,30 +56,29 @@ class Layout:
     def __init__(
         self,
         root_prim: tp.Optional[Node] = None,
-        root_constraint: tp.Optional[OptionalKeyNode] = None,
-        root_constraint_graph: tp.Optional[OptionalKeyNode] = None,
-        root_constraint_param: tp.Optional[OptionalKeyNode] = None
+        root_constraint: tp.Optional[Node] = None,
+        root_constraint_graph: tp.Optional[Node] = None,
+        root_constraint_param: tp.Optional[Node] = None,
+        constraint_key_counter: tp.Optional[ItemCounter] = None,
     ):
 
         if root_prim is None:
             root_prim = Node(np.array([]), {})
         if root_constraint is None:
-            root_constraint = OptionalKeyNode(None, {})
+            root_constraint = Node(None, {})
         if root_constraint_graph is None:
-            root_constraint_graph = OptionalKeyNode(None, {})
+            root_constraint_graph = Node(None, {})
         if root_constraint_param is None:
-            root_constraint_param = OptionalKeyNode(None, {})
+            root_constraint_param = Node(None, {})
+        if constraint_key_counter is None:
+            constraint_key_counter = ItemCounter()
 
         self._root_prim = root_prim
         self._root_constraint = root_constraint
         self._root_constraint_graph = root_constraint_graph
         self._root_constraint_param = root_constraint_param
 
-        self._prim_type_count = {}
-        self._label_to_primidx = {}
-
-        self._constraint_type_count = {}
-        self._label_to_constraintidx = {}
+        self._constraint_key_counter = constraint_key_counter
 
     @property
     def root_prim(self):
@@ -146,6 +145,13 @@ class Layout:
         prim_labels:
             A tuple of strings referencing primitives (`self.root_prim`)
         """
+        nodes = (
+            self.root_constraint,
+            self.root_constraint_graph,
+            self.root_constraint_param
+        )
+        if key == "":
+            key = self._constraint_key_counter.add_item_to_nodes(constraint, *nodes)
         self.root_constraint.add_child(key, constraint)
         self.root_constraint_graph.add_child(key, constraint.root_argkeys(prim_keys))
         self.root_constraint_param.add_child(key, constraint.root_param(param))
