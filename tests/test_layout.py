@@ -70,9 +70,9 @@ class TestLayout:
         layout = lat.Layout()
 
         layout.add_prim(geo.Quadrilateral(), "MyBox")
-        layout.add_constraint(geo.Box(), ("MyBox",), ([0, 0],))
+        layout.add_constraint(geo.Box(), ("MyBox",), ())
 
-        layout.add_constraint(geo.Fix(), ("MyBox/Line0/Point0",), ())
+        layout.add_constraint(geo.Fix(), ("MyBox/Line0/Point0",), ([0, 0],))
 
         pprint(layout.root_prim)
         constraints, constraints_argkeys, constraints_param = layout.flat_constraints()
@@ -85,15 +85,3 @@ class TestLayout:
         print("Constraints parameter vector:")
         pprint(constraints_param)
 
-
-class TestUtilities:
-
-    @pytest.fixture()
-    def layout(self):
-        layout = lat.Layout()
-
-        layout.add_prim(geo.Quadrilateral(), "MyBox")
-        layout.add_constraint(geo.Box({}), ("MyBox",))
-
-        layout.add_constraint(geo.Fix(((0, 0),)), ("MyBox/Line0/Point0",))
-        return layout
