@@ -39,6 +39,14 @@ def load_named_tuple(
     return args
 
 
+class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
+    pass
+
+
+class PrimParamsNode(Node[Parameters, "PrimParamsNode"]):
+    pass
+
+
 class Constraint(Node[ConstraintValue, ChildConstraint]):
     """
     Geometric constraint on primitives
@@ -104,7 +112,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
             key: child_constraint.root_param(child_params)
             for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
         }
-        root_params = Node(parameters, children)
+        root_params = PrimParamsNode(parameters, children)
         return root_params
 
     @property
@@ -155,7 +163,7 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
             key: child.root_argkeys(child_argkeys)
             for (key, child), child_argkeys in zip(self.children_map.items(), children_argkeys)
         }
-        return Node(arg_keys, children)
+        return PrimKeysNode(arg_keys, children)
 
     def __call__(self, prims: tp.Tuple[Primitive, ...], params: Parameters):
         root_prim = Node(
@@ -197,6 +205,10 @@ class Constraint(Node[ConstraintValue, ChildConstraint]):
             The constraint is satisfied when the residual is 0.
         """
         raise NotImplementedError()
+
+
+class ConstraintNode(Node[ConstraintValue, Constraint]):
+    pass
 
 
 class StaticConstraint(Constraint):
@@ -252,10 +264,6 @@ class DynamicConstraint(Constraint):
         children = {key: constraint for key, constraint in zip(CHILD_KEYS, CHILD_CONSTRAINTS)}
 
         super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
-
-
-class ConstraintNode(Node[ConstraintValue, Constraint]):
-    pass
 
 
 ## Constraints on points
