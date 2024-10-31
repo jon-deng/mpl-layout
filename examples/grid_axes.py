@@ -14,29 +14,22 @@ from mpllayout import (
 )
 
 
-def plot_layout(layout: lay.Layout, fig_path: str):
-    constraints, constraint_graph = layout.flat_constraints()
-    prim_tree_n, info = solver.solve(
-        layout.root_prim,
-        constraints,
-        constraint_graph,
-        max_iter=40,
-        rel_tol=1e-9,
-    )
-    root_prim_labels = [label for label in prim_tree_n.keys() if "." not in label]
-    root_prims = [prim_tree_n[label] for label in root_prim_labels]
+def plot_layout(root_prim, fig_path: str):
 
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
-    ax.set_xlim(-1, 10)
-    ax.set_ylim(-1, 10)
-    ax.set_xticks(np.arange(-1, 11, 1))
-    ax.set_yticks(np.arange(-1, 11, 1))
+    # ax.set_xlim(-1, 10)
+    # ax.set_ylim(-1, 10)
+    # ax.set_xticks(np.arange(-1, 11, 1))
+    # ax.set_yticks(np.arange(-1, 11, 1))
     ax.set_aspect(1)
+    ax.grid()
+
+    # for axis in (ax.xaxis, ax.yaxis)
 
     ax.set_xlabel("x [in]")
     ax.set_ylabel("y [in]")
-    ui.plot_prims(ax, prim_tree_n)
+    ui.plot_prims(ax, root_prim)
 
     fig.savefig(fig_path)
 
@@ -59,7 +52,7 @@ if __name__ == "__main__":
     layout.add_constraint(geo.Coincident(), ("Figure/Line0/Point0", "Origin"), ())
 
     ## Create the axes boxes
-    axes_shape = (2, 1)
+    axes_shape = (4, 4)
     num_row, num_col = axes_shape
     num_axes = int(np.prod(axes_shape))
     for n in range(num_axes):
@@ -118,7 +111,7 @@ if __name__ == "__main__":
     prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
     print(info)
 
-    # plot_layout(layout, "grid_axes.png")
+    plot_layout(prim_tree_n, "out/grid_axes_layout.png")
 
     # print('Figure:', prim_tree_n['Figure'])
     # print('Axes1:', prim_tree_n['Axes1'])
