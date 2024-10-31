@@ -17,12 +17,14 @@ from .containers import Node, iter_flat
 Primitive = pr.Primitive
 
 
-Constants = namedtuple("Constants", ())
-Parameters = namedtuple("Parameters", ())
+ResConstants = namedtuple("Constants", ())
+ResParams = namedtuple("Parameters", ())
+ResPrimTypes = tp.Tuple[type[Primitive], ...]
 
-PrimTypes = tp.Tuple[type[Primitive], ...]
 PrimKeys = tp.Tuple[str, ...]
-ConstraintValue = tp.Tuple[Constants, PrimTypes, Parameters, tp.Tuple[PrimKeys, ...]]
+ChildrenPrimKeys = tp.Tuple[PrimKeys, ...]
+
+ConstraintValue = tp.Tuple[ResConstants, ResPrimTypes, ResParams, ChildrenPrimKeys]
 
 def load_named_tuple(
         NamedTuple: namedtuple,
@@ -43,7 +45,7 @@ class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     pass
 
 
-class PrimParamsNode(Node[Parameters, "PrimParamsNode"]):
+class PrimParamsNode(Node[ResParams, "PrimParamsNode"]):
     pass
 
 
@@ -92,18 +94,18 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
 
     def __init__(
         self,
-        res_constants: Constants,
+        res_constants: ResConstants,
         res_arg_types: tp.Tuple[type[Primitive], ...],
-        res_params_type: Parameters,
+        res_params_type: ResParams,
         children_primkeys: tp.Tuple[PrimKeys, ...],
         children: tp.Mapping[str, "Constraint"]
     ):
         super().__init__((res_constants, res_arg_types, res_params_type, children_primkeys), children)
 
-    def split_child_params(cls, parameters: Parameters):
+    def split_child_params(cls, parameters: ResParams):
         raise NotImplementedError()
 
-    def root_param(self, parameters: Parameters):
+    def root_param(self, parameters: ResParams):
         parameters = load_named_tuple(self.Parameters, parameters)
 
         keys, child_constraints = self.keys(), self.children
@@ -220,14 +222,14 @@ class StaticConstraint(Constraint):
     """
 
     split_child_params: tp.Callable[
-        [type["Constraint"], Constants], tp.Tuple[Constants, ...]
+        [type["Constraint"], ResConstants], tp.Tuple[ResConstants, ...]
     ]
 
     @classmethod
     def init_tree(cls):
         raise NotImplementedError()
 
-    def split_child_params(self, parameters: Parameters):
+    def split_child_params(self, parameters: ResParams):
         return tuple(child.Parameters() for child in self.children)
 
     def __init__(self):
