@@ -55,7 +55,7 @@ class Layout:
 
     def __init__(
         self,
-        root_prim: tp.Optional[Node] = None,
+        root_prim: tp.Optional[geo.PrimitiveNode] = None,
         root_constraint: tp.Optional[geo.ConstraintNode] = None,
         root_constraint_graph: tp.Optional[Node] = None,
         root_constraint_param: tp.Optional[Node] = None,
@@ -63,7 +63,7 @@ class Layout:
     ):
 
         if root_prim is None:
-            root_prim = Node(np.array([]), {})
+            root_prim = geo.PrimitiveNode(np.array([]), {})
         if root_constraint is None:
             root_constraint = geo.ConstraintNode(None, {})
         if root_constraint_graph is None:

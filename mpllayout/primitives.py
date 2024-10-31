@@ -104,6 +104,10 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
         super().__init__(value, children_map)
 
 
+class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
+    pass
+
+
 PrimList = tp.List[Primitive]
 
 
