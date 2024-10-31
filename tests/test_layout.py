@@ -70,14 +70,20 @@ class TestLayout:
         layout = lat.Layout()
 
         layout.add_prim(geo.Quadrilateral(), "MyBox")
-        layout.add_constraint(geo.Box({}), ("MyBox",))
+        layout.add_constraint(geo.Box(), ("MyBox",), ([0, 0],))
 
-        layout.add_constraint(geo.Fix(((0, 0),)), ("MyBox/Line0/Point0",))
+        layout.add_constraint(geo.Fix(), ("MyBox/Line0/Point0",), ())
 
         pprint(layout.root_prim)
-        constraints, constraint_graph = layout.flat_constraints()
+        constraints, constraints_argkeys, constraints_param = layout.flat_constraints()
+
+        print("Flat constraints: ")
+        print("Constraints:")
         pprint(constraints)
-        pprint(constraint_graph)
+        print("Constraints argument keys:")
+        pprint(constraints_argkeys)
+        print("Constraints parameter vector:")
+        pprint(constraints_param)
 
 
 class TestUtilities:

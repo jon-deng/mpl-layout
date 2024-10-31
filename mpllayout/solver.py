@@ -25,6 +25,7 @@ def solve(
     root_prim: geo.Primitive,
     constraints: tp.List[geo.Constraint],
     constraint_graph: StrGraph,
+    constraint_params,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
@@ -87,7 +88,7 @@ def solve(
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
         residuals = assem_constraint_residual(
-            root_prim, prim_graph, new_prim_params, constraints, constraint_graph
+            root_prim, prim_graph, new_prim_params, constraints, constraint_graph, constraint_params
         )
         return jnp.concatenate(residuals)
 
@@ -136,6 +137,7 @@ def assem_constraint_residual(
     prim_values: tp.List[NDArray],
     constraints: tp.List[geo.Constraint],
     constraint_graph: StrGraph,
+    constraint_params
 ) -> tp.List[NDArray]:
     """
     Return a list of constraint residual vectors
@@ -160,7 +162,7 @@ def assem_constraint_residual(
     """
     root_prim = layout.build_tree(root_prim, prim_graph, prim_values)
     residuals = [
-        constraint(tuple(root_prim[key] for key in prim_keys))
-        for constraint, prim_keys in zip(constraints, constraint_graph)
+        constraint(tuple(root_prim[key] for key in prim_keys), param)
+        for constraint, prim_keys, param in zip(constraints, constraint_graph, constraint_params)
     ]
     return residuals
