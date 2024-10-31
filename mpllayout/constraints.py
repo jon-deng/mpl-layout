@@ -137,14 +137,16 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         # For each child, find the parent primitive part of its argument tuple
         children_prim_keys = tuple(
             tuple(
-                replace_prim_key_prefix(prim_key, prim_keys) for prim_key in prim_keys
+                replace_prim_key_prefix(prim_key, prim_keys)
+                for prim_key in child_prim_keys
             )
-            for prim_keys in self.CHILDREN_PRIM_KEYS
+            for child_prim_keys in self.CHILDREN_PRIM_KEYS
         )
 
         children = {
-            key: child.root_prim_keys(child_argkeys)
-            for (key, child), child_argkeys in zip(self.children_map.items(), children_prim_keys)
+            key: child.root_prim_keys(child_prim_keys)
+            for (key, child), child_prim_keys
+            in zip(self.children_map.items(), children_prim_keys)
         }
         return PrimKeysNode(prim_keys, children)
 
