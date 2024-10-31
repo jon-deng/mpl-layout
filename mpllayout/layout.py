@@ -90,7 +90,7 @@ class Layout:
         return self._root_constraint
 
     @property
-    def root_constraint_graph(self) -> StrGraph:
+    def root_constraint_graph(self):
         return self._root_constraint_graph
 
     @property
