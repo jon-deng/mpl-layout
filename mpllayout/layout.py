@@ -208,10 +208,10 @@ from matplotlib.axis import Axis, XAxis, YAxis
 
 
 def update_layout_constraints(
-        root_constraint: Node,
-        root_constraint_param: Node,
+        root_constraint: geo.ConstraintNode,
+        root_constraint_param: geo.ParamsNode,
         axs: tp.Mapping[str, Axes]
-    ) -> Node:
+    ) -> geo.ParamsNode:
     # Update constraints based on bboxes
     from mpllayout.containers import Node
 
