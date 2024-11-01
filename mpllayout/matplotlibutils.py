@@ -111,7 +111,6 @@ def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
         np.linalg.norm(res) for res in (bottom_res, top_res, left_res, right_res)
     )
     residual_positions = ("bottom", "top", "left", "right")
-    print(residuals, residual_positions)
 
     if not np.isclose(np.min(residuals), 0):
         warnings.warn("The axis isn't closely aligned with any of the axes sides")
