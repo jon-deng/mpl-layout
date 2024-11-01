@@ -1276,8 +1276,11 @@ class XAxisHeight(StaticConstraint):
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def split_children_params(self, parameters):
-        xaxis: XAxis = parameters.axis
-        return ((get_xaxis_height(xaxis),),)
+        xaxis: XAxis | None = parameters.axis
+        if xaxis is None:
+            return ((0,),)
+        else:
+            return ((get_xaxis_height(xaxis),),)
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
         return np.array([])
@@ -1307,8 +1310,11 @@ class YAxisWidth(StaticConstraint):
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def split_children_params(self, parameters):
-        axis: YAxis = parameters.axis
-        return ((get_yaxis_width(axis),),)
+        yaxis: YAxis | None = parameters.axis
+        if yaxis is None:
+            return ((0,),)
+        else:
+            return ((get_yaxis_width(yaxis),),)
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
         return np.array([])
