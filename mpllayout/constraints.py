@@ -237,15 +237,11 @@ class StaticConstraint(Constraint):
 
     """
 
-    split_children_params: tp.Callable[
-        [type["Constraint"], ResConstants], tp.Tuple[ResConstants, ...]
-    ]
-
     @classmethod
     def init_tree(cls):
         raise NotImplementedError()
 
-    def split_children_params(self, parameters: ResParams):
+    def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
     def __init__(self):
