@@ -227,6 +227,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         ) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims, params))
 
+    # TODO: Replace params with actual keywords arguments? would be more readable
     def assem_res(
             self, prims: ResPrims, params: ResParams
         ) -> NDArray:
@@ -1207,6 +1208,6 @@ class Grid(DynamicConstraint):
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...], params):
         return np.array([])
 
-
+# TODO: Incorporate this into primitives?
 def line_vector(line: pr.Line):
     return line[1].value - line[0].value
