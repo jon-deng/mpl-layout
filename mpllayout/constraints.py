@@ -235,14 +235,18 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
 
         Parameters
         ----------
-        prims: Tuple[Primitive, ...]
+        prims: ResPrims
             A tuple of primitives the constraint applies to
+        params: ResParams
+            A set of parameters for the residual
+
+            These are things like length, distance, angle, etc.
 
         Returns
         -------
         NDArray
-            The residual representing whether the constraint is satisfied.
-            The constraint is satisfied when the residual is 0.
+            The residual representing whether the constraint is satisfied. The
+            constraint is satisfied when the residual is 0.
         """
         raise NotImplementedError()
 
