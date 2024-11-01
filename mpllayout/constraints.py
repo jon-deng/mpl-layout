@@ -70,16 +70,23 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
     Geometric constraint on primitives
 
     A geometric constraint is a condition on parameters of geometric primitives.
-    Constraints have a tree structure where each constraint can contain
-    child constraints.
+    The condition is implemented through a residual function
+        `Constraint.assem_res(prims, param)`
+    where `prims` are geometric primitives and `params` are parameters for the residual.
+    For constraint is satisified when `Constraint.assem_res(prims, param) == 0` for a
+    given `prims` and `params`.
 
-    The condition is implemented through a residual function `assem_res` which returns
-    the error in the constraint satisfaction; when `assem_res(prims, params)` returns 0,
-    the primitives, `prims`, satisfy the constraint for given parameters, `params`.
+    For more details on how to implement `Constaint.assem_res`, see the docstring below.
 
-    The constraint residual should also be implemented using `jax`. This allows
-    automatic differentiation of constraint conditions which is needed for the numerical
-    solution of constraints.
+    Constraints also have a tree structure where constraints can contain child
+    constraints. The residual of a constraint is the result of joining all child
+    constraint residuals together.
+
+    To create a constraint, you have to subclass `Constraint` then:
+        1. Define the residual for the constraint (`assem_res`)
+        2. Specify the parameters for `Constraint.__init__` (see below)
+    Note that some of the `Constraint.__init__` parameters are for type checking inputs
+    to `assem_res` while the others are for specifying child constraints.
 
     Parameters
     ----------
@@ -118,6 +125,9 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
     ):
         super().__init__((res_constants, res_prim_types, res_params_type, children_prim_keys), children)
 
+    # TODO: Turn this into something passed through __init__ instead!
+    # This separate function is confusing because you have to specify a constraint
+    # through __init__ and this
     def split_children_params(cls, parameters: ResParams):
         raise NotImplementedError()
 
