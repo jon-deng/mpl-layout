@@ -263,10 +263,10 @@ ChildConstraints = tp.Tuple[Constraint, ...]
 
 class StaticConstraint(Constraint):
     """
-    Constraint with predefined number of children
+    Constraint with static number of arguments and/or children
 
-    To specify a `StaticConstraint` you have to define class variables
-
+    To specify a `StaticConstraint` you have to define `init_tree` to return
+    parameters for `Constraint.__init__`.
     """
 
     @classmethod
@@ -293,7 +293,10 @@ class StaticConstraint(Constraint):
 
 class DynamicConstraint(Constraint):
     """
-    Constraint with dynamic number of children depending on a shape
+    Constraint with dynamic number of arguments and/or children depending on a shape
+
+    To specify a `DynamicConstraint` you have to define `init_tree` to return
+    parameters for `Constraint.__init__`.
     """
 
     @classmethod
