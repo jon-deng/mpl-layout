@@ -491,6 +491,7 @@ class Coincident(StaticConstraint):
 
 ## Line constraints
 
+# Argument type: Tuple[Line,]
 
 class Length(StaticConstraint):
     """
@@ -522,6 +523,67 @@ class Length(StaticConstraint):
         vec = line_vector(line)
         return jnp.sum(vec**2) - params.length**2
 
+
+class Vertical(StaticConstraint):
+    """
+    Constrain a line to be vertical
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The lines
+    params:
+        None
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+        """
+        Return the vertical error for a line
+        """
+        (line0,) = prims
+        dir0 = line_vector(line0)
+        return jnp.dot(dir0, np.array([1, 0]))
+
+
+class Horizontal(StaticConstraint):
+    """
+    Constrain a line to be horizontal
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The lines
+    params:
+        None
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = namedtuple("Parameters", ())
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+        """
+        Return the horizontal error for a line
+        """
+        (line0,) = prims
+        dir0 = line_vector(line0)
+        return jnp.dot(dir0, np.array([0, 1]))
+
+# Argument type: Tuple[Line, Line]
 
 class RelativeLength(StaticConstraint):
     """
@@ -555,48 +617,6 @@ class RelativeLength(StaticConstraint):
         vec_a = line_vector(line0)
         vec_b = line_vector(line1)
         return jnp.sum(vec_a**2) - params.length**2 * jnp.sum(vec_b**2)
-
-
-class RelativeLengthArray(DynamicConstraint):
-    """
-    Constrain the lengths of a set of lines relative to the last
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Line, ...]
-        The lines
-
-        The length of the lines are measured relative to the last line
-    params:
-        The relative lengths
-    """
-
-    @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
-        size = np.prod(shape)
-
-        ARG_TYPES = size * (pr.Line,) + (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("lengths",))
-
-        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(size))
-        CHILD_CONSTRAINTS = (size) * (RelativeLength(),)
-        CHILD_ARGKEYS = tuple(
-            (f"arg{n}", f"arg{size}")
-            for n in range(size)
-        )
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def split_children_params(self, parameters):
-        num_args = np.prod(self.RES_CONSTANTS.shape)
-
-        return tuple(
-            child.RES_PARAMS_TYPE(length)
-            for child, length in zip(self.children, parameters.lengths)
-        )
-
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
-        return np.array([])
 
 
 class XDistanceMidpoints(StaticConstraint):
@@ -635,44 +655,6 @@ class XDistanceMidpoints(StaticConstraint):
         return distance - params.distance
 
 
-class XDistanceMidpointsArray(DynamicConstraint):
-    """
-    Constrain the x-distances between a set of line midpoints
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Line, ...]
-        The lines
-
-        The distances are measured from the first to the second line in pairs
-    params:
-        The distances
-    """
-
-    CONSTANTS = namedtuple("Constants", ("distances",))
-
-    @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
-        num_child = np.prod(shape)
-
-        ARG_TYPES = num_child * (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
-        CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
-        CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
-        CHILD_CONSTRAINTS = num_child * (XDistanceMidpoints(),)
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def split_children_params(self, params):
-        return tuple(
-            child.RES_PARAMS_TYPE(distance)
-            for child, distance in zip(self.children, params.distances)
-        )
-
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
-        return np.array(())
-
-
 class YDistanceMidpoints(StaticConstraint):
     """
     Constrain the y-distance between two line midpoints
@@ -707,42 +689,6 @@ class YDistanceMidpoints(StaticConstraint):
 
         distance = jnp.dot(midpoint1 - midpoint0, np.array([0, 1]))
         return distance - params.distance
-
-
-class YDistanceMidpointsArray(DynamicConstraint):
-    """
-    Constrain the y-distances between a set of line midpoints
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Line, ...]
-        The lines
-
-        The distances are measured from the first to the second line in pairs
-    params:
-        The distances
-    """
-
-    @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
-        num_child = np.prod(shape)
-
-        ARG_TYPES = num_child * (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
-        CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
-        CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
-        CHILD_CONSTRAINTS = num_child * (YDistanceMidpoints(),)
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def split_children_params(self, params):
-        return tuple(
-            child.RES_PARAMS_TYPE(distance)
-            for child, distance in zip(self.children, params.distances)
-        )
-
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
-        return np.array(())
 
 
 class Orthogonal(StaticConstraint):
@@ -805,66 +751,6 @@ class Parallel(StaticConstraint):
         dir0 = line_vector(line0)
         dir1 = line_vector(line1)
         return jnp.cross(dir0, dir1)
-
-
-class Vertical(StaticConstraint):
-    """
-    Constrain a line to be vertical
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Line]
-        The lines
-    params:
-        None
-    """
-
-    @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
-        """
-        Return the vertical error for a line
-        """
-        (line0,) = prims
-        dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([1, 0]))
-
-
-class Horizontal(StaticConstraint):
-    """
-    Constrain a line to be horizontal
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Line]
-        The lines
-    params:
-        None
-    """
-
-    @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
-        """
-        Return the horizontal error for a line
-        """
-        (line0,) = prims
-        dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([0, 1]))
 
 
 class Angle(StaticConstraint):
@@ -936,37 +822,6 @@ class Collinear(StaticConstraint):
         )
 
 
-class CollinearArray(DynamicConstraint):
-    """
-    Constrain a set of lines to be collinear
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Line, ...]
-        The lines
-    params:
-        None
-    """
-
-    @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
-        size = np.prod(shape)
-
-        ARG_TYPES = size * (pr.Line, )
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-        CHILD_ARGKEYS = tuple(("arg0", f"arg{n}") for n in range(1, size))
-        CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        CHILD_CONSTRAINTS = size * (Collinear(),)
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def split_children_params(self, parameters):
-        return tuple(child.RES_PARAMS_TYPE() for child in self.children)
-
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
-        return np.array([])
-
-
 class CoincidentLines(StaticConstraint):
     """
     Constrain two lines to be coincident
@@ -1001,9 +856,156 @@ class CoincidentLines(StaticConstraint):
             point1_err = line1["Point1"].value - line0["Point0"].value
         return jnp.concatenate([point0_err, point1_err])
 
+# Argument type: Tuple[Line, ...]
+
+class RelativeLengthArray(DynamicConstraint):
+    """
+    Constrain the lengths of a set of lines relative to the last
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+
+        The length of the lines are measured relative to the last line
+    params:
+        The relative lengths
+    """
+
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int, ...]):
+        size = np.prod(shape)
+
+        ARG_TYPES = size * (pr.Line,) + (pr.Line,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("lengths",))
+
+        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(size))
+        CHILD_CONSTRAINTS = (size) * (RelativeLength(),)
+        CHILD_ARGKEYS = tuple(
+            (f"arg{n}", f"arg{size}")
+            for n in range(size)
+        )
+
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, parameters):
+        num_args = np.prod(self.RES_CONSTANTS.shape)
+
+        return tuple(
+            child.RES_PARAMS_TYPE(length)
+            for child, length in zip(self.children, parameters.lengths)
+        )
+
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+        return np.array([])
+
+
+class XDistanceMidpointsArray(DynamicConstraint):
+    """
+    Constrain the x-distances between a set of line midpoints
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+
+        The distances are measured from the first to the second line in pairs
+    params:
+        The distances
+    """
+
+    CONSTANTS = namedtuple("Constants", ("distances",))
+
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int, ...]):
+        num_child = np.prod(shape)
+
+        ARG_TYPES = num_child * (pr.Line, pr.Line)
+        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
+        CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
+        CHILD_CONSTRAINTS = num_child * (XDistanceMidpoints(),)
+
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, params):
+        return tuple(
+            child.RES_PARAMS_TYPE(distance)
+            for child, distance in zip(self.children, params.distances)
+        )
+
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+        return np.array(())
+
+
+class YDistanceMidpointsArray(DynamicConstraint):
+    """
+    Constrain the y-distances between a set of line midpoints
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+
+        The distances are measured from the first to the second line in pairs
+    params:
+        The distances
+    """
+
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int, ...]):
+        num_child = np.prod(shape)
+
+        ARG_TYPES = num_child * (pr.Line, pr.Line)
+        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
+        CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
+        CHILD_CONSTRAINTS = num_child * (YDistanceMidpoints(),)
+
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, params):
+        return tuple(
+            child.RES_PARAMS_TYPE(distance)
+            for child, distance in zip(self.children, params.distances)
+        )
+
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+        return np.array(())
+
+
+class CollinearArray(DynamicConstraint):
+    """
+    Constrain a set of lines to be collinear
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+    params:
+        None
+    """
+
+    @classmethod
+    def init_tree(cls, shape: tp.Tuple[int, ...]):
+        size = np.prod(shape)
+
+        ARG_TYPES = size * (pr.Line, )
+        ARG_PARAMETERS = namedtuple("Parameters", ())
+        CHILD_ARGKEYS = tuple(("arg0", f"arg{n}") for n in range(1, size))
+        CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
+        CHILD_CONSTRAINTS = size * (Collinear(),)
+
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, parameters):
+        return tuple(child.RES_PARAMS_TYPE() for child in self.children)
+
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+        return np.array([])
+
 
 ## Polygon constraints
-
 
 class Box(StaticConstraint):
     """
@@ -1026,7 +1028,6 @@ class Box(StaticConstraint):
 
 
 ## Grid constraints
-
 
 def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     """
