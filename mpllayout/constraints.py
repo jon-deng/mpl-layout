@@ -320,9 +320,11 @@ class DynamicConstraint(Constraint):
         super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
 
 
-## Constraints on points
+## Point constraints
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
+
+# Argument type: Tuple[Point,]
 
 class Fix(StaticConstraint):
     """
@@ -352,6 +354,7 @@ class Fix(StaticConstraint):
         (point,) = prims
         return point.value - params.location
 
+# Argument type: Tuple[Point, Point]
 
 class DirectedDistance(StaticConstraint):
     """
@@ -488,6 +491,7 @@ class Coincident(StaticConstraint):
         """
         point0, point1 = prims
         return point0.value - point1.value
+
 
 ## Line constraints
 
