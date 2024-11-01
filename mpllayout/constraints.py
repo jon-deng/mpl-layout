@@ -1015,7 +1015,14 @@ class CollinearArray(DynamicConstraint):
 
 class Box(StaticConstraint):
     """
-    Constrain a `Quadrilateral` to be rectangular
+    Constrain a quadrilateral to be rectangular
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Quadrilateral]
+        The quad
+    params:
+        None
     """
 
     @classmethod
@@ -1029,7 +1036,7 @@ class Box(StaticConstraint):
         CHILD_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], params):
         return np.array(())
 
 # Argument type: Tuple[Quadrilateral, ...]
@@ -1043,7 +1050,14 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
 
 class RectilinearGrid(DynamicConstraint):
     """
-    Constrain a set of `Quadrilateral`s to lie on a rectilinear grid
+    Constrain a set of quads to lie on a rectilinear grid
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Quadrilateral, ...]
+        The quadrilaterals
+    params:
+        None
     """
 
     @classmethod
@@ -1091,13 +1105,27 @@ class RectilinearGrid(DynamicConstraint):
     def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...], params):
         return np.array(())
 
 
 class Grid(DynamicConstraint):
     """
-    Constrain a set of `Quadrilateral`s to lie on a dimensioned rectilinear grid
+    Constrain a set of quads to lie on a dimensioned rectilinear grid
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Quadrilateral, ...]
+        The quadrilaterals
+    params:
+        "col_widths"
+            Column widths (from left to right) relative to the left-most column
+        "row_heights"
+            Row height (from top to bottom) relative to the top-most row
+        "col_margins"
+            Absolute column margins (from left to right)
+        "row_margins"
+            Absolute row margins (from top to bottom)
     """
 
     @classmethod
@@ -1176,7 +1204,7 @@ class Grid(DynamicConstraint):
             for child, value in zip(self.children, values)
         )
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...], params):
         return np.array([])
 
 
