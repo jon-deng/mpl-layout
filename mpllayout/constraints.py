@@ -470,7 +470,7 @@ class Coincident(StaticConstraint):
     prims: tp.Tuple[pr.Point, pr.Point]
         The two points
     params:
-        Nothing
+        None
     """
 
     @classmethod
@@ -495,6 +495,13 @@ class Coincident(StaticConstraint):
 class Length(StaticConstraint):
     """
     Constrain the length of a line
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The line
+    params:
+        The length
     """
 
     @classmethod
@@ -506,7 +513,7 @@ class Length(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
         """
         Return the length error of a line
         """
@@ -519,6 +526,15 @@ class Length(StaticConstraint):
 class RelativeLength(StaticConstraint):
     """
     Constrain the length of a line relative to another line
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+
+        The length of the first line is measured relative to the second line
+    params:
+        The relative length
     """
 
     @classmethod
@@ -530,7 +546,7 @@ class RelativeLength(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the length error of line `prims[0]` relative to line `prims[1]`
         """
@@ -544,6 +560,15 @@ class RelativeLength(StaticConstraint):
 class RelativeLengthArray(DynamicConstraint):
     """
     Constrain the lengths of a set of lines relative to the last
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+
+        The length of the lines are measured relative to the last line
+    params:
+        The relative lengths
     """
 
     @classmethod
@@ -570,13 +595,22 @@ class RelativeLengthArray(DynamicConstraint):
             for child, length in zip(self.children, parameters.lengths)
         )
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
         return np.array([])
 
 
 class XDistanceMidpoints(StaticConstraint):
     """
     Constrain the x-distance between two line midpoints
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+
+        The distance is measured from the first to the second line
+    params:
+        The distance
     """
 
     @classmethod
@@ -588,7 +622,7 @@ class XDistanceMidpoints(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
         """
@@ -604,6 +638,15 @@ class XDistanceMidpoints(StaticConstraint):
 class XDistanceMidpointsArray(DynamicConstraint):
     """
     Constrain the x-distances between a set of line midpoints
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+
+        The distances are measured from the first to the second line in pairs
+    params:
+        The distances
     """
 
     CONSTANTS = namedtuple("Constants", ("distances",))
@@ -626,13 +669,22 @@ class XDistanceMidpointsArray(DynamicConstraint):
             for child, distance in zip(self.children, params.distances)
         )
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
         return np.array(())
 
 
 class YDistanceMidpoints(StaticConstraint):
     """
     Constrain the y-distance between two line midpoints
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+
+        The distance is measured from the first to the second line
+    params:
+        The distance
     """
 
     @classmethod
@@ -644,7 +696,7 @@ class YDistanceMidpoints(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the y-distance error from the midpoint of line `prims[0]` to `prims[1]`
         """
@@ -660,6 +712,15 @@ class YDistanceMidpoints(StaticConstraint):
 class YDistanceMidpointsArray(DynamicConstraint):
     """
     Constrain the y-distances between a set of line midpoints
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+
+        The distances are measured from the first to the second line in pairs
+    params:
+        The distances
     """
 
     @classmethod
@@ -680,13 +741,20 @@ class YDistanceMidpointsArray(DynamicConstraint):
             for child, distance in zip(self.children, params.distances)
         )
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
         return np.array(())
 
 
 class Orthogonal(StaticConstraint):
     """
     Constrain two lines to be orthogonal
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+    params:
+        None
     """
 
     @classmethod
@@ -698,7 +766,7 @@ class Orthogonal(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the orthogonal error between two lines
         """
@@ -711,6 +779,13 @@ class Orthogonal(StaticConstraint):
 class Parallel(StaticConstraint):
     """
     Constrain two lines to be parallel
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+    params:
+        None
     """
 
     @classmethod
@@ -722,7 +797,7 @@ class Parallel(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the parallel error between two lines
         """
@@ -735,6 +810,13 @@ class Parallel(StaticConstraint):
 class Vertical(StaticConstraint):
     """
     Constrain a line to be vertical
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The lines
+    params:
+        None
     """
 
     @classmethod
@@ -746,7 +828,7 @@ class Vertical(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
         """
         Return the vertical error for a line
         """
@@ -758,6 +840,13 @@ class Vertical(StaticConstraint):
 class Horizontal(StaticConstraint):
     """
     Constrain a line to be horizontal
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The lines
+    params:
+        None
     """
 
     @classmethod
@@ -769,7 +858,7 @@ class Horizontal(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
         """
         Return the horizontal error for a line
         """
@@ -781,6 +870,13 @@ class Horizontal(StaticConstraint):
 class Angle(StaticConstraint):
     """
     Constrain the angle between two lines
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+    params:
+        The angle
     """
 
     @classmethod
@@ -792,7 +888,7 @@ class Angle(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the angle error between two lines
         """
@@ -808,6 +904,13 @@ class Angle(StaticConstraint):
 class Collinear(StaticConstraint):
     """
     Constrain two lines to be collinear
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+    params:
+        None
     """
 
     @classmethod
@@ -819,7 +922,7 @@ class Collinear(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the collinearity error between two lines
         """
@@ -836,6 +939,13 @@ class Collinear(StaticConstraint):
 class CollinearArray(DynamicConstraint):
     """
     Constrain a set of lines to be collinear
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, ...]
+        The lines
+    params:
+        None
     """
 
     @classmethod
@@ -853,13 +963,20 @@ class CollinearArray(DynamicConstraint):
     def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
         return np.array([])
 
 
 class CoincidentLines(StaticConstraint):
     """
     Constrain two lines to be coincident
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line, pr.Line]
+        The lines
+    params:
+        A boolean indicating whether to coincide lines in the same or reverse directions
     """
 
     @classmethod
@@ -871,7 +988,7 @@ class CoincidentLines(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
         """
         Return the coincident error between two lines
         """
