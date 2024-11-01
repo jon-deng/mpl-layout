@@ -216,61 +216,28 @@ def update_layout_constraints(
     from mpllayout.containers import Node
 
     # Update x/y axis bbox dimensions
+    constraintkey_to_param = {}
     for ax_key, ax in axs.items():
-        dims = get_axis_bbox_dims(ax.xaxis)
-        root_constraint_param = update_bbox_dimension_constraints(
-           root_constraint, root_constraint_param, f"{ax_key}.XAxis", *dims
-        )
+        constraintkey_xaxis = f"{ax_key}.XAxisHeight"
+        if constraintkey_xaxis in root_constraint_param:
+            constraintkey_to_param[constraintkey_xaxis] = (ax.xaxis,)
 
-        dims = get_axis_bbox_dims(ax.yaxis)
-        root_constraint_param = update_bbox_dimension_constraints(
-            root_constraint, root_constraint_param, f"{ax_key}.YAxis", *dims
-        )
-    return root_constraint_param
+        constraintkey_yaxis = f"{ax_key}.YAxisWidth"
+        if constraintkey_yaxis in root_constraint_param:
+            constraintkey_to_param[constraintkey_yaxis] = (ax.yaxis,)
 
-
-def update_bbox_dimension_constraints(
-    root_constraint: Node,
-    root_constraint_param: Node,
-    bbox_key: str,
-    width: float,
-    height: float,
-) -> Node:
-    dims = (width, height)
-    dim_labels = ("Width", "Height")
-    constraint_labels = [f"{bbox_key}.{dim_label}" for dim_label in dim_labels]
-    for dim_label, dim in zip(constraint_labels, dims):
-        if dim_label in root_constraint_param:
-            constraint = root_constraint[dim_label]
-            root_constraint_param[dim_label] = constraint.root_param((dim,))
-        else:
-            warnings.warn(f"'{bbox_key}' is missing a '{dim_label}' constraint")
+    update_params(root_constraint, root_constraint_param, constraintkey_to_param)
 
     return root_constraint_param
 
+def update_params(
+    root_constraint: geo.ConstraintNode,
+    root_constraint_param: geo.ParamsNode,
+    constraintkey_to_param: tp.Mapping[str, geo.ResParams]
+) -> geo.ParamsNode:
 
-def get_axis_bbox_dims(axis: Axis):
+    for key, param in constraintkey_to_param.items():
+        constraint = root_constraint[key]
+        root_constraint_param[key] = constraint.root_params(param)
 
-    axis_bbox = axis.get_tightbbox()
-    if axis_bbox is None:
-        return (0, 0)
-    else:
-        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
-        fig_width, fig_height = axis.axes.figure.get_size_inches()
-        axes_bbox = axis.axes.get_position()
-        if isinstance(axis, XAxis):
-            width = axes_bbox.width * fig_width
-            if axis.get_ticks_position() == "bottom":
-                height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
-            if axis.get_ticks_position() == "top":
-                height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
-        elif isinstance(axis, YAxis):
-            height = axes_bbox.height * fig_height
-            if axis.get_ticks_position() == "left":
-                width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
-            if axis.get_ticks_position() == "right":
-                width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
-        else:
-            raise TypeError
-
-        return width, height
+    return root_constraint_param
