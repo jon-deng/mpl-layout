@@ -58,7 +58,7 @@ class Layout:
         root_prim: tp.Optional[geo.PrimitiveNode] = None,
         root_constraint: tp.Optional[geo.ConstraintNode] = None,
         root_constraint_graph: tp.Optional[geo.PrimKeysNode] = None,
-        root_constraint_param: tp.Optional[geo.PrimParamsNode] = None,
+        root_constraint_param: tp.Optional[geo.ParamsNode] = None,
         constraint_key_counter: tp.Optional[ItemCounter] = None,
     ):
 
@@ -69,7 +69,7 @@ class Layout:
         if root_constraint_graph is None:
             root_constraint_graph = geo.PrimKeysNode(None, {})
         if root_constraint_param is None:
-            root_constraint_param = geo.PrimParamsNode(None, {})
+            root_constraint_param = geo.ParamsNode(None, {})
         if constraint_key_counter is None:
             constraint_key_counter = ItemCounter()
 

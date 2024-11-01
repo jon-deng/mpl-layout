@@ -49,7 +49,7 @@ class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     pass
 
 
-class PrimParamsNode(Node[ResParams, "PrimParamsNode"]):
+class ParamsNode(Node[ResParams, "ParamsNode"]):
     pass
 
 
@@ -118,7 +118,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
             key: child_constraint.root_params(child_params)
             for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
         }
-        root_params = PrimParamsNode(parameters, children)
+        root_params = ParamsNode(parameters, children)
         return root_params
 
     def root_prim_keys(self, prim_keys: PrimKeys):
@@ -186,7 +186,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
             self,
             root_prim: pr.PrimitiveNode,
             root_prim_keys: PrimKeysNode,
-            root_params: PrimParamsNode,
+            root_params: ParamsNode,
         ):
         flat_constraints = (x for _, x in iter_flat("", self))
         flat_prim_keys = (x.value for _, x in iter_flat("", root_prim_keys))
