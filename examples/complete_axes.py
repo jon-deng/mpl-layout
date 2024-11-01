@@ -5,6 +5,7 @@ Create a one axes figure with x/y axis labels and stuff too
 import numpy as np
 
 import matplotlib as mpl
+from matplotlib import pyplot as plt
 
 from mpllayout import (
     solver,
@@ -12,7 +13,27 @@ from mpllayout import (
     layout as lay,
     matplotlibutils as lplt,
     constraints as con,
+    ui
 )
+
+def plot_layout(root_prim, fig_path: str):
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+    # ax.set_xlim(-1, 10)
+    # ax.set_ylim(-1, 10)
+    # ax.set_xticks(np.arange(-1, 11, 1))
+    # ax.set_yticks(np.arange(-1, 11, 1))
+    ax.set_aspect(1)
+    ax.grid()
+
+    # for axis in (ax.xaxis, ax.yaxis)
+
+    ax.set_xlabel("x [in]")
+    ax.set_ylabel("y [in]")
+    ui.plot_prims(ax, root_prim)
+
+    fig.savefig(fig_path)
 
 if __name__ == "__main__":
     layout = lay.Layout()
@@ -23,13 +44,10 @@ if __name__ == "__main__":
     COLLINEAR = geo.Collinear()
     COINCIDENT = geo.Coincident()
 
-    ## Create an origin point
-    layout.add_prim(geo.Point(), "Origin")
-    layout.add_constraint(geo.Fix(), ("Origin",), (np.array([0, 0]),))
-
     ## Create the Figure quad
     layout.add_prim(geo.Quadrilateral(), "Figure")
     layout.add_constraint(BOX, ("Figure",), ())
+    layout.add_constraint(geo.Fix(), ("Figure/Line0/Point0",), (np.array([0, 0]),))
 
     ## Create the Axes quads
     layout.add_prim(geo.AxesXY(), "Axes1")
@@ -48,12 +66,10 @@ if __name__ == "__main__":
         (fig_height, np.array([0, 1]))
     )
 
-    layout.add_constraint(geo.Coincident(), ("Figure/Line0/Point0", "Origin"), ())
-
     ## Constrain 'Axes1' elements
     # Constrain left/right margins
-    margin_left = 1.1
-    margin_right = 1.1
+    margin_left = 1
+    margin_right = 1.0
     layout.add_constraint(
         geo.DirectedDistance(),
         ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
@@ -67,7 +83,7 @@ if __name__ == "__main__":
 
     # Constrain top/bottom margins
     margin_top = 1.1
-    margin_bottom = 0.5
+    margin_bottom = 1
     layout.add_constraint(
         geo.DirectedDistance(),
         ("Axes1/Frame/Line1/Point0", "Figure/Line1/Point0"),
@@ -95,22 +111,19 @@ if __name__ == "__main__":
     layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"), ())
     layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"), ())
 
-    # Set temporary widths/heights for x/y axis
-    dim_labels = ("Height", "Width")
-    for axis_key, line_label, dim_label in zip(
-        ("X", "Y"), ("Line1", "Line0"), dim_labels
-    ):
-        layout.add_constraint(
-            geo.Length(),
-            (f"Axes1/{axis_key}Axis/{line_label}",),
-            (0.0,),
-            f"Axes1.{axis_key}Axis.{dim_label}",
-        )
+    # Link x/y axis width/height to axis sizes in matplotlib
+    layout.add_constraint(
+        geo.XAxisHeight(), ("Axes1/XAxis",), (None,), 'Axes1.XAxisHeight'
+    )
+    layout.add_constraint(
+        geo.YAxisWidth(), ("Axes1/YAxis",), (None,), 'Axes1.YAxisWidth'
+    )
 
     # Align x/y axis labels with axis bboxes
     layout.add_constraint(COINCIDENT, ("Axes1/XAxis/Line0/Point0", "Axes1/XAxisLabel"), ())
-
     layout.add_constraint(COINCIDENT, ("Axes1/YAxis/Line0/Point0", "Axes1/YAxisLabel"), ())
+    # layout.add_constraint(COINCIDENT, ("Axes1/Frame/Line0/Point0", "Axes1/XAxisLabel"), ())
+    # layout.add_constraint(COINCIDENT, ("Axes1/Frame/Line0/Point0", "Axes1/YAxisLabel"), ())
 
     ## Solve the constraints and form the figure/axes layout
     prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
@@ -120,7 +133,7 @@ if __name__ == "__main__":
     x = np.linspace(0, 1)
     axs["Axes1"].plot(x, x**2)
 
-    axs["Axes1"].xaxis.set_label_text("My x label", ha="left")
+    axs["Axes1"].xaxis.set_label_text("My x label", ha="left", va="bottom")
     axs["Axes1"].yaxis.set_label_text("My y label", ha="left")
 
     ax = axs["Axes1"]
@@ -128,5 +141,11 @@ if __name__ == "__main__":
     lay.update_layout_constraints(layout.root_constraint, layout.root_constraint_param, axs)
     prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
     lplt.update_subplots(prim_tree_n, "Figure", fig, axs)
+    print(info)
+
 
     fig.savefig("out/complete_axes.png")
+
+    plot_layout(prim_tree_n, 'out/complete_axes_layout.png')
+
+    # breakpoint()
