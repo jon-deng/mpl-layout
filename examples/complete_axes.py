@@ -100,16 +100,12 @@ if __name__ == "__main__":
     layout.add_constraint(BOX, ("Axes1/YAxis",), ())
 
     # Make the x/y axes align the with frame
-
-    layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line1", "Axes1/Frame/Line1"), ())
-    layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line3", "Axes1/Frame/Line3"), ())
-
-    layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line0", "Axes1/Frame/Line0"), ())
-    layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line2", "Axes1/Frame/Line2"), ())
-
-    # Pin the x/y axis to the frame sie
-    layout.add_constraint(COLLINEAR, ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"), ())
-    layout.add_constraint(COLLINEAR, ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"), ())
+    layout.add_constraint(
+        geo.CoincidentLines(), ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"), (True,)
+    )
+    layout.add_constraint(
+        geo.CoincidentLines(), ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"), (True,)
+    )
 
     # Link x/y axis width/height to axis sizes in matplotlib
     layout.add_constraint(
@@ -133,10 +129,13 @@ if __name__ == "__main__":
     x = np.linspace(0, 1)
     axs["Axes1"].plot(x, x**2)
 
-    axs["Axes1"].xaxis.set_label_text("My x label", ha="left", va="bottom")
+    axs["Axes1"].xaxis.set_label_text("My x label", ha="left")
     axs["Axes1"].yaxis.set_label_text("My y label", ha="left")
 
     ax = axs["Axes1"]
+
+    fig.savefig("out/complete_axes_1.png")
+    plot_layout(prim_tree_n, 'out/complete_axes_layout_1.png')
 
     lay.update_layout_constraints(layout.root_constraint, layout.root_constraint_param, axs)
     prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
@@ -144,8 +143,8 @@ if __name__ == "__main__":
     print(info)
 
 
-    fig.savefig("out/complete_axes.png")
+    fig.savefig("out/complete_axes_2.png")
 
-    plot_layout(prim_tree_n, 'out/complete_axes_layout.png')
+    plot_layout(prim_tree_n, 'out/complete_axes_layout_2.png')
 
     # breakpoint()
