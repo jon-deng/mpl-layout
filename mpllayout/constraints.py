@@ -1009,7 +1009,9 @@ class CollinearArray(DynamicConstraint):
         return np.array([])
 
 
-## Polygon constraints
+## Quad constraints
+
+# Argument type: Tuple[Quadrilateral]
 
 class Box(StaticConstraint):
     """
@@ -1030,8 +1032,7 @@ class Box(StaticConstraint):
     def assem_res(self, prims, params):
         return np.array(())
 
-
-## Grid constraints
+# Argument type: Tuple[Quadrilateral, ...]
 
 def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     """
@@ -1039,7 +1040,6 @@ def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
     """
     strides = shape[1:] + (1,)
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
-
 
 class RectilinearGrid(DynamicConstraint):
     """
