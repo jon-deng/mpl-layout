@@ -258,6 +258,9 @@ class ConstraintNode(Node[ConstraintValue, Constraint]):
     pass
 
 
+ChildKeys = tp.Tuple[str, ...]
+ChildConstraints = tp.Tuple[Constraint, ...]
+
 class StaticConstraint(Constraint):
     """
     Constraint with predefined number of children
@@ -267,7 +270,9 @@ class StaticConstraint(Constraint):
     """
 
     @classmethod
-    def init_tree(cls):
+    def init_tree(
+        cls
+    ) -> tp.Tuple[ConstraintValue, tp.Tuple[ChildKeys, ChildConstraints]]:
         raise NotImplementedError()
 
     def split_children_params(self, parameters):
@@ -292,7 +297,10 @@ class DynamicConstraint(Constraint):
     """
 
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_tree(
+        cls,
+        shape: tp.Tuple[int, ...]
+    ) -> tp.Tuple[ConstraintValue, tp.Tuple[ChildKeys, ChildConstraints]]:
         raise NotImplementedError()
 
     def split_children_params(self, parameters):
