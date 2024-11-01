@@ -172,7 +172,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
 
     def __call__(
             self,
-            prims: tp.Tuple[Primitive, ...],
+            prims: ResPrims,
             params: tp.Tuple[tp.Any, ...] | tp.Mapping[str, tp.Any]
         ):
         root_prim = pr.PrimitiveNode(
