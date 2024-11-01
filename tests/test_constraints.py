@@ -524,7 +524,7 @@ class TestAxesConstraints(GeometryFixtures):
         height = geo.get_xaxis_height(axes_mpl.xaxis)
 
         xaxis_height = geo.XAxisHeight()
-        res = xaxis_height((axes,), (axes_mpl,))
+        res = xaxis_height((axes['XAxis'],), (axes_mpl.xaxis,))
 
         assert np.all(np.isclose(res + height, 0))
 
@@ -532,6 +532,6 @@ class TestAxesConstraints(GeometryFixtures):
         width = geo.get_yaxis_width(axes_mpl.yaxis)
 
         xaxis_height = geo.YAxisWidth()
-        res = xaxis_height((axes,), (axes_mpl,))
+        res = xaxis_height((axes['YAxis'],), (axes_mpl.yaxis,))
 
         assert np.all(np.isclose(res + width, 0))

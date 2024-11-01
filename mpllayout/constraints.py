@@ -1266,17 +1266,17 @@ class XAxisHeight(StaticConstraint):
     @classmethod
     def init_tree(cls):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.AxesXY,)
-        ARG_PARAMETERS = namedtuple("Parameters", ('axes',))
+        ARG_TYPES = (pr.Quadrilateral,)
+        ARG_PARAMETERS = namedtuple("Parameters", ('axis',))
         CONSTANTS = namedtuple("Constants", ())
 
         CHILD_KEYS = ("Height",)
         CHILD_CONSTRAINTS = (YDistance(),)
-        CHILD_ARGKEYS = (("arg0/XAxis/Line1/Point0", "arg0/XAxis/Line1/Point1"),)
+        CHILD_ARGKEYS = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def split_children_params(self, parameters):
-        xaxis: XAxis = parameters.axes.xaxis
+        xaxis: XAxis = parameters.axis
         return ((get_xaxis_height(xaxis),),)
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
@@ -1297,17 +1297,17 @@ class YAxisWidth(StaticConstraint):
 
     @classmethod
     def init_tree(cls):
-        ARG_TYPES = (pr.AxesXY,)
-        ARG_PARAMETERS = namedtuple("Parameters", ('axes',))
+        ARG_TYPES = (pr.Quadrilateral,)
+        ARG_PARAMETERS = namedtuple("Parameters", ('axis',))
         CONSTANTS = namedtuple("Constants", ())
 
         CHILD_KEYS = ("Width",)
         CHILD_CONSTRAINTS = (XDistance(),)
-        CHILD_ARGKEYS = (("arg0/YAxis/Line0/Point0", "arg0/YAxis/Line0/Point1"),)
+        CHILD_ARGKEYS = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
     def split_children_params(self, parameters):
-        axis: YAxis = parameters.axes.yaxis
+        axis: YAxis = parameters.axis
         return ((get_yaxis_width(axis),),)
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
