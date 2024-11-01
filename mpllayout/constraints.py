@@ -252,6 +252,9 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
 
 
 class ConstraintNode(Node[ConstraintValue, Constraint]):
+    """
+    Container tree for constraints
+    """
     pass
 
 
