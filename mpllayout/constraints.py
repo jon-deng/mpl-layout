@@ -321,10 +321,19 @@ class DynamicConstraint(Constraint):
 
 
 ## Constraints on points
+# NOTE: These are actual constraint classes that can be called so class docstrings
+# document there `assem_res` function.
 
 class Fix(StaticConstraint):
     """
-    Constrain all coordinates of a point
+    Constrain coordinates of a point
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point]
+        The point
+    params:
+        The coordinates
     """
 
     @classmethod
@@ -336,7 +345,7 @@ class Fix(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Point], params):
         """
         Return the location error for a point
         """
@@ -347,6 +356,15 @@ class Fix(StaticConstraint):
 class DirectedDistance(StaticConstraint):
     """
     Constrain the distance between two points along a direction
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point, pr.Point]
+        The two points
+
+        Distance is measured from the first to the second point
+    params:
+        The distance
     """
 
     @classmethod
@@ -358,7 +376,7 @@ class DirectedDistance(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
         """
         Return the distance error between two points along a given direction
 
@@ -372,6 +390,15 @@ class DirectedDistance(StaticConstraint):
 class XDistance(StaticConstraint):
     """
     Constrain the x-distance between two points
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point, pr.Point]
+        The two points
+
+        Distance is measured from the first to the second point
+    params:
+        The distance
     """
 
     @classmethod
@@ -383,7 +410,7 @@ class XDistance(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
         """
         Return the distance error between two points along a given direction
 
@@ -400,6 +427,15 @@ class XDistance(StaticConstraint):
 class YDistance(StaticConstraint):
     """
     Constrain the y-distance between two points
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point, pr.Point]
+        The two points
+
+        Distance is measured from the first to the second point
+    params:
+        The distance
     """
 
     @classmethod
@@ -411,7 +447,7 @@ class YDistance(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
         """
         Return the distance error between two points along a given direction
 
@@ -428,6 +464,13 @@ class YDistance(StaticConstraint):
 class Coincident(StaticConstraint):
     """
     Constrain two points to be coincident
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point, pr.Point]
+        The two points
+    params:
+        Nothing
     """
 
     @classmethod
@@ -439,7 +482,7 @@ class Coincident(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims, params):
+    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
         """
         Return the coincident error between two points
         """
