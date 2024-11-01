@@ -478,3 +478,60 @@ class TestQuadConstraints(GeometryFixtures):
         res = geo.Box()((quad_box,), ())
 
         assert np.all(np.isclose(res, 0))
+
+
+from matplotlib import pyplot as plt
+class TestAxesConstraints(GeometryFixtures):
+
+    @pytest.fixture()
+    def size(self):
+        return (1, 1)
+
+    @pytest.fixture()
+    def axes(self, size: tp.Tuple[float, float]):
+        width, height = size
+        scale = np.array([[width, 0], [0, height]])
+        frame = self.make_quad(np.zeros(2), scale)
+
+        squash_height = np.array([[1, 0], [0, 0]])
+        squash_width = np.array([[0, 0], [0, 1]])
+        xaxis = self.make_quad(np.zeros(2), squash_height@scale)
+        yaxis = self.make_quad(np.zeros(2), squash_width@scale)
+
+        xlabel_anchor = self.make_point([0, 0])
+        ylabel_anchor = self.make_point([0, 0])
+        return geo.AxesXY(children=(frame, xaxis, yaxis, xlabel_anchor, ylabel_anchor))
+
+    @pytest.fixture()
+    def axes_mpl(self, size: tp.Tuple[float, float]):
+        width, height = size
+        # NOTE: Unit dimensions of the figure are important because `fig.add_axes`
+        # units are relative to figure dimensions
+        fig = plt.figure(figsize=(1, 1))
+        ax = fig.add_axes((0, 0, width, height))
+
+        x = np.pi*2*np.linspace(0, 10)
+        y = np.sin(x)
+        ax.plot(x, y)
+        ax.set_xlabel("My favourite xlabel")
+        ax.set_ylabel("My favourite ylabel")
+
+        return ax
+
+    # NOTE: The `..AxisHeight` tests rely on them using `Distance` type constraints to
+    # implement the residual
+    def test_XAxisHeight(self, axes, axes_mpl):
+        height = geo.get_xaxis_height(axes_mpl.xaxis)
+
+        xaxis_height = geo.XAxisHeight()
+        res = xaxis_height((axes,), (axes_mpl,))
+
+        assert np.all(np.isclose(res + height, 0))
+
+    def test_YAxisWidth(self, axes, axes_mpl):
+        width = geo.get_yaxis_width(axes_mpl.yaxis)
+
+        xaxis_height = geo.YAxisWidth()
+        res = xaxis_height((axes,), (axes_mpl,))
+
+        assert np.all(np.isclose(res + width, 0))
