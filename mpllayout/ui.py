@@ -6,6 +6,7 @@ import typing as tp
 from matplotlib.axes import Axes
 
 import matplotlib as mpl
+from matplotlib import pyplot as plt
 import numpy as np
 
 from . import geometry as geo
@@ -90,3 +91,30 @@ def plot_prims(ax: Axes, root_prim: geo.Primitive):
     for label, prim in root_prim.items():
         plot = make_plot(prim)
         plot(ax, prim, label=label)
+
+
+def figure_prims(
+    root_prim: geo.PrimitiveNode,
+    fig_size: tp.Tuple[float, float] = (8, 8),
+    major_tick_interval: float = 1.0,
+    minor_tick_interval: float = 1/8
+):
+    """
+    Return a figure of all primitives in a tree
+    """
+
+    fig, ax = plt.subplots(1, 1, figsize=fig_size)
+
+    for axis in (ax.xaxis, ax.yaxis):
+        axis.set_minor_locator(mpl.ticker.MultipleLocator(minor_tick_interval))
+        axis.set_major_locator(mpl.ticker.MultipleLocator(major_tick_interval))
+
+    ax.set_aspect(1)
+    ax.grid()
+
+    ax.set_xlabel("x [in]")
+    ax.set_ylabel("y [in]")
+
+    plot_prims(ax, root_prim)
+
+    return (fig, ax)
