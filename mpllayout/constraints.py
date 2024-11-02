@@ -1361,7 +1361,7 @@ class PositionXAxis(ParameterizedConstraint):
         CONSTANTS = namedtuple("Constants", ())
 
         CHILD_KEYS = ('CoincidentLines',)
-        CHILD_CONSTRAINTS = (CoincidentLines())
+        CHILD_CONSTRAINTS = (CoincidentLines(),)
         if bottom:
             CHILD_ARGKEYS = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
         elif top:
@@ -1374,7 +1374,7 @@ class PositionXAxis(ParameterizedConstraint):
 
     @classmethod
     def split_children_params(cls, params):
-        return ((),)
+        return ({"reverse": True},)
 
     def __init__(self, bottom: bool=True, top: bool=False):
         return super().__init__(bottom=bottom, top=top)
@@ -1396,7 +1396,7 @@ class PositionYAxis(ParameterizedConstraint):
         CONSTANTS = namedtuple("Constants", ())
 
         CHILD_KEYS = ('CoincidentLines',)
-        CHILD_CONSTRAINTS = (CoincidentLines())
+        CHILD_CONSTRAINTS = (CoincidentLines(),)
         if left:
             CHILD_ARGKEYS = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
         elif right:
@@ -1409,7 +1409,7 @@ class PositionYAxis(ParameterizedConstraint):
 
     @classmethod
     def split_children_params(cls, params):
-        return ((),)
+        return ({"reverse": True},)
 
     def __init__(self, left: bool=True, right: bool=False):
         return super().__init__(left=left, right=right)
