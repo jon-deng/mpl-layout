@@ -16,25 +16,6 @@ from mpllayout import (
     ui
 )
 
-def plot_layout(root_prim, fig_path: str):
-
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-
-    # ax.set_xlim(-1, 10)
-    # ax.set_ylim(-1, 10)
-    # ax.set_xticks(np.arange(-1, 11, 1))
-    # ax.set_yticks(np.arange(-1, 11, 1))
-    ax.set_aspect(1)
-    ax.grid()
-
-    # for axis in (ax.xaxis, ax.yaxis)
-
-    ax.set_xlabel("x [in]")
-    ax.set_ylabel("y [in]")
-    ui.plot_prims(ax, root_prim)
-
-    fig.savefig(fig_path)
-
 if __name__ == "__main__":
     layout = lay.Layout()
 
@@ -135,7 +116,8 @@ if __name__ == "__main__":
     ax = axs["Axes1"]
 
     fig.savefig("out/complete_axes_1.png")
-    plot_layout(prim_tree_n, 'out/complete_axes_layout_1.png')
+    _fig, _ = ui.figure_prims(prim_tree_n)
+    _fig.savefig('out/complete_axes_layout_1.png')
 
     lay.update_layout_constraints(layout.root_constraint, layout.root_constraint_param, axs)
     prim_tree_n, info = solver.solve(layout.root_prim, *layout.flat_constraints())
@@ -144,7 +126,5 @@ if __name__ == "__main__":
 
 
     fig.savefig("out/complete_axes_2.png")
-
-    plot_layout(prim_tree_n, 'out/complete_axes_layout_2.png')
-
-    # breakpoint()
+    _fig, _ = ui.figure_prims(prim_tree_n)
+    _fig.savefig('out/complete_axes_layout_2.png')

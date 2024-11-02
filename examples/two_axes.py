@@ -22,21 +22,7 @@ def plot_layout(layout: lay.Layout, fig_path: str):
         max_iter=40,
         rel_tol=1e-9,
     )
-    root_prim_labels = [label for label in prim_tree_n.keys() if "." not in label]
-    root_prims = [prim_tree_n[label] for label in root_prim_labels]
-
-    fig, ax = plt.subplots(1, 1)
-
-    ax.set_xlim(-1, 10)
-    ax.set_ylim(-1, 10)
-    ax.set_xticks(np.arange(-1, 11, 1))
-    ax.set_yticks(np.arange(-1, 11, 1))
-    ax.set_aspect(1)
-
-    ax.set_xlabel("x [in]")
-    ax.set_ylabel("y [in]")
-    ui.plot_prims(ax, prim_tree_n)
-
+    fig, ax = ui.figure_prims(prim_tree_n)
     fig.savefig(fig_path)
 
 
