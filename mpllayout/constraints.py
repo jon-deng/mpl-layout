@@ -612,6 +612,102 @@ class Horizontal(StaticConstraint):
         dir0 = line_vector(line0)
         return jnp.dot(dir0, np.array([0, 1]))
 
+
+class DirectedLength(StaticConstraint):
+    """
+    Constrain the length of a line projected along a vector
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The line
+    params:
+        The length and direction
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("length", "direction"))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+        """
+        Return the length error of a line
+        """
+        # This sets the length of a line
+        (line,) = prims
+        vec = line_vector(line)
+        return jnp.dot(vec, params.direction) - params.length
+
+
+class XLength(StaticConstraint):
+    """
+    Constrain the length of a line projected along the x direction
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The line
+    params:
+        The length
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
+
+        CHILD_KEYS = ("DirectedLength",)
+        CHILD_CONSTRAINTS = (DirectedLength(),)
+        CHILD_ARGKEYS = (("arg0",),)
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, params):
+        return ({"length": params.length, "direction": np.array([1, 0])},)
+
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+        """
+        Return the length error of a line
+        """
+        return np.array([])
+
+
+class YLength(StaticConstraint):
+    """
+    Constrain the length of a line projected along the x direction
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Line]
+        The line
+    params:
+        The length
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Line,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
+
+        CHILD_KEYS = ("DirectedLength",)
+        CHILD_CONSTRAINTS = (DirectedLength(),)
+        CHILD_ARGKEYS = (("arg0",),)
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, params):
+        return ({"length": params.length, "direction": np.array([0, 1])},)
+
+    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+        """
+        Return the length error of a line
+        """
+        return np.array([])
+
+
 # Argument type: Tuple[Line, Line]
 
 class RelativeLength(StaticConstraint):

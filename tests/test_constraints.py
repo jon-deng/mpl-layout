@@ -203,18 +203,34 @@ class TestLineConstraints(GeometryFixtures):
 
     ## Constraints on line segments
     @pytest.fixture()
-    def length(self):
+    def line_length(self):
         return np.random.rand()
 
     @pytest.fixture()
-    def line(self, length):
-        origin = np.random.rand(2)
+    def line_dir(self):
         unit_vec = np.random.rand(2)
         unit_vec = unit_vec / np.linalg.norm(unit_vec)
-        return self.make_line(origin, unit_vec * length)
+        return unit_vec
 
-    def test_Length(self, line, length):
-        res = geo.Length()((line,), (length,))
+    @pytest.fixture()
+    def line(self, line_length, line_dir):
+        origin = np.random.rand(2)
+        return self.make_line(origin, line_dir * line_length)
+
+    def test_Length(self, line, line_length):
+        res = geo.Length()((line,), (line_length,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_XLength(self, line, line_length, line_dir):
+        proj_dir = np.array([1, 0])
+        proj_length = line_length * np.dot(line_dir, proj_dir)
+        res = geo.XLength()((line,), (proj_length,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_YLength(self, line, line_length, line_dir):
+        proj_dir = np.array([0, 1])
+        proj_length = line_length * np.dot(line_dir, proj_dir)
+        res = geo.XLength()((line,), (proj_length,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
