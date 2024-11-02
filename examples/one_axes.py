@@ -38,20 +38,20 @@ if __name__ == "__main__":
     margin_left = 1.1
     margin_right = 1.1
     layout.add_constraint(
-        geo.MidpointXDistance(), ("Figure/Line3", "Axes1/Frame/Line3", ), (margin_left,)
+        geo.InnerMargin(side='left'), ("Axes1/Frame", "Figure"), (margin_left,)
     )
     layout.add_constraint(
-        geo.MidpointXDistance(), ("Axes1/Frame/Line1", "Figure/Line1"), (margin_right,)
+        geo.InnerMargin(side='right'), ("Axes1/Frame", "Figure"), (margin_right,)
     )
 
     # Constrain top/bottom margins
     margin_top = 1.1
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.MidpointYDistance(), ("Figure/Line0", "Axes1/Frame/Line0"), (margin_bottom,)
+        geo.InnerMargin(side='bottom'), ("Axes1/Frame", "Figure"), (margin_bottom,)
     )
     layout.add_constraint(
-        geo.MidpointYDistance(), ("Axes1/Frame/Line2", "Figure/Line2"), (margin_top,)
+        geo.InnerMargin(side='top'), ("Axes1/Frame", "Figure"), (margin_top,)
     )
 
     ## Solve the constraints and form the figure/axes layout
