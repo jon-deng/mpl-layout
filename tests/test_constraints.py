@@ -499,34 +499,47 @@ class TestQuadConstraints(GeometryFixtures):
     def margin(self):
         return np.random.rand()
 
-    def test_OuterXMargin(self):
-        sizea = np.random.rand(2)
-        origin_a = np.random.rand(2)
-        a_topright = origin_a + sizea
+    @pytest.fixture()
+    def boxa(self):
+        size = np.random.rand(2)
+        origin = np.random.rand(2)
 
-        origin_b = a_topright + np.random.rand(2)
-        sizeb = np.random.rand(2)
-        b_bottomleft = origin_b
+        return self.make_quad(origin, np.diag(size))
 
-        boxa = self.make_quad(origin_a, np.diag(sizea))
-        boxb = self.make_quad(origin_b, np.diag(sizeb))
+    @pytest.fixture()
+    def boxb(self):
+        size = np.random.rand(2)
+        origin = np.random.rand(2)
+        return self.make_quad(origin, np.diag(size))
+
+    def test_OuterXMargin(self, boxa, boxb):
+        a_topright = boxa['Line1/Point1'].value
+        b_bottomleft = boxb['Line0/Point0'].value
+
         margin = (b_bottomleft-a_topright)[0]
         res = geo.OuterXMargin()((boxa, boxb), (margin,))
         assert np.all(np.isclose(res, 0))
 
-    def test_OuterYMargin(self):
-        sizea = np.random.rand(2)
-        origin_a = np.random.rand(2)
-        a_topright = origin_a + sizea
+    @pytest.fixture(params=('bottom', 'top', 'left', 'right'))
+    def side(self, request):
+        return request.param
 
-        origin_b = a_topright + np.random.rand(2)
-        sizeb = np.random.rand(2)
-        b_bottomleft = origin_b
+    def test_InnerMargin(self, boxa, boxb, side):
+        a_topright = boxa['Line1/Point1'].value
+        b_topright = boxb['Line1/Point1'].value
+        a_botleft = boxa['Line0/Point0'].value
+        b_botleft = boxb['Line0/Point0'].value
 
-        boxa = self.make_quad(origin_a, np.diag(sizea))
-        boxb = self.make_quad(origin_b, np.diag(sizeb))
-        margin = (b_bottomleft-a_topright)[1]
-        res = geo.OuterYMargin()((boxa, boxb), (margin,))
+        if side == 'left':
+            margin = (a_botleft - b_botleft)[0]
+        elif side == 'right':
+            margin = (b_topright - a_topright)[0]
+        elif side == 'bottom':
+            margin = (a_botleft - b_botleft)[1]
+        elif side == 'top':
+            margin = (b_topright-a_topright)[1]
+
+        res = geo.InnerMargin(side=side)((boxa, boxb), (margin,))
         assert np.all(np.isclose(res, 0))
 
 from matplotlib import pyplot as plt
