@@ -382,7 +382,7 @@ class TestLineConstraints(GeometryFixtures):
                 (linea, lineb) for linea, lineb in zip(lineas, linebs)
             )
         )
-        res = geo.XDistanceMidpointsArray(N)(lines, (distances,))
+        res = geo.MidpointXDistanceArray(N)(lines, (distances,))
         assert np.all(np.isclose(res, 0))
 
     def test_YDistanceMidpoints(self, line, distance, unit_direction):

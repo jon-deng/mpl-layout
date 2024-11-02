@@ -1019,7 +1019,7 @@ class RelativeLengthArray(DynamicConstraint):
         return np.array([])
 
 
-class XDistanceMidpointsArray(DynamicConstraint):
+class MidpointXDistanceArray(DynamicConstraint):
     """
     Constrain the x-distances between a set of line midpoints
 
@@ -1057,7 +1057,7 @@ class XDistanceMidpointsArray(DynamicConstraint):
         return np.array(())
 
 
-class YDistanceMidpointsArray(DynamicConstraint):
+class MidpointYDistanceArray(DynamicConstraint):
     """
     Constrain the y-distances between a set of line midpoints
 
@@ -1262,8 +1262,8 @@ class Grid(DynamicConstraint):
             RectilinearGrid(shape),
             RelativeLengthArray(num_col-1),
             RelativeLengthArray(num_row-1),
-            XDistanceMidpointsArray(num_col-1),
-            YDistanceMidpointsArray(num_row-1),
+            MidpointXDistanceArray(num_col-1),
+            MidpointYDistanceArray(num_row-1),
         )
 
         def idx(i, j):
