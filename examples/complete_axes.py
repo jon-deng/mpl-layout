@@ -81,12 +81,8 @@ if __name__ == "__main__":
     layout.add_constraint(BOX, ("Axes1/YAxis",), ())
 
     # Make the x/y axes align the with frame
-    layout.add_constraint(
-        geo.CoincidentLines(), ("Axes1/XAxis/Line2", "Axes1/Frame/Line0"), (True,)
-    )
-    layout.add_constraint(
-        geo.CoincidentLines(), ("Axes1/YAxis/Line1", "Axes1/Frame/Line3"), (True,)
-    )
+    layout.add_constraint(geo.PositionXAxis(bottom=True), ("Axes1", ), ())
+    layout.add_constraint(geo.PositionYAxis(left=True), ("Axes1", ), ())
 
     # Link x/y axis width/height to axis sizes in matplotlib
     layout.add_constraint(
