@@ -1217,40 +1217,6 @@ def line_vector(line: pr.Line):
 
 from matplotlib.axis import XAxis, YAxis
 
-def get_xaxis_height(axis: XAxis):
-    axis_bbox = axis.get_tightbbox()
-
-    if axis_bbox is None:
-        height = 0
-    else:
-        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
-        _, fig_height = axis.axes.figure.get_size_inches()
-        axes_bbox = axis.axes.get_position()
-
-        if axis.get_ticks_position() == "bottom":
-            height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
-        if axis.get_ticks_position() == "top":
-            height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
-
-    return height
-
-def get_yaxis_width(axis: YAxis):
-    axis_bbox = axis.get_tightbbox()
-
-    if axis_bbox is None:
-        width = 0
-    else:
-        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
-        fig_width, _ = axis.axes.figure.get_size_inches()
-        axes_bbox = axis.axes.get_position()
-
-        if axis.get_ticks_position() == "left":
-            width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
-        if axis.get_ticks_position() == "right":
-            width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
-
-    return width
-
 class XAxisHeight(StaticConstraint):
     """
     Constrain the x-axis height for an axes
@@ -1262,6 +1228,24 @@ class XAxisHeight(StaticConstraint):
     params:
         None
     """
+
+    @staticmethod
+    def get_xaxis_height(axis: XAxis):
+        axis_bbox = axis.get_tightbbox()
+
+        if axis_bbox is None:
+            height = 0
+        else:
+            axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
+            _, fig_height = axis.axes.figure.get_size_inches()
+            axes_bbox = axis.axes.get_position()
+
+            if axis.get_ticks_position() == "bottom":
+                height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
+            if axis.get_ticks_position() == "top":
+                height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
+
+        return height
 
     @classmethod
     def init_tree(cls):
@@ -1280,7 +1264,7 @@ class XAxisHeight(StaticConstraint):
         if xaxis is None:
             return ((0,),)
         else:
-            return ((get_xaxis_height(xaxis),),)
+            return ((self.get_xaxis_height(xaxis),),)
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
         return np.array([])
@@ -1298,6 +1282,24 @@ class YAxisWidth(StaticConstraint):
         None
     """
 
+    @staticmethod
+    def get_yaxis_width(axis: YAxis):
+        axis_bbox = axis.get_tightbbox()
+
+        if axis_bbox is None:
+            width = 0
+        else:
+            axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
+            fig_width, _ = axis.axes.figure.get_size_inches()
+            axes_bbox = axis.axes.get_position()
+
+            if axis.get_ticks_position() == "left":
+                width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
+            if axis.get_ticks_position() == "right":
+                width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
+
+        return width
+
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Quadrilateral,)
@@ -1314,7 +1316,7 @@ class YAxisWidth(StaticConstraint):
         if yaxis is None:
             return ((0,),)
         else:
-            return ((get_yaxis_width(yaxis),),)
+            return ((self.get_yaxis_width(yaxis),),)
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
         return np.array([])

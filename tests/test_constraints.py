@@ -521,7 +521,7 @@ class TestAxesConstraints(GeometryFixtures):
     # NOTE: The `..AxisHeight` tests rely on them using `Distance` type constraints to
     # implement the residual
     def test_XAxisHeight(self, axes, axes_mpl):
-        height = geo.get_xaxis_height(axes_mpl.xaxis)
+        height = geo.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
 
         xaxis_height = geo.XAxisHeight()
         res = xaxis_height((axes['XAxis'],), (axes_mpl.xaxis,))
@@ -529,7 +529,7 @@ class TestAxesConstraints(GeometryFixtures):
         assert np.all(np.isclose(res + height, 0))
 
     def test_YAxisWidth(self, axes, axes_mpl):
-        width = geo.get_yaxis_width(axes_mpl.yaxis)
+        width = geo.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
 
         xaxis_height = geo.YAxisWidth()
         res = xaxis_height((axes['YAxis'],), (axes_mpl.yaxis,))
