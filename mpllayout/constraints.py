@@ -292,7 +292,36 @@ class StaticConstraint(Constraint):
         super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
 
 
-class DynamicConstraint(Constraint):
+class ParameterizedConstraint(Constraint):
+    """
+    Constraint parameterized by generic parameters
+
+    To specify a `ParameterizedConstraint` you have to define `init_tree` to
+    return parameters for `Constraint.__init__`.
+    """
+
+    @classmethod
+    def init_tree(
+        cls,
+        **kwargs
+    ) -> tp.Tuple[ConstraintValue, tp.Tuple[ChildKeys, ChildConstraints]]:
+        raise NotImplementedError()
+
+    def split_children_params(self, parameters):
+        raise NotImplementedError()
+
+    def __init__(self, **kwargs):
+
+        constants = namedtuple("Constants", tuple(kwargs.keys()))(**kwargs)
+
+        (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree(**kwargs)
+
+        children = {key: constraint for key, constraint in zip(CHILD_KEYS, CHILD_CONSTRAINTS)}
+
+        super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
+
+
+class DynamicConstraint(ParameterizedConstraint):
     """
     Constraint with dynamic number of arguments and/or children depending on a shape
 
@@ -310,15 +339,10 @@ class DynamicConstraint(Constraint):
     def split_children_params(self, parameters):
         raise NotImplementedError()
 
-    def __init__(self, shape: tp.Tuple[int, ...]):
-
-        constants = namedtuple("Constants", ("shape",))(shape)
-
-        (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree(shape)
-
-        children = {key: constraint for key, constraint in zip(CHILD_KEYS, CHILD_CONSTRAINTS)}
-
-        super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
+    def __init__(self, shape: tp.Tuple[int, ...]=(0,)):
+        if isinstance(shape, int):
+            shape = (shape,)
+        super().__init__(shape=shape)
 
 
 ## Point constraints
