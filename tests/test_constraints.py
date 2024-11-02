@@ -348,7 +348,7 @@ class TestLineConstraints(GeometryFixtures):
         displacement = distance/unit_direction[0] * unit_direction
         lineb = self.make_relline_about_mid(line, displacement, self.make_rotation(theta))
 
-        res = geo.XDistanceMidpoints()((line, lineb), (distance,))
+        res = geo.MidpointXDistance()((line, lineb), (distance,))
         assert np.all(np.isclose(res, 0))
 
     def test_XDistanceMidpointsArray(self, line, unit_direction):
@@ -391,7 +391,7 @@ class TestLineConstraints(GeometryFixtures):
         displacement = distance/unit_direction[1] * unit_direction
         lineb = self.make_relline_about_mid(line, displacement, self.make_rotation(theta))
 
-        res = geo.YDistanceMidpoints()((line, lineb), (distance,))
+        res = geo.MidpointYDistance()((line, lineb), (distance,))
         assert np.all(np.isclose(res, 0))
 
 

@@ -744,7 +744,7 @@ class RelativeLength(StaticConstraint):
         return jnp.sum(vec_a**2) - params.length**2 * jnp.sum(vec_b**2)
 
 
-class XDistanceMidpoints(StaticConstraint):
+class MidpointXDistance(StaticConstraint):
     """
     Constrain the x-distance between two line midpoints
 
@@ -780,7 +780,7 @@ class XDistanceMidpoints(StaticConstraint):
         return distance - params.distance
 
 
-class YDistanceMidpoints(StaticConstraint):
+class MidpointYDistance(StaticConstraint):
     """
     Constrain the y-distance between two line midpoints
 
@@ -1049,7 +1049,7 @@ class XDistanceMidpointsArray(DynamicConstraint):
         ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
         CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
-        CHILD_CONSTRAINTS = num_child * (XDistanceMidpoints(),)
+        CHILD_CONSTRAINTS = num_child * (MidpointXDistance(),)
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
@@ -1085,7 +1085,7 @@ class YDistanceMidpointsArray(DynamicConstraint):
         ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
         CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
-        CHILD_CONSTRAINTS = num_child * (YDistanceMidpoints(),)
+        CHILD_CONSTRAINTS = num_child * (MidpointYDistance(),)
 
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 

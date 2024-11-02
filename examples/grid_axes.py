@@ -62,21 +62,21 @@ if __name__ == "__main__":
     margin_top = 0.5
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.YDistanceMidpoints(), ("Axes0/Frame/Line2", "Figure/Line2"), (margin_top,)
+        geo.MidpointYDistance(), ("Axes0/Frame/Line2", "Figure/Line2"), (margin_top,)
     )
     layout.add_constraint(
-        geo.YDistanceMidpoints(), ("Figure/Line0", f"Axes{num_axes-1}/Frame/Line0"), (margin_bottom, )
+        geo.MidpointYDistance(), ("Figure/Line0", f"Axes{num_axes-1}/Frame/Line0"), (margin_bottom, )
     )
 
     # Constrain left/right margins
     margin_left = 0.5
     margin_right = 0.5
     layout.add_constraint(
-        geo.XDistanceMidpoints(),
+        geo.MidpointXDistance(),
         ("Figure/Line3", "Axes0/Frame/Line3", ), (margin_left,)
     )
     layout.add_constraint(
-        geo.XDistanceMidpoints(),
+        geo.MidpointXDistance(),
         (f"Axes{num_col-1}/Frame/Line1", "Figure/Line1"), (margin_right,)
     )
 
