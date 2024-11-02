@@ -485,7 +485,7 @@ class TestAxesConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def size(self):
-        return (1, 1)
+        return np.random.rand(2)
 
     @pytest.fixture(
         params=[
@@ -507,24 +507,27 @@ class TestAxesConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def axes(self, size: tp.Tuple[float, float], xaxis_position, yaxis_position):
-        width, height = size
-        scale = np.array([[width, 0], [0, height]])
-        frame = self.make_quad(np.zeros(2), scale)
+        axes_width, axes_height = size
+        scale = np.diag([axes_width, axes_height])
+        frame = self.make_quad(np.array([0, 0]), scale)
 
-        squash_height = np.array([[1, 0], [0, 0]])
         squash_width = np.array([[0, 0], [0, 1]])
 
+        xaxis_height = np.random.rand()
+        scale = np.diag([axes_width, xaxis_height])
         if xaxis_position['bottom']:
-            xaxis = self.make_quad(np.array([0, 0]), squash_height@scale)
+            xaxis = self.make_quad(np.array([0, -xaxis_height]), scale)
         elif xaxis_position['top']:
-            xaxis = self.make_quad(np.array([0, 1]), squash_height@scale)
+            xaxis = self.make_quad(np.array([0, axes_height]), scale)
         else:
             raise ValueError()
 
+        yaxis_width = np.random.rand()
+        scale = np.diag([yaxis_width, axes_height])
         if yaxis_position['left']:
-            yaxis = self.make_quad(np.array([0, 0]), squash_height@scale)
+            yaxis = self.make_quad(np.array([-yaxis_width, 0]), scale)
         elif yaxis_position['right']:
-            yaxis = self.make_quad(np.array([1, 0]), squash_height@scale)
+            yaxis = self.make_quad(np.array([axes_width, 0]), scale)
         else:
             raise ValueError()
 
@@ -568,7 +571,6 @@ class TestAxesConstraints(GeometryFixtures):
 
     def test_PositionXAxis(self, axes, xaxis_position):
         res = geo.PositionXAxis(**xaxis_position)((axes,), ())
-
         assert np.all(np.isclose(res, 0))
 
     def test_PositionYAxis(self, axes, yaxis_position):
