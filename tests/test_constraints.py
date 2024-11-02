@@ -495,6 +495,39 @@ class TestQuadConstraints(GeometryFixtures):
 
         assert np.all(np.isclose(res, 0))
 
+    @pytest.fixture()
+    def margin(self):
+        return np.random.rand()
+
+    def test_OuterXMargin(self):
+        sizea = np.random.rand(2)
+        origin_a = np.random.rand(2)
+        a_topright = origin_a + sizea
+
+        origin_b = a_topright + np.random.rand(2)
+        sizeb = np.random.rand(2)
+        b_bottomleft = origin_b
+
+        boxa = self.make_quad(origin_a, np.diag(sizea))
+        boxb = self.make_quad(origin_b, np.diag(sizeb))
+        margin = (b_bottomleft-a_topright)[0]
+        res = geo.OuterXMargin()((boxa, boxb), (margin,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_OuterYMargin(self):
+        sizea = np.random.rand(2)
+        origin_a = np.random.rand(2)
+        a_topright = origin_a + sizea
+
+        origin_b = a_topright + np.random.rand(2)
+        sizeb = np.random.rand(2)
+        b_bottomleft = origin_b
+
+        boxa = self.make_quad(origin_a, np.diag(sizea))
+        boxb = self.make_quad(origin_b, np.diag(sizeb))
+        margin = (b_bottomleft-a_topright)[1]
+        res = geo.OuterYMargin()((boxa, boxb), (margin,))
+        assert np.all(np.isclose(res, 0))
 
 from matplotlib import pyplot as plt
 class TestAxesConstraints(GeometryFixtures):

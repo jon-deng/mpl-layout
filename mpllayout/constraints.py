@@ -1150,6 +1150,64 @@ class Box(StaticConstraint):
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral]):
         return np.array(())
 
+# Argument type: Tuple[Quadrilateral, Quadrilateral]
+
+class OuterXMargin(StaticConstraint):
+    """
+    Constrain the xmargin between two quadrilaterals
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quad
+    margin: float
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Quadrilateral,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
+        CONSTANTS = namedtuple("Constants", ())
+
+        CHILD_KEYS = ("MidpointXDistance",)
+        CHILD_CONSTRAINTS = (MidpointXDistance(),)
+        CHILD_ARGKEYS = (("arg0/Line1", "arg1/Line3"),)
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, params):
+        return ({"distance": params.margin},)
+
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
+        return np.array(())
+
+class OuterYMargin(StaticConstraint):
+    """
+    Constrain the ymargin between two quadrilaterals
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quad
+    margin: float
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Quadrilateral,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
+        CONSTANTS = namedtuple("Constants", ())
+
+        CHILD_KEYS = ("MidpointYDistance",)
+        CHILD_CONSTRAINTS = (MidpointYDistance(),)
+        CHILD_ARGKEYS = (("arg0/Line2", "arg1/Line0"),)
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def split_children_params(self, params):
+        return ({"distance": params.margin},)
+
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
+        return np.array(())
+
 # Argument type: Tuple[Quadrilateral, ...]
 
 def idx_1d(multi_idx: tp.Tuple[int, ...], shape: tp.Tuple[int, ...]):
