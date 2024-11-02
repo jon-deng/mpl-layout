@@ -512,17 +512,27 @@ class TestQuadConstraints(GeometryFixtures):
         origin = np.random.rand(2)
         return self.make_quad(origin, np.diag(size))
 
-    def test_OuterXMargin(self, boxa, boxb):
-        a_topright = boxa['Line1/Point1'].value
-        b_bottomleft = boxb['Line0/Point0'].value
-
-        margin = (b_bottomleft-a_topright)[0]
-        res = geo.OuterXMargin()((boxa, boxb), (margin,))
-        assert np.all(np.isclose(res, 0))
-
     @pytest.fixture(params=('bottom', 'top', 'left', 'right'))
     def side(self, request):
         return request.param
+
+    def test_OuterMargin(self, boxa, boxb, side):
+        a_topright = boxa['Line1/Point1'].value
+        b_topright = boxb['Line1/Point1'].value
+        a_botleft = boxa['Line0/Point0'].value
+        b_botleft = boxb['Line0/Point0'].value
+
+        if side == 'left':
+            margin = (a_botleft - b_topright)[0]
+        elif side == 'right':
+            margin = (b_botleft - a_topright)[0]
+        elif side == 'bottom':
+            margin = (a_botleft - b_topright)[1]
+        elif side == 'top':
+            margin = (b_botleft - a_topright)[1]
+
+        res = geo.OuterMargin(side=side)((boxa, boxb), (margin,))
+        assert np.all(np.isclose(res, 0))
 
     def test_InnerMargin(self, boxa, boxb, side):
         a_topright = boxa['Line1/Point1'].value

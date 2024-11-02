@@ -1152,9 +1152,9 @@ class Box(StaticConstraint):
 
 # Argument type: Tuple[Quadrilateral, Quadrilateral]
 
-class OuterXMargin(StaticConstraint):
+class OuterMargin(ParameterizedConstraint):
     """
-    Constrain the xmargin between two quadrilaterals
+    Constrain the outer margin between two quadrilaterals
 
     Parameters
     ----------
@@ -1164,15 +1164,33 @@ class OuterXMargin(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
+    def init_tree(cls, side: str="left"):
         ARG_TYPES = (pr.Quadrilateral,)
         ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
         CONSTANTS = namedtuple("Constants", ())
 
-        CHILD_KEYS = ("MidpointXDistance",)
-        CHILD_CONSTRAINTS = (MidpointXDistance(),)
-        CHILD_ARGKEYS = (("arg0/Line1", "arg1/Line3"),)
+        if side == "left":
+            CHILD_KEYS = ("MidpointXDistance",)
+            CHILD_CONSTRAINTS = (MidpointXDistance(),)
+            CHILD_ARGKEYS = (("arg1/Line1", "arg0/Line3"),)
+        elif side == "right":
+            CHILD_KEYS = ("MidpointXDistance",)
+            CHILD_CONSTRAINTS = (MidpointXDistance(),)
+            CHILD_ARGKEYS = (("arg0/Line1", "arg1/Line3"),)
+        elif side == "bottom":
+            CHILD_KEYS = ("MidpointYDistance",)
+            CHILD_CONSTRAINTS = (MidpointYDistance(),)
+            CHILD_ARGKEYS = (("arg1/Line2", "arg0/Line0"),)
+        elif side == "top":
+            CHILD_KEYS = ("MidpointYDistance",)
+            CHILD_CONSTRAINTS = (MidpointYDistance(),)
+            CHILD_ARGKEYS = (("arg0/Line2", "arg1/Line0"),)
+        else:
+            raise ValueError()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
 
     def split_children_params(self, params):
         return ({"distance": params.margin},)
@@ -1180,33 +1198,6 @@ class OuterXMargin(StaticConstraint):
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
         return np.array(())
 
-class OuterYMargin(StaticConstraint):
-    """
-    Constrain the ymargin between two quadrilaterals
-
-    Parameters
-    ----------
-    prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
-    margin: float
-    """
-
-    @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ("MidpointYDistance",)
-        CHILD_CONSTRAINTS = (MidpointYDistance(),)
-        CHILD_ARGKEYS = (("arg0/Line2", "arg1/Line0"),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def split_children_params(self, params):
-        return ({"distance": params.margin},)
-
-    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
-        return np.array(())
 
 class InnerMargin(ParameterizedConstraint):
     """
@@ -1220,7 +1211,7 @@ class InnerMargin(ParameterizedConstraint):
     """
 
     @classmethod
-    def init_tree(cls, side="left"):
+    def init_tree(cls, side: str="left"):
         ARG_TYPES = (pr.Quadrilateral,)
         ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
         CONSTANTS = namedtuple("Constants", ())
@@ -1241,6 +1232,9 @@ class InnerMargin(ParameterizedConstraint):
         else:
             raise ValueError()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
 
     def split_children_params(self, params):
         return ({"distance": params.margin},)
