@@ -71,9 +71,9 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
 
     A geometric constraint is a condition on parameters of geometric primitives.
     The condition is implemented through a residual function
-        `Constraint.assem_res(prims, param)`
+        `Constraint.assem_res(prims, **kwargs)`
     where `prims` are geometric primitives and `params` are parameters for the residual.
-    For constraint is satisified when `Constraint.assem_res(prims, param) == 0` for a
+    For constraint is satisified when `Constraint.assem_res(prims, **kwargs) == 0` for a
     given `prims` and `params`.
 
     For more details on how to implement `Constaint.assem_res`, see the docstring below.
@@ -106,11 +106,11 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         parent primitives to form child constraint primitive arguments.
 
         Consider a parent constraint with residual
-            ```parent.assem_res(prims, param)```
+            ```parent.assem_res(prims, **kwargs)```
         and the nth child constraint with primitive key tuple
             ```children_primkeys[n] = ('arg0', 'arg3/Line2')```.
         This indicates the nth child constraint should be evaluated with
-            ```parent.children[n].assem_res((prims[0], prims[3]['Line0']))```
+            ```parent.children[n].assem_res((prims[0], prims[3]['Line0']), **child_kwargs)```
     children:
         A dictionary of child constraints
     """
@@ -225,11 +225,11 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
     def assem_res_atleast_1d(
             self, prims: ResPrims, params: ResParams
         ) -> NDArray:
-        return jnp.atleast_1d(self.assem_res(prims, params))
+        return jnp.atleast_1d(self.assem_res(prims, **params._asdict()))
 
     # TODO: Replace params with actual keywords arguments? would be more readable
     def assem_res(
-            self, prims: ResPrims, params: ResParams
+            self, prims: ResPrims, **kwargs
         ) -> NDArray:
         """
         Return a residual vector representing the constraint satisfaction
@@ -359,7 +359,7 @@ class Fix(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Point]
         The point
-    params:
+    location: NDArray
         The coordinates
     """
 
@@ -372,12 +372,12 @@ class Fix(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Point], params):
+    def assem_res(self, prims: tp.Tuple[pr.Point], location: NDArray):
         """
         Return the location error for a point
         """
         (point,) = prims
-        return point.value - params.location
+        return point.value - location
 
 # Argument type: Tuple[Point, Point]
 
@@ -391,8 +391,10 @@ class DirectedDistance(StaticConstraint):
         The two points
 
         Distance is measured from the first to the second point
-    params:
+    distance: float
         The distance
+    direction: NDArray
+        The direction
     """
 
     @classmethod
@@ -404,15 +406,20 @@ class DirectedDistance(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
+    def assem_res(
+        self,
+        prims: tp.Tuple[pr.Point, pr.Point],
+        distance: float=0.0,
+        direction: NDArray=np.zeros(2)
+    ):
         """
         Return the distance error between two points along a given direction
 
         The distance is measured from `prims[0]` to `prims[1]` along the direction.
         """
         point0, point1 = prims
-        distance = jnp.dot(point1.value - point0.value, params.direction)
-        return distance - params.distance
+        proj_distance = jnp.dot(point1.value - point0.value, direction)
+        return proj_distance - distance
 
 
 class XDistance(StaticConstraint):
@@ -425,7 +432,7 @@ class XDistance(StaticConstraint):
         The two points
 
         Distance is measured from the first to the second point
-    params:
+    distance: float
         The distance
     """
 
@@ -434,22 +441,18 @@ class XDistance(StaticConstraint):
         ARG_TYPES = (pr.Point, pr.Point)
         ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
 
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        CHILD_KEYS = ("DirectedDistance",)
+        CHILD_CONSTRAINTS = (DirectedDistance(),)
+        CHILD_ARGKEYS = (("arg0", "arg1"),)
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
-        """
-        Return the distance error between two points along a given direction
+    def split_children_params(self, params):
+        return ({"distance": params.distance, "direction": np.array([1, 0])},)
 
-        The distance is measured from `prims[0]` to `prims[1]` along the direction.
-        """
-        directed_distance = DirectedDistance()
-
-        distance, direction = params[0], np.array([1, 0])
-        params = directed_distance.RES_PARAMS_TYPE(distance, direction)
-
-        return directed_distance.assem_res(prims, params)
+    def assem_res(
+        self, prims: tp.Tuple[pr.Point, pr.Point], distance: float=0.0
+    ):
+        return np.array([])
 
 
 class YDistance(StaticConstraint):
@@ -462,7 +465,7 @@ class YDistance(StaticConstraint):
         The two points
 
         Distance is measured from the first to the second point
-    params:
+    distance: float
         The distance
     """
 
@@ -471,22 +474,18 @@ class YDistance(StaticConstraint):
         ARG_TYPES = (pr.Point, pr.Point)
         ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
 
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        CHILD_KEYS = ("DirectedDistance",)
+        CHILD_CONSTRAINTS = (DirectedDistance(),)
+        CHILD_ARGKEYS = (("arg0", "arg1"),)
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
-        """
-        Return the distance error between two points along a given direction
+    def split_children_params(self, params):
+        return ({"distance": params.distance, "direction": np.array([0, 1])},)
 
-        The distance is measured from `prims[0]` to `prims[1]` along the direction.
-        """
-        directed_distance = DirectedDistance()
-
-        distance, direction = params[0], np.array([0, 1])
-        params = directed_distance.RES_PARAMS_TYPE(distance, direction)
-
-        return directed_distance.assem_res(prims, params)
+    def assem_res(
+        self, prims: tp.Tuple[pr.Point, pr.Point], distance: float=0.0
+    ):
+        return np.array([])
 
 
 class Coincident(StaticConstraint):
@@ -497,8 +496,6 @@ class Coincident(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Point, pr.Point]
         The two points
-    params:
-        None
     """
 
     @classmethod
@@ -510,7 +507,7 @@ class Coincident(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point], params):
+    def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point]):
         """
         Return the coincident error between two points
         """
@@ -530,7 +527,7 @@ class Length(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line]
         The line
-    params:
+    length: float
         The length
     """
 
@@ -543,14 +540,14 @@ class Length(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line], length: float=0):
         """
         Return the length error of a line
         """
         # This sets the length of a line
         (line,) = prims
         vec = line_vector(line)
-        return jnp.sum(vec**2) - params.length**2
+        return jnp.sum(vec**2) - length**2
 
 
 class Vertical(StaticConstraint):
@@ -561,8 +558,6 @@ class Vertical(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line]
         The lines
-    params:
-        None
     """
 
     @classmethod
@@ -574,7 +569,7 @@ class Vertical(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
         Return the vertical error for a line
         """
@@ -591,8 +586,6 @@ class Horizontal(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line]
         The lines
-    params:
-        None
     """
 
     @classmethod
@@ -604,7 +597,7 @@ class Horizontal(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
         Return the horizontal error for a line
         """
@@ -621,8 +614,10 @@ class DirectedLength(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line]
         The line
-    params:
-        The length and direction
+    length: float
+        The length
+    direction: NDArray
+        The direction
     """
 
     @classmethod
@@ -634,14 +629,19 @@ class DirectedLength(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+    def assem_res(
+        self,
+        prims: tp.Tuple[pr.Line],
+        length: float=0,
+        direction: NDArray=np.array([1, 0])
+    ):
         """
         Return the length error of a line
         """
         # This sets the length of a line
         (line,) = prims
         vec = line_vector(line)
-        return jnp.dot(vec, params.direction) - params.length
+        return jnp.dot(vec, direction) - length
 
 
 class XLength(StaticConstraint):
@@ -652,7 +652,7 @@ class XLength(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line]
         The line
-    params:
+    length: float
         The length
     """
 
@@ -669,7 +669,7 @@ class XLength(StaticConstraint):
     def split_children_params(self, params):
         return ({"length": params.length, "direction": np.array([1, 0])},)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line], length: float=0):
         """
         Return the length error of a line
         """
@@ -678,13 +678,13 @@ class XLength(StaticConstraint):
 
 class YLength(StaticConstraint):
     """
-    Constrain the length of a line projected along the x direction
+    Constrain the length of a line projected along the y direction
 
     Parameters
     ----------
     prims: tp.Tuple[pr.Line]
         The line
-    params:
+    length: float
         The length
     """
 
@@ -701,7 +701,7 @@ class YLength(StaticConstraint):
     def split_children_params(self, params):
         return ({"length": params.length, "direction": np.array([0, 1])},)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line], length: float=0):
         """
         Return the length error of a line
         """
@@ -720,7 +720,7 @@ class RelativeLength(StaticConstraint):
         The lines
 
         The length of the first line is measured relative to the second line
-    params:
+    length: float
         The relative length
     """
 
@@ -733,7 +733,7 @@ class RelativeLength(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], length: float=1):
         """
         Return the length error of line `prims[0]` relative to line `prims[1]`
         """
@@ -741,7 +741,7 @@ class RelativeLength(StaticConstraint):
         line0, line1 = prims
         vec_a = line_vector(line0)
         vec_b = line_vector(line1)
-        return jnp.sum(vec_a**2) - params.length**2 * jnp.sum(vec_b**2)
+        return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
 
 class MidpointXDistance(StaticConstraint):
@@ -754,7 +754,7 @@ class MidpointXDistance(StaticConstraint):
         The lines
 
         The distance is measured from the first to the second line
-    params:
+    distance: float
         The distance
     """
 
@@ -767,7 +767,7 @@ class MidpointXDistance(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], distance: float=0):
         """
         Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
         """
@@ -776,8 +776,8 @@ class MidpointXDistance(StaticConstraint):
         midpoint0 = 1/2*(line0["Point0"].value + line0["Point1"].value)
         midpoint1 = 1/2*(line1["Point0"].value + line1["Point1"].value)
 
-        distance = jnp.dot(midpoint1 - midpoint0, np.array([1, 0]))
-        return distance - params.distance
+        mid_distance = jnp.dot(midpoint1 - midpoint0, np.array([1, 0]))
+        return mid_distance - distance
 
 
 class MidpointYDistance(StaticConstraint):
@@ -790,7 +790,7 @@ class MidpointYDistance(StaticConstraint):
         The lines
 
         The distance is measured from the first to the second line
-    params:
+    distance: float
         The distance
     """
 
@@ -803,7 +803,7 @@ class MidpointYDistance(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], distance: float=0):
         """
         Return the y-distance error from the midpoint of line `prims[0]` to `prims[1]`
         """
@@ -812,8 +812,8 @@ class MidpointYDistance(StaticConstraint):
         midpoint0 = 1/2*(line0["Point0"].value + line0["Point1"].value)
         midpoint1 = 1/2*(line1["Point0"].value + line1["Point1"].value)
 
-        distance = jnp.dot(midpoint1 - midpoint0, np.array([0, 1]))
-        return distance - params.distance
+        mid_distance = jnp.dot(midpoint1 - midpoint0, np.array([0, 1]))
+        return mid_distance - distance
 
 
 class Orthogonal(StaticConstraint):
@@ -824,8 +824,6 @@ class Orthogonal(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line, pr.Line]
         The lines
-    params:
-        None
     """
 
     @classmethod
@@ -837,7 +835,7 @@ class Orthogonal(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the orthogonal error between two lines
         """
@@ -855,8 +853,6 @@ class Parallel(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line, pr.Line]
         The lines
-    params:
-        None
     """
 
     @classmethod
@@ -868,7 +864,7 @@ class Parallel(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the parallel error between two lines
         """
@@ -886,7 +882,7 @@ class Angle(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line, pr.Line]
         The lines
-    params:
+    angle: float
         The angle
     """
 
@@ -899,7 +895,7 @@ class Angle(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], angle: float=0):
         """
         Return the angle error between two lines
         """
@@ -909,7 +905,7 @@ class Angle(StaticConstraint):
 
         dir0 = dir0 / jnp.linalg.norm(dir0)
         dir1 = dir1 / jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - params.angle
+        return jnp.arccos(jnp.dot(dir0, dir1)) - angle
 
 
 class Collinear(StaticConstraint):
@@ -920,8 +916,6 @@ class Collinear(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line, pr.Line]
         The lines
-    params:
-        None
     """
 
     @classmethod
@@ -933,7 +927,7 @@ class Collinear(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
         Return the collinearity error between two lines
         """
@@ -955,7 +949,7 @@ class CoincidentLines(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Line, pr.Line]
         The lines
-    params:
+    reverse: bool
         A boolean indicating whether to coincide lines in the same or reverse directions
     """
 
@@ -968,12 +962,12 @@ class CoincidentLines(StaticConstraint):
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], reverse=False):
         """
         Return the coincident error between two lines
         """
         line0, line1 = prims
-        if not params.reverse:
+        if not reverse:
             point0_err = line1["Point0"].value - line0["Point0"].value
             point1_err = line1["Point1"].value - line0["Point1"].value
         else:
@@ -993,7 +987,7 @@ class RelativeLengthArray(DynamicConstraint):
         The lines
 
         The length of the lines are measured relative to the last line
-    params:
+    lengths: NDArray
         The relative lengths
     """
 
@@ -1021,7 +1015,7 @@ class RelativeLengthArray(DynamicConstraint):
             for child, length in zip(self.children, parameters.lengths)
         )
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], lengths: NDArray):
         return np.array([])
 
 
@@ -1035,7 +1029,7 @@ class XDistanceMidpointsArray(DynamicConstraint):
         The lines
 
         The distances are measured from the first to the second line in pairs
-    params:
+    distances: NDArray
         The distances
     """
 
@@ -1059,7 +1053,7 @@ class XDistanceMidpointsArray(DynamicConstraint):
             for child, distance in zip(self.children, params.distances)
         )
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], distances: NDArray):
         return np.array(())
 
 
@@ -1073,7 +1067,7 @@ class YDistanceMidpointsArray(DynamicConstraint):
         The lines
 
         The distances are measured from the first to the second line in pairs
-    params:
+    distances: NDArray
         The distances
     """
 
@@ -1095,7 +1089,7 @@ class YDistanceMidpointsArray(DynamicConstraint):
             for child, distance in zip(self.children, params.distances)
         )
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...], distances: NDArray):
         return np.array(())
 
 
@@ -1107,8 +1101,6 @@ class CollinearArray(DynamicConstraint):
     ----------
     prims: tp.Tuple[pr.Line, ...]
         The lines
-    params:
-        None
     """
 
     @classmethod
@@ -1126,7 +1118,7 @@ class CollinearArray(DynamicConstraint):
     def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
-    def assem_res(self, prims: tp.Tuple[pr.Line, ...], params):
+    def assem_res(self, prims: tp.Tuple[pr.Line, ...]):
         return np.array([])
 
 
@@ -1142,8 +1134,6 @@ class Box(StaticConstraint):
     ----------
     prims: tp.Tuple[pr.Quadrilateral]
         The quad
-    params:
-        None
     """
 
     @classmethod
@@ -1157,7 +1147,7 @@ class Box(StaticConstraint):
         CHILD_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
         return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
 
-    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral]):
         return np.array(())
 
 # Argument type: Tuple[Quadrilateral, ...]
@@ -1177,8 +1167,6 @@ class RectilinearGrid(DynamicConstraint):
     ----------
     prims: tp.Tuple[pr.Quadrilateral, ...]
         The quadrilaterals
-    params:
-        None
     """
 
     @classmethod
@@ -1226,7 +1214,7 @@ class RectilinearGrid(DynamicConstraint):
     def split_children_params(self, parameters):
         return tuple(child.RES_PARAMS_TYPE() for child in self.children)
 
-    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...], params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...]):
         return np.array(())
 
 
@@ -1238,15 +1226,14 @@ class Grid(DynamicConstraint):
     ----------
     prims: tp.Tuple[pr.Quadrilateral, ...]
         The quadrilaterals
-    params:
-        "col_widths"
-            Column widths (from left to right) relative to the left-most column
-        "row_heights"
-            Row height (from top to bottom) relative to the top-most row
-        "col_margins"
-            Absolute column margins (from left to right)
-        "row_margins"
-            Absolute row margins (from top to bottom)
+    col_widths: NDArray
+        Column widths (from left to right) relative to the left-most column
+    row_heights: NDArray
+        Row height (from top to bottom) relative to the top-most row
+    col_margins: NDArray
+        Absolute column margins (from left to right)
+    row_margins: NDArray
+        Absolute row margins (from top to bottom)
     """
 
     @classmethod
@@ -1325,7 +1312,14 @@ class Grid(DynamicConstraint):
             for child, value in zip(self.children, values)
         )
 
-    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...], params):
+    def assem_res(
+        self,
+        prims: tp.Tuple[pr.Quadrilateral, ...],
+        col_widths: NDArray,
+        row_heights: NDArray,
+        col_margins: NDArray,
+        row_margins: NDArray
+    ):
         return np.array([])
 
 # TODO: Incorporate this into primitives?
@@ -1345,10 +1339,10 @@ class XAxisHeight(StaticConstraint):
 
     Parameters
     ----------
-    prims: tp.Tuple[pr.AxesX | pr.AxesXY]
+    prims: tp.Tuple[pr.Quadrilateral]
         The axes
-    params:
-        None
+    axis: XAxis
+        The XAxis
     """
 
     @staticmethod
@@ -1383,11 +1377,11 @@ class XAxisHeight(StaticConstraint):
     def split_children_params(self, parameters):
         xaxis: XAxis | None = parameters.axis
         if xaxis is None:
-            return ((0,),)
+            return ({"distance": 0},)
         else:
-            return ((self.get_xaxis_height(xaxis),),)
+            return ({"distance": self.get_xaxis_height(xaxis)},)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], axis: XAxis):
         return np.array([])
 
 
@@ -1397,10 +1391,10 @@ class YAxisWidth(StaticConstraint):
 
     Parameters
     ----------
-    prims: tp.Tuple[pr.AxesY | pr.AxesXY]
+    prims: tp.Tuple[pr.Quadrilateral]
         The axes
-    params:
-        None
+    axis: YAxis
+        The YAxis
     """
 
     @staticmethod
@@ -1435,11 +1429,11 @@ class YAxisWidth(StaticConstraint):
     def split_children_params(self, parameters):
         yaxis: YAxis | None = parameters.axis
         if yaxis is None:
-            return ((0,),)
+            return ({"distance": 0},)
         else:
-            return ((self.get_yaxis_width(yaxis),),)
+            return ({"distance": self.get_yaxis_width(yaxis)},)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
+    def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], axis: YAxis):
         return np.array([])
 
 # Argument type: Tuple[Axes]
@@ -1447,6 +1441,11 @@ class YAxisWidth(StaticConstraint):
 class PositionXAxis(ParameterizedConstraint):
     """
     Constrain the x-axis to the top or bottom of an axes
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.AxesY | pr.AxesXY]
+        The axes
     """
 
     @classmethod
@@ -1475,13 +1474,18 @@ class PositionXAxis(ParameterizedConstraint):
     def __init__(self, bottom: bool=True, top: bool=False):
         return super().__init__(bottom=bottom, top=top)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesXY], params):
+    def assem_res(self, prims: tp.Tuple[pr.AxesXY]):
         return np.array([])
 
 
 class PositionYAxis(ParameterizedConstraint):
     """
     Constrain the y-axis to the left or right of an axes
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.AxesY | pr.AxesXY]
+        The axes
     """
 
     @classmethod
@@ -1510,6 +1514,6 @@ class PositionYAxis(ParameterizedConstraint):
     def __init__(self, left: bool=True, right: bool=False):
         return super().__init__(left=left, right=right)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesXY], params):
+    def assem_res(self, prims: tp.Tuple[pr.AxesXY]):
         return np.array([])
 

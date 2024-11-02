@@ -230,7 +230,7 @@ class TestLineConstraints(GeometryFixtures):
     def test_YLength(self, line, line_length, line_dir):
         proj_dir = np.array([0, 1])
         proj_length = line_length * np.dot(line_dir, proj_dir)
-        res = geo.XLength()((line,), (proj_length,))
+        res = geo.YLength()((line,), (proj_length,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -522,14 +522,20 @@ class TestAxesConstraints(GeometryFixtures):
         return request.param
 
     @pytest.fixture()
-    def axes(self, size: tp.Tuple[float, float], xaxis_position, yaxis_position):
+    def axes(
+        self,
+        size: tp.Tuple[float, float],
+        xaxis_position,
+        yaxis_position,
+        xaxis_height,
+        yaxis_width
+    ):
         axes_width, axes_height = size
         scale = np.diag([axes_width, axes_height])
         frame = self.make_quad(np.array([0, 0]), scale)
 
         squash_width = np.array([[0, 0], [0, 1]])
 
-        xaxis_height = np.random.rand()
         scale = np.diag([axes_width, xaxis_height])
         if xaxis_position['bottom']:
             xaxis = self.make_quad(np.array([0, -xaxis_height]), scale)
@@ -538,7 +544,6 @@ class TestAxesConstraints(GeometryFixtures):
         else:
             raise ValueError()
 
-        yaxis_width = np.random.rand()
         scale = np.diag([yaxis_width, axes_height])
         if yaxis_position['left']:
             yaxis = self.make_quad(np.array([-yaxis_width, 0]), scale)
@@ -552,7 +557,12 @@ class TestAxesConstraints(GeometryFixtures):
         return geo.AxesXY(children=(frame, xaxis, yaxis, xlabel_anchor, ylabel_anchor))
 
     @pytest.fixture()
-    def axes_mpl(self, size: tp.Tuple[float, float]):
+    def axes_mpl(
+            self,
+            size: tp.Tuple[float, float],
+            xaxis_position,
+            yaxis_position,
+        ):
         width, height = size
         # NOTE: Unit dimensions of the figure are important because `fig.add_axes`
         # units are relative to figure dimensions
@@ -565,25 +575,35 @@ class TestAxesConstraints(GeometryFixtures):
         ax.set_xlabel("My favourite xlabel")
         ax.set_ylabel("My favourite ylabel")
 
+        if xaxis_position['bottom']:
+            ax.xaxis.tick_bottom()
+        elif xaxis_position['top']:
+            ax.xaxis.tick_top()
+
+        if yaxis_position['left']:
+            ax.yaxis.tick_left()
+        elif yaxis_position['right']:
+            ax.yaxis.tick_right()
+
         return ax
+
+    @pytest.fixture()
+    def xaxis_height(self, axes_mpl):
+        return geo.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
+
+    @pytest.fixture()
+    def yaxis_width(self, axes_mpl):
+        return geo.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
 
     # NOTE: The `..AxisHeight` tests rely on them using `Distance` type constraints to
     # implement the residual
     def test_XAxisHeight(self, axes, axes_mpl):
-        height = geo.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
-
-        xaxis_height = geo.XAxisHeight()
-        res = xaxis_height((axes['XAxis'],), (axes_mpl.xaxis,))
-
-        assert np.all(np.isclose(res + height, 0))
+        res = geo.XAxisHeight()((axes['XAxis'],), (axes_mpl.xaxis,))
+        assert np.all(np.isclose(res, 0))
 
     def test_YAxisWidth(self, axes, axes_mpl):
-        width = geo.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
-
-        xaxis_height = geo.YAxisWidth()
-        res = xaxis_height((axes['YAxis'],), (axes_mpl.yaxis,))
-
-        assert np.all(np.isclose(res + width, 0))
+        res = geo.YAxisWidth()((axes['YAxis'],), (axes_mpl.yaxis,))
+        assert np.all(np.isclose(res, 0))
 
     def test_PositionXAxis(self, axes, xaxis_position):
         res = geo.PositionXAxis(**xaxis_position)((axes,), ())
