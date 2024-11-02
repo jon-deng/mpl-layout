@@ -1241,6 +1241,8 @@ def line_vector(line: pr.Line):
 
 from matplotlib.axis import XAxis, YAxis
 
+# Argument type: Tuple[Quadrilateral]
+
 class XAxisHeight(StaticConstraint):
     """
     Constrain the x-axis height for an axes
@@ -1273,7 +1275,6 @@ class XAxisHeight(StaticConstraint):
 
     @classmethod
     def init_tree(cls):
-        # TODO: Handle more specialized x/y axes combos?
         ARG_TYPES = (pr.Quadrilateral,)
         ARG_PARAMETERS = namedtuple("Parameters", ('axis',))
         CONSTANTS = namedtuple("Constants", ())
@@ -1344,3 +1345,75 @@ class YAxisWidth(StaticConstraint):
 
     def assem_res(self, prims: tp.Tuple[pr.AxesX | pr.AxesXY], params):
         return np.array([])
+
+# Argument type: Tuple[Axes]
+
+class PositionXAxis(ParameterizedConstraint):
+    """
+    Constrain the x-axis to the top or bottom of an axes
+    """
+
+    @classmethod
+    def init_tree(cls, bottom: bool, top: bool):
+        # TODO: Handle more specialized x/y axes combos?
+        ARG_TYPES = (pr.AxesXY,)
+        ARG_PARAMETERS = namedtuple("Parameters", ())
+        CONSTANTS = namedtuple("Constants", ())
+
+        CHILD_KEYS = ('CoincidentLines',)
+        CHILD_CONSTRAINTS = (CoincidentLines())
+        if bottom:
+            CHILD_ARGKEYS = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
+        elif top:
+            CHILD_ARGKEYS = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
+        else:
+            raise ValueError(
+                "Currently, 'bottom' and 'top' can't both be true"
+            )
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    @classmethod
+    def split_children_params(cls, params):
+        return ((),)
+
+    def __init__(self, bottom: bool=True, top: bool=False):
+        return super().__init__(bottom=bottom, top=top)
+
+    def assem_res(self, prims: tp.Tuple[pr.AxesXY], params):
+        return np.array([])
+
+
+class PositionYAxis(ParameterizedConstraint):
+    """
+    Constrain the y-axis to the left or right of an axes
+    """
+
+    @classmethod
+    def init_tree(cls, left: bool=True, right: bool=False):
+        # TODO: Handle more specialized x/y axes combos?
+        ARG_TYPES = (pr.AxesXY,)
+        ARG_PARAMETERS = namedtuple("Parameters", ())
+        CONSTANTS = namedtuple("Constants", ())
+
+        CHILD_KEYS = ('CoincidentLines',)
+        CHILD_CONSTRAINTS = (CoincidentLines())
+        if left:
+            CHILD_ARGKEYS = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
+        elif right:
+            CHILD_ARGKEYS = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
+        else:
+            raise ValueError(
+                "Currently, 'left' and 'right' can't both be true"
+            )
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    @classmethod
+    def split_children_params(cls, params):
+        return ((),)
+
+    def __init__(self, left: bool=True, right: bool=False):
+        return super().__init__(left=left, right=right)
+
+    def assem_res(self, prims: tp.Tuple[pr.AxesXY], params):
+        return np.array([])
+

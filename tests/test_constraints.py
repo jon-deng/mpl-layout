@@ -487,16 +487,46 @@ class TestAxesConstraints(GeometryFixtures):
     def size(self):
         return (1, 1)
 
+    @pytest.fixture(
+        params=[
+            {'bottom': True, 'top': False},
+            {'bottom': False, 'top': True},
+        ]
+    )
+    def xaxis_position(self, request):
+        return request.param
+
+    @pytest.fixture(
+        params=[
+            {'left': True, 'right': False},
+            {'left': False, 'right': True},
+        ]
+    )
+    def yaxis_position(self, request):
+        return request.param
+
     @pytest.fixture()
-    def axes(self, size: tp.Tuple[float, float]):
+    def axes(self, size: tp.Tuple[float, float], xaxis_position, yaxis_position):
         width, height = size
         scale = np.array([[width, 0], [0, height]])
         frame = self.make_quad(np.zeros(2), scale)
 
         squash_height = np.array([[1, 0], [0, 0]])
         squash_width = np.array([[0, 0], [0, 1]])
-        xaxis = self.make_quad(np.zeros(2), squash_height@scale)
-        yaxis = self.make_quad(np.zeros(2), squash_width@scale)
+
+        if xaxis_position['bottom']:
+            xaxis = self.make_quad(np.array([0, 0]), squash_height@scale)
+        elif xaxis_position['top']:
+            xaxis = self.make_quad(np.array([0, 1]), squash_height@scale)
+        else:
+            raise ValueError()
+
+        if yaxis_position['left']:
+            yaxis = self.make_quad(np.array([0, 0]), squash_height@scale)
+        elif yaxis_position['right']:
+            yaxis = self.make_quad(np.array([1, 0]), squash_height@scale)
+        else:
+            raise ValueError()
 
         xlabel_anchor = self.make_point([0, 0])
         ylabel_anchor = self.make_point([0, 0])
@@ -535,3 +565,14 @@ class TestAxesConstraints(GeometryFixtures):
         res = xaxis_height((axes['YAxis'],), (axes_mpl.yaxis,))
 
         assert np.all(np.isclose(res + width, 0))
+
+    def test_PositionXAxis(self, axes, xaxis_position):
+        res = geo.PositionXAxis(**xaxis_position)((axes,), ())
+
+        assert np.all(np.isclose(res, 0))
+
+    def test_PositionYAxis(self, axes, yaxis_position):
+        res = geo.PositionYAxis(**yaxis_position)((axes,), ())
+
+        assert np.all(np.isclose(res, 0))
+
