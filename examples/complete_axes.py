@@ -36,44 +36,28 @@ if __name__ == "__main__":
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
-    layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Figure/Line0/Point0", "Figure/Line0/Point1"),
-        (fig_width, np.array([1, 0]))
-    )
-    layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Figure/Line1/Point0", "Figure/Line1/Point1"),
-        (fig_height, np.array([0, 1]))
-    )
+    layout.add_constraint(geo.XLength(), ("Figure/Line0",), (fig_width,))
+    layout.add_constraint(geo.YLength(), ("Figure/Line1",), (fig_height,))
 
     ## Constrain 'Axes1' elements
     # Constrain left/right margins
     margin_left = 1
     margin_right = 1.0
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
-        (margin_left, np.array([-1, 0]))
+        geo.XDistanceMidpoints(), ("Figure/Line3", "Axes1/Frame/Line3"), (margin_left,)
     )
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line0/Point1", "Figure/Line0/Point1"),
-        (margin_right, np.array([1, 0]))
+        geo.XDistanceMidpoints(), ("Axes1/Frame/Line1", "Figure/Line1"), (margin_right,)
     )
 
     # Constrain top/bottom margins
     margin_top = 1.1
     margin_bottom = 1
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line1/Point0", "Figure/Line1/Point0"),
-        (margin_bottom, np.array([0, -1]))
+        geo.YDistanceMidpoints(), ("Figure/Line0", "Axes1/Frame/Line0"), (margin_bottom,)
     )
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line1/Point1", "Figure/Line1/Point1"),
-        (margin_top, np.array([0, 1]))
+        geo.YDistanceMidpoints(), ("Axes1/Frame/Line2", "Figure/Line2"), (margin_top,)
     )
 
     # Constrain 'Axes1' x/y axis bboxes to be rectangles

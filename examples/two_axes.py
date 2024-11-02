@@ -90,9 +90,7 @@ if __name__ == "__main__":
 
     margin_left = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
-        (margin_left, np.array([-1, 0]))
+        geo.XDistanceMidpoints(), ("Figure/Line3", "Axes1/Frame/Line3",), (margin_left,)
     )
 
     plot_layout(layout, "out/2Axes--5.png")
@@ -101,9 +99,7 @@ if __name__ == "__main__":
 
     margin_right = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes2/Frame/Line0/Point1", "Figure/Line0/Point1"),
-        (margin_right, np.array([1, 0]))
+        geo.XDistanceMidpoints(), ("Axes2/Frame/Line1", "Figure/Line1"), (margin_right,)
     )
 
     plot_layout(layout, "out/2Axes--6.png")
@@ -117,9 +113,7 @@ if __name__ == "__main__":
     ## Constrain the gap between the left and right axes ('Axes1' and `Axes2`)
     margin_inter = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line0/Point1", "Axes2/Frame/Line0/Point0"),
-        (margin_inter, np.array([1, 0]))
+        geo.XDistanceMidpoints(), ("Axes1/Frame/Line1", "Axes2/Frame/Line3"), (margin_inter,)
     )
 
     plot_layout(layout, "out/2Axes--8.png")
@@ -128,14 +122,10 @@ if __name__ == "__main__":
     margin_top = 1.0
     margin_bottom = 0.5
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line0/Point0", "Figure/Line0/Point0"),
-        (margin_bottom, np.array([0, -1]))
+        geo.YDistanceMidpoints(), ("Figure/Line0", "Axes1/Frame/Line0", ), (margin_bottom,)
     )
     layout.add_constraint(
-        geo.DirectedDistance(),
-        ("Axes1/Frame/Line1/Point1", "Figure/Line1/Point1"),
-        (margin_top, np.array([0, 1]))
+        geo.YDistanceMidpoints(), ("Axes1/Frame/Line2", "Figure/Line2"), (margin_top,)
     )
 
     plot_layout(layout, "out/2Axes--9.png")
