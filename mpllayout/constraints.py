@@ -1180,6 +1180,12 @@ class Box(StaticConstraint):
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral]):
         return np.array(())
 
+
+# TODO:
+# class AspectRatio(StaticConstraint)
+# Set the aspect ratio of a quadrilateral
+
+
 # Argument type: Tuple[Quadrilateral, Quadrilateral]
 
 class OuterMargin(ParameterizedConstraint):
