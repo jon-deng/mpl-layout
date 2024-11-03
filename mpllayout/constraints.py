@@ -1426,6 +1426,36 @@ from matplotlib.axis import XAxis, YAxis
 
 # Argument type: Tuple[Quadrilateral]
 
+def get_axis_dim(axis: XAxis | YAxis, side: str):
+
+    # Ignore the axis label in the height by temporarily making it invisible
+    label_visibility = axis.label.get_visible()
+    axis.label.set_visible(False)
+
+    axis_bbox = axis.get_tightbbox()
+
+    if axis_bbox is None:
+        height = 0
+    else:
+        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
+        fig_width, fig_height = axis.axes.figure.get_size_inches()
+        axes_bbox = axis.axes.get_position()
+
+        if axis.get_ticks_position() == "bottom":
+            dim = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
+        elif axis.get_ticks_position() == "top":
+            dim = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
+        elif axis.get_ticks_position() == "left":
+            dim = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
+        elif axis.get_ticks_position() == "right":
+            dim = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
+        else:
+            raise ValueError()
+
+    axis.label.set_visible(label_visibility)
+
+    return dim
+
 class XAxisHeight(StaticConstraint):
     """
     Constrain the x-axis height for an axes
@@ -1440,21 +1470,7 @@ class XAxisHeight(StaticConstraint):
 
     @staticmethod
     def get_xaxis_height(axis: XAxis):
-        axis_bbox = axis.get_tightbbox()
-
-        if axis_bbox is None:
-            height = 0
-        else:
-            axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
-            _, fig_height = axis.axes.figure.get_size_inches()
-            axes_bbox = axis.axes.get_position()
-
-            if axis.get_ticks_position() == "bottom":
-                height = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
-            if axis.get_ticks_position() == "top":
-                height = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
-
-        return height
+        return get_axis_dim(axis, axis.get_ticks_position())
 
     @classmethod
     def init_tree(cls):
@@ -1492,21 +1508,7 @@ class YAxisWidth(StaticConstraint):
 
     @staticmethod
     def get_yaxis_width(axis: YAxis):
-        axis_bbox = axis.get_tightbbox()
-
-        if axis_bbox is None:
-            width = 0
-        else:
-            axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
-            fig_width, _ = axis.axes.figure.get_size_inches()
-            axes_bbox = axis.axes.get_position()
-
-            if axis.get_ticks_position() == "left":
-                width = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
-            if axis.get_ticks_position() == "right":
-                width = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
-
-        return width
+        return get_axis_dim(axis, axis.get_ticks_position())
 
     @classmethod
     def init_tree(cls):
