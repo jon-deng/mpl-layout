@@ -1135,10 +1135,21 @@ class CollinearArray(DynamicConstraint):
 # This would be useful for aligning axis labels
 
 # TODO:
-# class DistanceAlongLine(StaticConstraint)
-# This would constraint the projected distance of a point along a line
-# probably in relative units
+# class DistanceOnLine(StaticConstraint)
+# This would constraint the projected absolute distance of a point on a line
+
+# TODO:
+# class RelativeDistanceOnLine(StaticConstraint)
+# This would constraint the projected distance of a point on a line relative to the line
+# length (i.e. 0 and 1 would correspond to the start and end points of the line)
 # This would be useful to put axis label halfway along an axis for example!
+
+# TODO:
+# class DistanceToLine(StaticConstraint)
+# This would constraint the projected distance of a point to a line
+# You would need a convention of which "distance" is positive by picking an orthogonal
+# to the line
+# This would be useful to constrain a point to line on a line or off set a line from a point
 
 
 ## Quad constraints
