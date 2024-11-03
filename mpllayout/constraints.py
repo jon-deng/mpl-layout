@@ -1121,6 +1121,25 @@ class CollinearArray(DynamicConstraint):
     def assem_res(self, prims: tp.Tuple[pr.Line, ...]):
         return np.array([])
 
+## Point and Line constraints
+
+# TODO:
+# class BoundPointsByLine(DynamicConstraint)
+# A class that ensures all points have orthogonal distance to a line > offset
+# The orthogonal direction should be rotated 90 degrees from the line direction
+# (or some other convention)
+# You should also have some convention to specify whether you bound for positive
+# distance or negative distance
+# This would be like saying the points all lie to the left or right of the line
+# + and offset
+# This would be useful for aligning axis labels
+
+# TODO:
+# class DistanceAlongLine(StaticConstraint)
+# This would constraint the projected distance of a point along a line
+# probably in relative units
+# This would be useful to put axis label halfway along an axis for example!
+
 
 ## Quad constraints
 
