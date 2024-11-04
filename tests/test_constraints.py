@@ -50,7 +50,7 @@ class GeometryFixtures:
         coords = (origin, origin + line_vec)
         return geo.Line(value=[], children=tuple(geo.Point(x) for x in coords))
 
-    def make_relline_about_start(
+    def make_relative_line(
         self, line: geo.Line, translation: NDArray, deformation: NDArray
     ):
         """
@@ -219,93 +219,198 @@ class TestPointPoint(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
 
+class TestLine(GeometryFixtures):
+    """
+    Test constraints with signature `[Line]`
+    """
 
-class TestLineConstraints(GeometryFixtures):
-
-    ## Constraints on line segments
     @pytest.fixture()
-    def line_length(self):
+    def length(self):
         return np.random.rand()
 
     @pytest.fixture()
-    def line_dir(self):
+    def direction(self):
         unit_vec = np.random.rand(2)
         unit_vec = unit_vec / np.linalg.norm(unit_vec)
         return unit_vec
 
     @pytest.fixture()
-    def line(self, line_length, line_dir):
+    def linea(self, length, direction):
         origin = np.random.rand(2)
-        return self.make_line(origin, line_dir * line_length)
+        return self.make_line(origin, direction * length)
 
-    def test_Length(self, line, line_length):
-        res = geo.Length()((line,), (line_length,))
+    def test_Length(self, linea, length):
+        res = geo.Length()((linea,), (length,))
         assert np.all(np.isclose(res, 0))
 
-    def test_XLength(self, line, line_length, line_dir):
+    @pytest.fixture()
+    def xlength(self, length, direction):
         proj_dir = np.array([1, 0])
-        proj_length = line_length * np.dot(line_dir, proj_dir)
-        res = geo.XLength()((line,), (proj_length,))
+        proj_length = length * np.dot(direction, proj_dir)
+        return proj_length
+
+    def test_XLength(self, linea, xlength):
+        res = geo.XLength()((linea,), (xlength,))
         assert np.all(np.isclose(res, 0))
 
-    def test_YLength(self, line, line_length, line_dir):
+    @pytest.fixture()
+    def ylength(self, length, direction):
         proj_dir = np.array([0, 1])
-        proj_length = line_length * np.dot(line_dir, proj_dir)
-        res = geo.YLength()((line,), (proj_length,))
+        proj_length = length * np.dot(direction, proj_dir)
+        return proj_length
+
+    def test_YLength(self, linea, ylength):
+        res = geo.YLength()((linea,), (ylength,))
         assert np.all(np.isclose(res, 0))
+
+
+class TestLineLine(GeometryFixtures):
+    """
+    Test constraints with signature `[Line, Line]`
+    """
+    @pytest.fixture()
+    def length(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def direction(self):
+        unit_vec = np.random.rand(2)
+        unit_vec = unit_vec / np.linalg.norm(unit_vec)
+        return unit_vec
+
+    @pytest.fixture()
+    def linea(self, length, direction):
+        origin = np.random.rand(2)
+        return self.make_line(origin, direction * length)
 
     @pytest.fixture()
     def displacement(self):
         return np.random.rand(2)
 
     @pytest.fixture()
-    def parallel_lines(self, line, displacement):
-        lineb = self.make_relline_about_start(line, displacement, self.make_rotation(0))
-        return (line, lineb)
+    def line_parallel(self, linea, displacement):
+        return self.make_relative_line(linea, displacement, self.make_rotation(0))
 
-    def test_Parallel(self, parallel_lines):
-        res = geo.Parallel()(parallel_lines, ())
+    def test_Parallel(self, linea, line_parallel):
+        res = geo.Parallel()((linea, line_parallel), ())
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def orthogonal_lines(self, line, displacement):
-        lineb = self.make_relline_about_start(
-            line, displacement, self.make_rotation(np.pi / 2)
+    def line_orthogonal(self, linea, displacement):
+        return self.make_relative_line(
+            linea, displacement, self.make_rotation(np.pi / 2)
         )
-        return (line, lineb)
 
-    def test_Orthogonal(self, orthogonal_lines):
-        res = geo.Orthogonal()(orthogonal_lines, ())
+    def test_Orthogonal(self, linea, line_orthogonal):
+        res = geo.Orthogonal()((linea, line_orthogonal), ())
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture(params=[False, True])
+    def reverse(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def line_coincident(self, linea, reverse):
+        if reverse:
+            return self.make_line(linea['Point1'].value, -1*geo.line_vector(linea))
+        else:
+            return linea
+
+    def test_CoincidentLines(self, linea, line_coincident, reverse):
+        res = geo.CoincidentLines()((linea, line_coincident), (reverse,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def relative_length(self):
-        return np.random.rand()
+    def lineb(self):
+        origin = np.random.rand(2)
+        return self.make_line(origin, np.random.rand(2))
 
-    def test_RelativeLength(self, line, displacement, relative_length):
-        scale = relative_length * np.diag(np.ones(2))
-        theta = 2 * np.pi * np.random.rand()
-        rotate = self.make_rotation(theta)
+    @pytest.fixture()
+    def relative_length(self, linea, lineb):
+        lengtha = np.linalg.norm(geo.line_vector(linea))
+        lengthb = np.linalg.norm(geo.line_vector(lineb))
+        return lengtha/lengthb
 
-        lineb = self.make_relline_about_start(line, displacement, scale @ rotate)
-        res = geo.RelativeLength()((lineb, line), (relative_length,))
+    def test_RelativeLength(self, linea, lineb, relative_length):
+        res = geo.RelativeLength()((linea, lineb), (relative_length,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
     def angle(self):
-        return np.pi*np.random.rand()
+        return np.random.rand()
 
-    def test_Angle(self, line, displacement, angle):
+    @pytest.fixture()
+    def line_angle(self, linea, angle, displacement):
         scale = np.random.rand() * np.diag(np.ones(2))
         rotate = self.make_rotation(angle)
+        return self.make_relative_line(linea, displacement, scale @ rotate)
 
-        lineb = self.make_relline_about_start(line, displacement, scale @ rotate)
-        res = geo.Angle()((line, lineb), (angle,))
+    def test_Angle(self, linea, line_angle, angle):
+        res = geo.Angle()((linea, line_angle), (angle,))
         assert np.all(np.isclose(res, 0))
+
+    def test_Collinear(self, linea):
+        line_vec = geo.line_vector(linea)
+
+        lineb = self.make_relative_line(
+            linea, np.random.rand()*line_vec, np.diag(np.ones(2))
+        )
+        res = geo.Collinear()((linea, lineb), ())
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def midpoint_distance(self, linea, lineb):
+        midpointa = 1/2*(linea['Point0'].value + linea['Point1'].value)
+        midpointb = 1/2*(lineb['Point0'].value + lineb['Point1'].value)
+        return midpointb - midpointa
+
+    def test_MidpointXDistance(self, linea, lineb, midpoint_distance):
+        res = geo.MidpointXDistance()((linea, lineb), (midpoint_distance[0],))
+        assert np.all(np.isclose(res, 0))
+
+    def test_MidpointYDistance(self, linea, lineb, midpoint_distance):
+        res = geo.MidpointYDistance()((linea, lineb), (midpoint_distance[1],))
+        assert np.all(np.isclose(res, 0))
+
+
+class TestLineArray(GeometryFixtures):
+    """
+    Test constraints with signature `[Line, ...]`
+    """
+
+    @pytest.fixture()
+    def length(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def direction(self):
+        unit_vec = np.random.rand(2)
+        unit_vec = unit_vec / np.linalg.norm(unit_vec)
+        return unit_vec
+
+    @pytest.fixture()
+    def linea(self, length, direction):
+        origin = np.random.rand(2)
+        return self.make_line(origin, direction * length)
 
     @pytest.fixture()
     def num_lines(self):
         return 5
+
+    @pytest.fixture()
+    def lines_collinear(self, linea, num_lines):
+        line_vec = geo.line_vector(linea)
+        dists = np.random.rand(num_lines-1)
+        return tuple(
+            self.make_relative_line(linea, dist*line_vec, np.diag(np.ones(2)))
+            for dist in dists
+        )
+
+    def test_CollinearArray(self, linea, lines_collinear):
+        res = geo.CollinearArray(1+len(lines_collinear))(
+            (linea,) + lines_collinear, ()
+        )
+        assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
     def relative_lengths(self, num_lines: int):
@@ -315,104 +420,49 @@ class TestLineConstraints(GeometryFixtures):
     def displacements(self, num_lines: int):
         return np.random.rand(num_lines, 2)
 
-    def test_RelativeLengthArray(self, line, displacements, relative_lengths):
+    @pytest.fixture()
+    def lines_relative(self, linea, relative_lengths, displacements):
         num_lines = len(relative_lengths)+1
         scales = relative_lengths[:, None, None] * np.diag(np.ones(2))
         thetas = 2 * np.pi * np.random.rand(num_lines)
         rotates = [self.make_rotation(theta) for theta in thetas]
 
-        lines = [
-            self.make_relline_about_start(line, displacement, scale @ rotate)
+        return tuple(
+            self.make_relative_line(linea, displacement, scale @ rotate)
             for displacement, scale, rotate in zip(displacements, scales, rotates)
-        ] + [line]
+        )
+
+    def test_RelativeLengthArray(self, linea, lines_relative, relative_lengths):
+
         constraint = geo.RelativeLengthArray(len(relative_lengths))
-        res = constraint(lines, (relative_lengths,))
-        assert np.all(np.isclose(res, 0))
-
-    def test_Collinear(self, line):
-        line_vec = geo.line_vector(line)
-
-        lineb = self.make_relline_about_start(
-            line, np.random.rand()*line_vec, np.diag(np.ones(2))
-        )
-        res = geo.Collinear()((line, lineb), ())
-        assert np.all(np.isclose(res, 0))
-
-    def test_CollinearArray(self, line):
-        num_lines = 5
-        line_vec = geo.line_vector(line)
-
-        dists = np.random.rand(num_lines-1)
-        lines = (line,) + tuple(
-            self.make_relline_about_start(line, dist*line_vec, np.diag(np.ones(2)))
-            for dist in dists
-        )
-        res = geo.CollinearArray(num_lines)(lines, ())
-        assert np.all(np.isclose(res, 0))
-
-    def test_CoincidentLines(self, line):
-        res = geo.CoincidentLines()((line, line), (False,))
+        res = constraint(tuple(lines_relative) + (linea,), (relative_lengths,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def distance(self):
-        return np.random.rand()
+    def line_pairs(self, num_lines):
+        lineas = [self.make_line(np.random.rand(2), np.random.rand(2)) for _ in range(num_lines)]
+        linebs = [self.make_line(np.random.rand(2), np.random.rand(2)) for _ in range(num_lines)]
+        return tuple(
+            (linea, lineb) for linea, lineb in zip(lineas, linebs)
+        )
 
     @pytest.fixture()
-    def unit_direction(self):
-        vec = np.random.rand(2)
-        return vec/np.linalg.norm(vec)
+    def midpoint_distances(self, line_pairs):
+        def midpoint_distance(linea, lineb):
+            mida = 1/2*(linea['Point0'].value + linea['Point1'].value)
+            midb = 1/2*(lineb['Point0'].value + lineb['Point1'].value)
+            return midb - mida
+        return np.array([midpoint_distance(*line_pair) for line_pair in line_pairs])
 
-    def test_XDistanceMidpoints(self, line, distance, unit_direction):
-        # Create the shifted line by rotating about the midpoint then translating
-        theta = np.random.rand()
-        displacement = distance/unit_direction[0] * unit_direction
-        lineb = self.make_relline_about_mid(line, displacement, self.make_rotation(theta))
+    @pytest.fixture()
+    def lines_midpointsarray(self, line_pairs):
+        return tuple(itertools.chain.from_iterable(line_pairs))
 
-        res = geo.MidpointXDistance()((line, lineb), (distance,))
-        assert np.all(np.isclose(res, 0))
-
-    def test_XDistanceMidpointsArray(self, line, unit_direction):
-        distances = np.random.rand(5)
-        N = len(distances)
-
-        # Create the shifted line by rotating about the midpoint then translating
-        thetas = np.random.rand(N)
-        rotations = [self.make_rotation(theta) for theta in thetas]
-        displacements = [
-            distance/unit_direction[0] * unit_direction for distance in distances
-        ]
-        lineas = [
-            self.make_relline_about_mid(line, displacement, rotation)
-            for displacement, rotation in zip(displacements, rotations)
-        ]
-
-        # Create the shifted line by rotating about the midpoint then translating
-        thetas = np.random.rand(N)
-        rotations = [self.make_rotation(theta) for theta in thetas]
-        displacements = [
-            distance/unit_direction[0] * unit_direction for distance in distances
-        ]
-        linebs = [
-            self.make_relline_about_mid(linea, displacement, rotation)
-            for linea, displacement, rotation in zip(lineas, displacements, rotations)
-        ]
-
-        lines = tuple(
-            itertools.chain.from_iterable(
-                (linea, lineb) for linea, lineb in zip(lineas, linebs)
-            )
+    def test_XDistanceMidpointsArray(self, lines_midpointsarray, midpoint_distances):
+        num_pairs = len(lines_midpointsarray) // 2
+        res = geo.MidpointXDistanceArray(num_pairs)(
+            lines_midpointsarray, (midpoint_distances[:, 0],)
         )
-        res = geo.MidpointXDistanceArray(N)(lines, (distances,))
-        assert np.all(np.isclose(res, 0))
-
-    def test_YDistanceMidpoints(self, line, distance, unit_direction):
-        # Create the shifted line by rotating about the midpoint then translating
-        theta = np.random.rand()
-        displacement = distance/unit_direction[1] * unit_direction
-        lineb = self.make_relline_about_mid(line, displacement, self.make_rotation(theta))
-
-        res = geo.MidpointYDistance()((line, lineb), (distance,))
         assert np.all(np.isclose(res, 0))
 
 
