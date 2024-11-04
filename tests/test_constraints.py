@@ -117,24 +117,24 @@ class GeometryFixtures:
             [0, 1], [0, 1]
         )
 
-        cumu_widths = np.cumsum(
+        cum_col_widths = np.cumsum(
             np.concatenate((translation[[0]], col_widths[:-1] + col_margins))
         )
-        col_trans = np.stack([np.array([x, 0]) for x in cumu_widths], axis=0)
-        cumu_heights = np.cumsum(
+        col_trans = np.stack([np.array([x, 0]) for x in cum_col_widths], axis=0)
+        cum_row_heights = np.cumsum(
             np.concatenate((translation[[1]], -row_heights[1:] - row_margins))
         )
-        row_trans = np.stack([np.array([0, y]) for y in cumu_heights], axis=0)
+        row_trans = np.stack([np.array([0, y]) for y in cum_row_heights], axis=0)
 
         row_args = zip(row_trans, row_defs)
         col_args = zip(col_trans, col_defs)
 
-        quads = [
+        quads = tuple(
             self.make_quad(drow + dcol, row_def @ col_def)
             for (drow, row_def), (dcol, col_def) in itertools.product(
                 row_args, col_args
             )
-        ]
+        )
         return quads
 
 
@@ -466,20 +466,121 @@ class TestLineArray(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
 
-class TestQuadConstraints(GeometryFixtures):
+class TestQuadrilateral(GeometryFixtures):
+    """
+    Test constraints with signature `[Quadrilateral]`
+    """
+
+    @pytest.fixture()
+    def quada(self):
+        return self.make_quad(np.random.rand(2), np.random.rand(2, 2))
+
+    @pytest.fixture()
+    def aspect_ratio(self, quada):
+        width = np.linalg.norm(geo.line_vector(quada['Line0']))
+        height = np.linalg.norm(geo.line_vector(quada['Line1']))
+        return width/height
+
+    def test_AspectRatio(self, quada: geo.Quadrilateral, aspect_ratio: float):
+        res = geo.AspectRatio()((quada,), (aspect_ratio,))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def quad_box(self):
+        translation = np.random.rand(2)
+        deformation = np.diag(np.random.rand(2))
+        return self.make_quad(translation, deformation)
+
+    def test_Box(self, quad_box: geo.Quadrilateral):
+        res = geo.Box()((quad_box,), ())
+        assert np.all(np.isclose(res, 0))
+
+
+class TestQuadrilateralQuadrilateral(GeometryFixtures):
+    """
+    Test constraints with signature `[Quadrilateral, Quadrilateral]`
+    """
+
+    @pytest.fixture()
+    def margin(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def boxa(self):
+        size = np.random.rand(2)
+        origin = np.random.rand(2)
+        return self.make_quad(origin, np.diag(size))
+
+    @pytest.fixture()
+    def boxb(self):
+        size = np.random.rand(2)
+        origin = np.random.rand(2)
+        return self.make_quad(origin, np.diag(size))
+
+    @pytest.fixture(params=('bottom', 'top', 'left', 'right'))
+    def margin_side(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def outer_margin(self, boxa, boxb, margin_side):
+        a_topright = boxa['Line1/Point1'].value
+        b_topright = boxb['Line1/Point1'].value
+        a_botleft = boxa['Line0/Point0'].value
+        b_botleft = boxb['Line0/Point0'].value
+
+        if margin_side == 'left':
+            margin = (a_botleft - b_topright)[0]
+        elif margin_side == 'right':
+            margin = (b_botleft - a_topright)[0]
+        elif margin_side == 'bottom':
+            margin = (a_botleft - b_topright)[1]
+        elif margin_side == 'top':
+            margin = (b_botleft - a_topright)[1]
+        return margin
+
+    def test_OuterMargin(self, boxa, boxb, outer_margin, margin_side):
+        res = geo.OuterMargin(side=margin_side)((boxa, boxb), (outer_margin,))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def inner_margin(self, boxa, boxb, margin_side):
+        a_topright = boxa['Line1/Point1'].value
+        b_topright = boxb['Line1/Point1'].value
+        a_botleft = boxa['Line0/Point0'].value
+        b_botleft = boxb['Line0/Point0'].value
+
+        if margin_side == 'left':
+            margin = (a_botleft - b_botleft)[0]
+        elif margin_side == 'right':
+            margin = (b_topright - a_topright)[0]
+        elif margin_side == 'bottom':
+            margin = (a_botleft - b_botleft)[1]
+        elif margin_side == 'top':
+            margin = (b_topright-a_topright)[1]
+        return margin
+
+    def test_InnerMargin(self, boxa, boxb, inner_margin, margin_side):
+        res = geo.InnerMargin(side=margin_side)((boxa, boxb), (inner_margin,))
+        assert np.all(np.isclose(res, 0))
+
+
+class TestQuadrilateralArray(GeometryFixtures):
+    """
+    Test constraints with signature `[Quadrilateral, ...]`
+    """
     # @pytest.fixture(params=[(2, 1)])
     @pytest.fixture(params=[(1, 1), (2, 1), (1, 2), (2, 2)])
     def grid_shape(self, request):
         return request.param
 
     @pytest.fixture()
-    def grid_origin_dimensions(self):
-        # width, height = np.random.rand(2)
-        width, height = 1, 1
+    def grid_origin_quad_size(self):
+        """The size, (width, height), of the origin quad (top left) in a grid"""
+        width, height = np.random.rand(2)
         return (width, height)
 
     @pytest.fixture()
-    def rel_grid_dimensions(self, grid_shape: tp.Tuple[int, int]):
+    def grid_parameters(self, grid_shape: tp.Tuple[int, int]):
         num_row, num_col = grid_shape
 
         ## Random sizes and margins
@@ -505,20 +606,20 @@ class TestQuadConstraints(GeometryFixtures):
         return grid_kwargs
 
     @pytest.fixture()
-    def quads(
+    def quads_grid(
         self,
-        grid_origin_dimensions: tp.Tuple[float, float],
-        rel_grid_dimensions: tp.Mapping[str, NDArray],
+        grid_origin_quad_size: tp.Tuple[float, float],
+        grid_parameters: tp.Mapping[str, NDArray],
     ):
         origin = np.random.rand(2)
         origin = np.zeros(2)
 
-        col_margins = rel_grid_dimensions["col_margins"]
-        row_margins = rel_grid_dimensions["row_margins"]
-        rel_col_widths = rel_grid_dimensions["col_widths"]
-        rel_row_heights = rel_grid_dimensions["row_heights"]
+        col_margins = grid_parameters["col_margins"]
+        row_margins = grid_parameters["row_margins"]
+        rel_col_widths = grid_parameters["col_widths"]
+        rel_row_heights = grid_parameters["row_heights"]
 
-        origin_width, origin_height = grid_origin_dimensions
+        origin_width, origin_height = grid_origin_quad_size
         col_widths = origin_width * np.concatenate(([1], rel_col_widths))
         row_heights = origin_height * np.concatenate(([1], rel_row_heights))
 
@@ -526,116 +627,32 @@ class TestQuadConstraints(GeometryFixtures):
             origin, col_margins, row_margins, col_widths, row_heights
         )
 
+    def test_RectilinearGrid(
+        self, quads_grid: tp.List[geo.Quadrilateral], grid_shape: tp.Tuple[int, int]
+    ):
+        res = geo.RectilinearGrid(grid_shape)(quads_grid, ())
+        assert np.all(np.isclose(res, 0))
+
     def test_Grid(
         self,
-        quads: tp.List[geo.Quadrilateral],
+        quads_grid: tp.List[geo.Quadrilateral],
         grid_shape: tp.Tuple[int, int],
-        rel_grid_dimensions: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
+        grid_parameters: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
     ):
-        root_prim = Node(None, {f'Quad{n}': quad for n, quad in enumerate(quads)})
+        root_prim = Node(None, {f'Quad{n}': quad for n, quad in enumerate(quads_grid)})
 
         fig, ax = plt.subplots(1, 1, figsize=(8, 8))
         ax.grid(which='both', axis='both')
         ax.xaxis.set_minor_locator(MultipleLocator(0.1))
         ax.yaxis.set_minor_locator(MultipleLocator(0.1))
         ax.set_aspect(1)
-        # ax.set_xlim(0, 10)
-        # ax.set_ylim(0, 10)
         ui.plot_prims(ax, root_prim)
 
-        fig.savefig(f"out/quad_grid_{grid_shape}.png")
+        fig.savefig(f"quad_grid_{grid_shape}.png")
 
-        res = geo.Grid(grid_shape)(quads, rel_grid_dimensions)
+        res = geo.Grid(grid_shape)(quads_grid, grid_parameters)
         assert np.all(np.isclose(res, 0))
 
-    def test_RectilinearGrid(
-        self, quads: tp.List[geo.Quadrilateral], grid_shape: tp.Tuple[int, int]
-    ):
-        # {"shape": grid_shape}
-        res = geo.RectilinearGrid(grid_shape)(quads, ())
-        assert np.all(np.isclose(res, 0))
-
-    @pytest.fixture()
-    def quad_box(self):
-        translation = np.random.rand(2)
-        deformation = np.diag(np.random.rand(2))
-        return self.make_quad(translation, deformation)
-
-    def test_Box(self, quad_box: geo.Quadrilateral):
-        res = geo.Box()((quad_box,), ())
-
-        assert np.all(np.isclose(res, 0))
-
-    @pytest.fixture()
-    def quada(self):
-        return self.make_quad(np.random.rand(2), np.random.rand(2, 2))
-
-    @pytest.fixture()
-    def aspect_ratio(self, quada):
-        width = np.linalg.norm(geo.line_vector(quada['Line0']))
-        height = np.linalg.norm(geo.line_vector(quada['Line1']))
-        return width/height
-
-    def test_AspectRatio(self, quada: geo.Quadrilateral, aspect_ratio: float):
-        res = geo.AspectRatio()((quada,), (aspect_ratio,))
-        assert np.all(np.isclose(res, 0))
-
-    @pytest.fixture()
-    def margin(self):
-        return np.random.rand()
-
-    @pytest.fixture()
-    def boxa(self):
-        size = np.random.rand(2)
-        origin = np.random.rand(2)
-
-        return self.make_quad(origin, np.diag(size))
-
-    @pytest.fixture()
-    def boxb(self):
-        size = np.random.rand(2)
-        origin = np.random.rand(2)
-        return self.make_quad(origin, np.diag(size))
-
-    @pytest.fixture(params=('bottom', 'top', 'left', 'right'))
-    def side(self, request):
-        return request.param
-
-    def test_OuterMargin(self, boxa, boxb, side):
-        a_topright = boxa['Line1/Point1'].value
-        b_topright = boxb['Line1/Point1'].value
-        a_botleft = boxa['Line0/Point0'].value
-        b_botleft = boxb['Line0/Point0'].value
-
-        if side == 'left':
-            margin = (a_botleft - b_topright)[0]
-        elif side == 'right':
-            margin = (b_botleft - a_topright)[0]
-        elif side == 'bottom':
-            margin = (a_botleft - b_topright)[1]
-        elif side == 'top':
-            margin = (b_botleft - a_topright)[1]
-
-        res = geo.OuterMargin(side=side)((boxa, boxb), (margin,))
-        assert np.all(np.isclose(res, 0))
-
-    def test_InnerMargin(self, boxa, boxb, side):
-        a_topright = boxa['Line1/Point1'].value
-        b_topright = boxb['Line1/Point1'].value
-        a_botleft = boxa['Line0/Point0'].value
-        b_botleft = boxb['Line0/Point0'].value
-
-        if side == 'left':
-            margin = (a_botleft - b_botleft)[0]
-        elif side == 'right':
-            margin = (b_topright - a_topright)[0]
-        elif side == 'bottom':
-            margin = (a_botleft - b_botleft)[1]
-        elif side == 'top':
-            margin = (b_topright-a_topright)[1]
-
-        res = geo.InnerMargin(side=side)((boxa, boxb), (margin,))
-        assert np.all(np.isclose(res, 0))
 
 from matplotlib import pyplot as plt
 class TestAxesConstraints(GeometryFixtures):
