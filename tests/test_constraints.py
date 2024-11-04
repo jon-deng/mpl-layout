@@ -138,10 +138,13 @@ class GeometryFixtures:
         return quads
 
 
-class TestPointConstraints(GeometryFixtures):
+class TestPoint(GeometryFixtures):
+    """
+    Test constraints with signature `[Point]`
+    """
 
     @pytest.fixture()
-    def point(self):
+    def pointa(self):
         return self.make_point(np.random.rand(2))
 
     @pytest.fixture()
@@ -153,50 +156,68 @@ class TestPointConstraints(GeometryFixtures):
     def distance(self):
         return np.random.rand()
 
-    def test_Fix(self, point):
+    def test_Fix(self, pointa):
         constraint = geo.Fix()
-        res = constraint((point,), (point.value,))
+        res = constraint((pointa,), (pointa.value,))
         assert np.all(np.isclose(res, 0))
 
-    def test_Coincident(
-        self, point: geo.Point,
-    ):
-        res = geo.Coincident()((point, point), ())
-        assert np.all(np.isclose(res, 0))
+
+class TestPointPoint(GeometryFixtures):
+    """
+    Test constraints with signature `[Point, Point]`
+    """
+
+    @pytest.fixture()
+    def pointa(self):
+        return self.make_point(np.random.rand(2))
+
+    @pytest.fixture()
+    def direction(self):
+        vec = np.random.rand(2)
+        return vec / np.linalg.norm(vec)
+
+    @pytest.fixture()
+    def distance(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def pointb(self, pointa, distance, direction):
+        return self.make_relative_point(pointa, distance * direction)
 
     def test_DirectedDistance(
-        self, point: geo.Point, distance: float, direction: NDArray
+        self, pointa: geo.Point, pointb: geo.Point, distance: float, direction: NDArray
     ):
-        pointb = self.make_relative_point(point, distance * direction)
         constraint = geo.DirectedDistance()
-        res = constraint((point, pointb), (distance, direction))
+        res = constraint((pointa, pointb), (distance, direction))
         assert np.all(np.isclose(res, 0))
 
-    def test_DirectedDistance(
-        self, point: geo.Point, distance: float, direction: NDArray
-    ):
-        pointb = self.make_relative_point(point, distance * direction)
-        constraint = geo.DirectedDistance()
-        res = constraint((point, pointb), (distance, direction))
-        assert np.all(np.isclose(res, 0))
+    @pytest.fixture()
+    def xdistance(self, distance, direction):
+        return distance*direction[0]
 
     def test_XDistance(
-        self, point: geo.Point, distance: float
+        self, pointa: geo.Point, pointb: geo.Point, xdistance: float
     ):
-        direction = np.array([1, 0])
-        pointb = self.make_relative_point(point, distance * direction)
-        res_a = geo.XDistance()((point, pointb), (distance,))
-        res_b = geo.DirectedDistance()((point, pointb), (distance, direction))
-        assert np.all(np.isclose(res_a, res_b))
+        res = geo.XDistance()((pointa, pointb), (xdistance,))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def ydistance(self, distance, direction):
+        return distance*direction[1]
 
     def test_YDistance(
-        self, point: geo.Point, distance: float
+        self, pointa: geo.Point, pointb: geo.Point, ydistance: float
     ):
-        direction = np.array([0, 1])
-        pointb = self.make_relative_point(point, distance * direction)
-        res_a = geo.YDistance()((point, pointb), (distance,))
-        res_b = geo.DirectedDistance()((point, pointb), (distance, direction))
-        assert np.all(np.isclose(res_a, res_b))
+        res = geo.YDistance()((pointa, pointb), (ydistance,))
+        assert np.all(np.isclose(res, 0))
+
+
+    def test_Coincident(
+        self, pointa: geo.Point,
+    ):
+        res = geo.Coincident()((pointa, pointa), ())
+        assert np.all(np.isclose(res, 0))
+
 
 
 class TestLineConstraints(GeometryFixtures):
