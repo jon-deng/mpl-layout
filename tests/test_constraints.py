@@ -656,9 +656,12 @@ class TestQuadrilateralArray(GeometryFixtures):
 
 from matplotlib import pyplot as plt
 class TestAxesConstraints(GeometryFixtures):
+    """
+    Test constraints with signature `[Axes, ...]`
+    """
 
     @pytest.fixture()
-    def size(self):
+    def axes_size(self):
         return np.random.rand(2)
 
     @pytest.fixture(
@@ -682,13 +685,13 @@ class TestAxesConstraints(GeometryFixtures):
     @pytest.fixture()
     def axes(
         self,
-        size: tp.Tuple[float, float],
+        axes_size: tp.Tuple[float, float],
         xaxis_position,
         yaxis_position,
         xaxis_height,
         yaxis_width
     ):
-        axes_width, axes_height = size
+        axes_width, axes_height = axes_size
         scale = np.diag([axes_width, axes_height])
         frame = self.make_quad(np.array([0, 0]), scale)
 
@@ -714,14 +717,25 @@ class TestAxesConstraints(GeometryFixtures):
         ylabel_anchor = self.make_point([0, 0])
         return geo.AxesXY(children=(frame, xaxis, yaxis, xlabel_anchor, ylabel_anchor))
 
+    def test_PositionXAxis(self, axes, xaxis_position):
+        res = geo.PositionXAxis(**xaxis_position)((axes,), ())
+        assert np.all(np.isclose(res, 0))
+
+    def test_PositionYAxis(self, axes, yaxis_position):
+        res = geo.PositionYAxis(**yaxis_position)((axes,), ())
+
+        assert np.all(np.isclose(res, 0))
+
+    # NOTE: The `..AxisHeight` constraints have signature [Quadrilateral] but are
+    # specialized to axes so I included them here rather than with `TestQuadrilateral`
     @pytest.fixture()
     def axes_mpl(
             self,
-            size: tp.Tuple[float, float],
+            axes_size: tp.Tuple[float, float],
             xaxis_position,
             yaxis_position,
         ):
-        width, height = size
+        width, height = axes_size
         # NOTE: Unit dimensions of the figure are important because `fig.add_axes`
         # units are relative to figure dimensions
         fig = plt.figure(figsize=(1, 1))
@@ -749,26 +763,15 @@ class TestAxesConstraints(GeometryFixtures):
     def xaxis_height(self, axes_mpl):
         return geo.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
 
-    @pytest.fixture()
-    def yaxis_width(self, axes_mpl):
-        return geo.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
-
-    # NOTE: The `..AxisHeight` tests rely on them using `Distance` type constraints to
-    # implement the residual
     def test_XAxisHeight(self, axes, axes_mpl):
         res = geo.XAxisHeight()((axes['XAxis'],), (axes_mpl.xaxis,))
         assert np.all(np.isclose(res, 0))
 
+    @pytest.fixture()
+    def yaxis_width(self, axes_mpl):
+        return geo.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
+
     def test_YAxisWidth(self, axes, axes_mpl):
         res = geo.YAxisWidth()((axes['YAxis'],), (axes_mpl.yaxis,))
-        assert np.all(np.isclose(res, 0))
-
-    def test_PositionXAxis(self, axes, xaxis_position):
-        res = geo.PositionXAxis(**xaxis_position)((axes,), ())
-        assert np.all(np.isclose(res, 0))
-
-    def test_PositionYAxis(self, axes, yaxis_position):
-        res = geo.PositionYAxis(**yaxis_position)((axes,), ())
-
         assert np.all(np.isclose(res, 0))
 
