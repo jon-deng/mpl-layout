@@ -496,6 +496,20 @@ class TestQuadConstraints(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
+    def quada(self):
+        return self.make_quad(np.random.rand(2), np.random.rand(2, 2))
+
+    @pytest.fixture()
+    def aspect_ratio(self, quada):
+        width = np.linalg.norm(geo.line_vector(quada['Line0']))
+        height = np.linalg.norm(geo.line_vector(quada['Line1']))
+        return width/height
+
+    def test_AspectRatio(self, quada: geo.Quadrilateral, aspect_ratio: float):
+        res = geo.AspectRatio()((quada,), (aspect_ratio,))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
     def margin(self):
         return np.random.rand()
 
