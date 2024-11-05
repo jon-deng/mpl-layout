@@ -492,16 +492,21 @@ class TestPointLine(GeometryFixtures):
     def reverse(self, request):
         return request.param
 
+    def calc_point_on_line_distance(self, point, line):
+        origin = line['Point0'].value
+        point_vec = point.value - origin
+
+        line_vec = geo.line_vector(line)
+        line_unit_vec = line_vec / np.linalg.norm(line_vec)
+        return np.dot(point_vec, line_unit_vec)
+
     @pytest.fixture()
     def distance_on(self, point, line, line_unit_vec, reverse):
         if reverse:
-            origin = line['Point1'].value
-            unit_vec = -line_unit_vec
+            rev_line = geo.Line(value=[], children=line.children[::-1])
+            return self.calc_point_on_line_distance(point, rev_line)
         else:
-            origin = line['Point0'].value
-            unit_vec = line_unit_vec
-        point_vec = point.value - origin
-        return np.dot(point_vec, unit_vec)
+            return self.calc_point_on_line_distance(point, line)
 
     @pytest.fixture()
     def relative_distance_on(self, distance_on, line_length):
@@ -509,6 +514,19 @@ class TestPointLine(GeometryFixtures):
 
     def test_RelativeDistanceOnLine(self, point, line, relative_distance_on, reverse):
         res = geo.RelativeDistanceOnLine()((point, line), (relative_distance_on, reverse))
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture(params=[-1, 1])
+    def zsign(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def distance_to(self, point, line, line_unit_vec, zsign):
+        orth_unit_vec = np.cross(line_unit_vec, [0, 0, zsign])[:2]
+        return np.dot(point.value - line['Point0'].value, orth_unit_vec)
+
+    def test_DistanceToLine(self, point, line, distance_to, zsign):
+        res = geo.DistanceToLine()((point, line), (distance_to, zsign))
         assert np.all(np.isclose(res, 0))
 
 

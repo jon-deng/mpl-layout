@@ -1182,9 +1182,56 @@ class RelativeDistanceOnLine(StaticConstraint):
         proj_dist = jnp.dot(point.value-origin, unit_vec)
         return jnp.array([proj_dist - distance*line_length])
 
-# TODO:
-# class DistanceToLine(StaticConstraint)
-# This would constraint the projected distance of a point to a line
+
+class DistanceToLine(StaticConstraint):
+    """
+    Constrain the orthogonal distance of a point to a line
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point, pr.Line]
+        The point and line
+    distance: float
+    zsign: NDArray
+        The z direction used to specify the orthogonal direction
+
+        The orthogonal direction is computed using `np.cross(line_vector, [0, 0, zsign])`.
+        In 2D, if the normal points into the page, then the orthogonal points left
+        of the line facing the line direction.
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Line)
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "zsign"))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def assem_res(
+        self,
+        prims: tp.Tuple[pr.Point, pr.Line],
+        distance: float=0,
+        zsign: float=-1
+    ):
+        """
+        Return the projected distance error of a point along a line
+        """
+        point, line = prims
+
+        line_vec = line_vector(line)
+        line_length = jnp.linalg.norm(line_vec)
+        line_unit_vec = line_vec / line_length
+
+        orth_unit_vec = jnp.cross(line_unit_vec, np.array([0, 0, zsign]))[:2]
+
+        origin = line['Point0'].value
+
+        proj_dist = jnp.dot(point.value-origin, orth_unit_vec)
+        return jnp.array([proj_dist - distance])
+#
+# This would constrain the projected distance of a point to a line
 # You would need a convention of which "distance" is positive by picking an orthogonal
 # to the line
 # This would be useful to constrain a point to line on a line or off set a line from a point
