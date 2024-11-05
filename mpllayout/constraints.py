@@ -1138,7 +1138,7 @@ class CollinearArray(DynamicConstraint):
 # class DistanceOnLine(StaticConstraint)
 # This would constraint the projected absolute distance of a point on a line
 
-class RelativeDistanceOnLine(StaticConstraint):
+class RelativePointOnLineDistance(StaticConstraint):
     """
     Constrain the projected distance of a point along a line
 
@@ -1183,7 +1183,7 @@ class RelativeDistanceOnLine(StaticConstraint):
         return jnp.array([proj_dist - distance*line_length])
 
 
-class DistanceToLine(StaticConstraint):
+class PointToLineDistance(StaticConstraint):
     """
     Constrain the orthogonal distance of a point to a line
 

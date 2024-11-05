@@ -513,7 +513,7 @@ class TestPointLine(GeometryFixtures):
         return distance_on/line_length
 
     def test_RelativeDistanceOnLine(self, point, line, relative_distance_on, reverse):
-        res = geo.RelativeDistanceOnLine()((point, line), (relative_distance_on, reverse))
+        res = geo.RelativePointOnLineDistance()((point, line), (relative_distance_on, reverse))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture(params=[-1, 1])
@@ -526,7 +526,7 @@ class TestPointLine(GeometryFixtures):
         return np.dot(point.value - line['Point0'].value, orth_unit_vec)
 
     def test_DistanceToLine(self, point, line, distance_to, zsign):
-        res = geo.DistanceToLine()((point, line), (distance_to, zsign))
+        res = geo.PointToLineDistance()((point, line), (distance_to, zsign))
         assert np.all(np.isclose(res, 0))
 
 
