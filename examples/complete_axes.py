@@ -50,7 +50,7 @@ if __name__ == "__main__":
     ## Constrain margins around the axes to the figure
     # Constrain left/right margins
     margin_left = 0.1
-    margin_right = 0.1
+    margin_right = 1/4
 
     layout.add_constraint(
         geo.InnerMargin(side='left'), ("Axes/Frame", "Figure"), (margin_left,)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     )
 
     # Constrain top/bottom margins
-    margin_top = 0.1
+    margin_top = 1/4
     margin_bottom = 0.1
     layout.add_constraint(
         geo.InnerMargin(side='bottom'), ("Axes/Frame", "Figure"), (margin_bottom,)
@@ -89,9 +89,16 @@ if __name__ == "__main__":
     ## Position the x/y axis label text anchors
     # When creating axes from the primitives, `lplt.subplots` will detect these
     # and set their locations
-    # TODO: User a nicer label placement
-    layout.add_constraint(geo.Coincident(), ("Axes/XAxisLabel", "Axes/XAxis/Line2/Point1"), ())
-    layout.add_constraint(geo.Coincident(), ("Axes/YAxisLabel", "Axes/YAxis/Line0/Point1"), ())
+    on_line = geo.RelativePointOnLineDistance()
+    to_line = geo.PointToLineDistance()
+
+    # Pad x/y axis label from the axis bbox and make it halfway along
+    pad = 1/16
+    layout.add_constraint(on_line, ("Axes/XAxisLabel", "Axes/XAxis/Line2"), {"distance": 0.5, "reverse": True})
+    layout.add_constraint(to_line, ("Axes/XAxisLabel", "Axes/XAxis/Line2"), {"distance": pad, "reverse": True})
+
+    layout.add_constraint(on_line, ("Axes/YAxisLabel", "Axes/YAxis/Line1"), {"distance": 0.5, "reverse": True})
+    layout.add_constraint(to_line, ("Axes/YAxisLabel", "Axes/YAxis/Line1"), {"distance": pad, "reverse": True})
 
     ## Solve the constraints and form the figure/axes layout
     prim_tree_n, solve_info = solver.solve(
@@ -107,8 +114,8 @@ if __name__ == "__main__":
     x = np.linspace(0, 1)
     axs["Axes"].plot(x, x**2)
 
-    axs["Axes"].xaxis.set_label_text("My x label", ha="left")
-    axs["Axes"].yaxis.set_label_text("My y label", ha="left")
+    axs["Axes"].xaxis.set_label_text("My x label", ha="center", va="bottom")
+    axs["Axes"].yaxis.set_label_text("My y label", ha="center", va="bottom", rotation=-90)
 
     ax = axs["Axes"]
 
