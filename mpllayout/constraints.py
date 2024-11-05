@@ -1148,7 +1148,11 @@ class RelativePointOnLineDistance(StaticConstraint):
         The point and line
     distance: float
     reverse: bool
-        A boolean indicating whether to coincide lines in the same or reverse directions
+        A boolean indicating whether to reverse the line direction
+
+        The distance of the point on the line is measured either from the start or end
+        point of the line based on `reverse`. If `reverse=False` then the start point is
+        used.
     """
 
     @classmethod
@@ -1192,18 +1196,18 @@ class PointToLineDistance(StaticConstraint):
     prims: tp.Tuple[pr.Point, pr.Line]
         The point and line
     distance: float
-    zsign: NDArray
-        The z direction used to specify the orthogonal direction
+    reverse: NDArray
+        Whether to reverse the line direction for measuring the orthogonal
 
-        The orthogonal direction is computed using `np.cross(line_vector, [0, 0, zsign])`.
-        In 2D, if the normal points into the page, then the orthogonal points left
-        of the line facing the line direction.
+        By convention the orthogonal direction points to the left of the line relative
+        to the line direction. If `reverse=True` then the orthogonal direction points to
+        the right of the line.
     """
 
     @classmethod
     def init_tree(cls):
         ARG_TYPES = (pr.Point, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "zsign"))
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "reverse"))
 
         CHILD_ARGKEYS = ()
         CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
@@ -1213,10 +1217,10 @@ class PointToLineDistance(StaticConstraint):
         self,
         prims: tp.Tuple[pr.Point, pr.Line],
         distance: float=0,
-        zsign: float=-1
+        reverse: bool=False
     ):
         """
-        Return the projected distance error of a point along a line
+        Return the projected distance error of a point to a line
         """
         point, line = prims
 
@@ -1224,6 +1228,7 @@ class PointToLineDistance(StaticConstraint):
         line_length = jnp.linalg.norm(line_vec)
         line_unit_vec = line_vec / line_length
 
+        zsign = 1 if reverse else -1
         orth_unit_vec = jnp.cross(line_unit_vec, np.array([0, 0, zsign]))[:2]
 
         origin = line['Point0'].value
