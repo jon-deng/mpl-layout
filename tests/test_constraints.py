@@ -466,6 +466,52 @@ class TestLineArray(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
 
+class TestPointLine(GeometryFixtures):
+    """
+    Test constraints with signature `[Point, Line]`
+    """
+
+    @pytest.fixture()
+    def point(self):
+        return self.make_point(np.random.rand(2))
+
+    @pytest.fixture()
+    def line_length(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def line_unit_vec(self):
+        line_vec = np.random.rand(2)
+        return line_vec/np.linalg.norm(line_vec)
+
+    @pytest.fixture()
+    def line(self, line_length, line_unit_vec):
+        return self.make_line(np.random.rand(2), line_length*line_unit_vec)
+
+    @pytest.fixture(params=[False, True])
+    def reverse(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def distance_on(self, point, line, line_unit_vec, reverse):
+        if reverse:
+            origin = line['Point1'].value
+            unit_vec = -line_unit_vec
+        else:
+            origin = line['Point0'].value
+            unit_vec = line_unit_vec
+        point_vec = point.value - origin
+        return np.dot(point_vec, unit_vec)
+
+    @pytest.fixture()
+    def relative_distance_on(self, distance_on, line_length):
+        return distance_on/line_length
+
+    def test_RelativeDistanceOnLine(self, point, line, relative_distance_on, reverse):
+        res = geo.RelativeDistanceOnLine()((point, line), (relative_distance_on, reverse))
+        assert np.all(np.isclose(res, 0))
+
+
 class TestQuadrilateral(GeometryFixtures):
     """
     Test constraints with signature `[Quadrilateral]`

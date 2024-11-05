@@ -1138,11 +1138,49 @@ class CollinearArray(DynamicConstraint):
 # class DistanceOnLine(StaticConstraint)
 # This would constraint the projected absolute distance of a point on a line
 
-# TODO:
-# class RelativeDistanceOnLine(StaticConstraint)
-# This would constraint the projected distance of a point on a line relative to the line
-# length (i.e. 0 and 1 would correspond to the start and end points of the line)
-# This would be useful to put axis label halfway along an axis for example!
+class RelativeDistanceOnLine(StaticConstraint):
+    """
+    Constrain the projected distance of a point along a line
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.Point, pr.Line]
+        The point and line
+    distance: float
+    reverse: bool
+        A boolean indicating whether to coincide lines in the same or reverse directions
+    """
+
+    @classmethod
+    def init_tree(cls):
+        ARG_TYPES = (pr.Point, pr.Line)
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "reverse"))
+
+        CHILD_ARGKEYS = ()
+        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    def assem_res(
+        self,
+        prims: tp.Tuple[pr.Point, pr.Line],
+        distance: float=0,
+        reverse: bool=False
+    ):
+        """
+        Return the projected distance error of a point along a line
+        """
+        point, line = prims
+        if reverse:
+            origin = line['Point1'].value
+            line_vec = -line_vector(line)
+        else:
+            origin = line['Point0'].value
+            line_vec = line_vector(line)
+        line_length = jnp.linalg.norm(line_vec)
+        unit_vec = line_vec / line_length
+
+        proj_dist = jnp.dot(point.value-origin, unit_vec)
+        return jnp.array([proj_dist - distance*line_length])
 
 # TODO:
 # class DistanceToLine(StaticConstraint)
