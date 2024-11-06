@@ -92,13 +92,18 @@ if __name__ == "__main__":
     on_line = geo.RelativePointOnLineDistance()
     to_line = geo.PointToLineDistance()
 
-    # Pad x/y axis label from the axis bbox and make it halfway along
+    ## Pad x/y axis label from the axis bbox
     pad = 1/16
-    layout.add_constraint(on_line, ("Axes/XAxisLabel", "Axes/XAxis/Line2"), {"distance": 0.5, "reverse": True})
     layout.add_constraint(to_line, ("Axes/XAxisLabel", "Axes/XAxis/Line2"), {"distance": pad, "reverse": True})
-
-    layout.add_constraint(on_line, ("Axes/YAxisLabel", "Axes/YAxis/Line1"), {"distance": 0.5, "reverse": True})
     layout.add_constraint(to_line, ("Axes/YAxisLabel", "Axes/YAxis/Line1"), {"distance": pad, "reverse": True})
+
+    ## Center the axis labels halfway along the axes width/height
+    layout.add_constraint(geo.PositionXAxisLabel(), ("Axes",), {"distance": 0.5})
+    layout.add_constraint(geo.PositionYAxisLabel(), ("Axes",), {"distance": 0.5})
+
+    # This is what `Position...AxisLabel` does under the hood
+    # layout.add_constraint(on_line, ("Axes/XAxisLabel", "Axes/XAxis/Line2"), {"distance": 0.5, "reverse": True})
+    # layout.add_constraint(on_line, ("Axes/YAxisLabel", "Axes/YAxis/Line1"), {"distance": 0.5, "reverse": True})
 
     ## Solve the constraints and form the figure/axes layout
     prim_tree_n, solve_info = solver.solve(
