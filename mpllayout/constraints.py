@@ -1763,3 +1763,66 @@ class PositionYAxis(ParameterizedConstraint):
     def assem_res(self, prims: tp.Tuple[pr.AxesXY]):
         return np.array([])
 
+
+class PositionXAxisLabel(StaticConstraint):
+    """
+    Constrain the x-axis label horizontal distance (left to right) relative to axes width
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.AxesX | pr.AxesXY]
+        The axes
+    distance: float
+        The axes fraction from the left to position the label
+    """
+
+    @classmethod
+    def init_tree(cls):
+        # TODO: Handle more specialized x/y axes combos?
+        ARG_TYPES = (pr.AxesXY,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
+        CONSTANTS = namedtuple("Constants", ())
+
+        CHILD_KEYS = ('RelativePointOnLineDistance',)
+        CHILD_CONSTRAINTS = (RelativePointOnLineDistance(),)
+        CHILD_ARGKEYS = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    @classmethod
+    def split_children_params(cls, params):
+        return ({"distance": params.distance, "reverse": False},)
+
+    def assem_res(self, prims: tp.Tuple[pr.AxesXY], distance: float=0.5):
+        return np.array([])
+
+
+class PositionYAxisLabel(StaticConstraint):
+    """
+    Constrain the y-axis label vertical distance (bottom to top) relative to axes height
+
+    Parameters
+    ----------
+    prims: tp.Tuple[pr.AxesX | pr.AxesXY]
+        The axes
+    distance: float
+        The axes fraction from the bottom to position the label
+    """
+
+    @classmethod
+    def init_tree(cls):
+        # TODO: Handle more specialized x/y axes combos?
+        ARG_TYPES = (pr.AxesXY,)
+        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
+        CONSTANTS = namedtuple("Constants", ())
+
+        CHILD_KEYS = ('RelativePointOnLineDistance',)
+        CHILD_CONSTRAINTS = (RelativePointOnLineDistance(),)
+        CHILD_ARGKEYS = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
+        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+
+    @classmethod
+    def split_children_params(cls, params):
+        return ({"distance": params.distance, "reverse": False},)
+
+    def assem_res(self, prims: tp.Tuple[pr.AxesXY], distance: float=0.5):
+        return np.array([])

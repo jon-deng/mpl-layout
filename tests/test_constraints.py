@@ -744,13 +744,23 @@ class TestAxesConstraints(GeometryFixtures):
         return request.param
 
     @pytest.fixture()
+    def xlabel_position(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def ylabel_position(self):
+        return np.random.rand()
+
+    @pytest.fixture()
     def axes(
         self,
         axes_size: tp.Tuple[float, float],
         xaxis_position,
         yaxis_position,
         xaxis_height,
-        yaxis_width
+        yaxis_width,
+        xlabel_position,
+        ylabel_position
     ):
         axes_width, axes_height = axes_size
         scale = np.diag([axes_width, axes_height])
@@ -774,8 +784,18 @@ class TestAxesConstraints(GeometryFixtures):
         else:
             raise ValueError()
 
-        xlabel_anchor = self.make_point([0, 0])
-        ylabel_anchor = self.make_point([0, 0])
+        def point_from_arclength(line: geo.Line, s: float):
+            origin = line['Point0'].value
+            line_vector = geo.line_vector(line)
+            return origin + s*line_vector
+
+        xlabel_anchor = self.make_point(
+            [point_from_arclength(xaxis['Line0'], xlabel_position)[0], np.random.rand()]
+        )
+        ylabel_anchor = self.make_point(
+            [np.random.rand(), point_from_arclength(yaxis['Line1'], ylabel_position)[1]]
+        )
+
         return geo.AxesXY(children=(frame, xaxis, yaxis, xlabel_anchor, ylabel_anchor))
 
     def test_PositionXAxis(self, axes, xaxis_position):
@@ -784,6 +804,15 @@ class TestAxesConstraints(GeometryFixtures):
 
     def test_PositionYAxis(self, axes, yaxis_position):
         res = geo.PositionYAxis(**yaxis_position)((axes,), ())
+
+        assert np.all(np.isclose(res, 0))
+
+    def test_PositionXAxisLabel(self, axes, xlabel_position):
+        res = geo.PositionXAxisLabel()((axes,), (xlabel_position,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_PositionYAxisLabel(self, axes, ylabel_position):
+        res = geo.PositionYAxisLabel()((axes,), (ylabel_position,))
 
         assert np.all(np.isclose(res, 0))
 
