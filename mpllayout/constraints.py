@@ -1631,7 +1631,7 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
     axis_bbox = axis.get_tightbbox()
 
     if axis_bbox is None:
-        height = 0
+        dim = 0
     else:
         axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
         fig_width, fig_height = axis.axes.figure.get_size_inches()
