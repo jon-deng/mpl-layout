@@ -127,7 +127,7 @@ class ParameterizedPrimitive(Primitive):
         if prims is None:
             prims = self.default_prims(**kwargs)
 
-        super().__init__(value, *self.init_topology(prims))
+        super().__init__(value, *self.init_topology(prims, **kwargs))
 
 
 ## Primitive definitions
@@ -202,56 +202,40 @@ class Quadrilateral(Polygon):
         super().__init__(value, children, size=4)
 
 
-class Axes(StaticPrimitive):
+class Axes(ParameterizedPrimitive):
 
-    def default_value(self):
+    def default_value(self, xaxis=False, yaxis=False):
         return np.array([])
 
-    def default_prims(self):
-        return (Quadrilateral(),)
+    def default_prims(self, xaxis=False, yaxis=False):
+        if xaxis:
+            xaxis_prims = (Quadrilateral(), Point())
+        else:
+            xaxis_prims = ()
+
+        if yaxis:
+            yaxis_prims = (Quadrilateral(), Point())
+        else:
+            yaxis_prims = ()
+        return (Quadrilateral(),) + xaxis_prims + yaxis_prims
 
     def init_topology(
-        self, prims: tp.List[Primitive]
+        self, prims: tp.List[Primitive], xaxis=False, yaxis=False
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
-        return ("Frame", ), prims
 
+        if xaxis:
+            xaxis_keys = ("XAxis", "XAxisLabel")
+        else:
+            xaxis_keys = ()
 
-class AxesX(StaticPrimitive):
+        if yaxis:
+            yaxis_keys = ("YAxis", "YAxisLabel")
+        else:
+            yaxis_keys = ()
+        return ("Frame",) + xaxis_keys + yaxis_keys, prims
 
-    def default_value(self):
-        return np.array([])
-
-    def default_prims(self):
-        return (
-            Quadrilateral(), Quadrilateral(), Point()
-        )
-
-    def init_topology(
-        self, prims: tp.List[Primitive]
-    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
-        child_keys = ("Frame", "XAxis", "XAxisLabel")
-        child_prims = prims
-        return child_keys, child_prims
-
-
-class AxesXY(StaticPrimitive):
-
-    def default_value(self):
-        return np.array([])
-
-    def default_prims(self):
-        return (
-            Quadrilateral(), Quadrilateral(), Point(), Quadrilateral(), Point()
-        )
-
-    def init_topology(
-        self, prims: tp.List[Primitive]
-    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
-        child_keys = (
-            "Frame", "XAxis", "XAxisLabel", "YAxis", "YAxisLabel"
-        )
-        child_prims = prims
-        return child_keys, child_prims
+    def __init__(self, value=None, prims=None, xaxis=False, yaxis=False):
+        super().__init__(value, prims, xaxis=xaxis, yaxis=yaxis)
 
 
 ## Register `Primitive` classes as `jax.pytree`

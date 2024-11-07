@@ -800,7 +800,11 @@ class TestAxesConstraints(GeometryFixtures):
             [np.random.rand(), point_from_arclength(yaxis['Line1'], ylabel_position)[1]]
         )
 
-        return geo.AxesXY(prims=(frame, xaxis, xlabel_anchor, yaxis, ylabel_anchor))
+        return geo.Axes(
+            prims=(frame, xaxis, xlabel_anchor, yaxis, ylabel_anchor),
+            xaxis=True,
+            yaxis=True
+        )
 
     def test_PositionXAxis(self, axes, xaxis_position):
         res = geo.PositionXAxis(**xaxis_position)((axes,), ())

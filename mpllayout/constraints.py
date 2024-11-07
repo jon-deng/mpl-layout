@@ -1735,14 +1735,14 @@ class PositionXAxis(ParameterizedConstraint):
 
     Parameters
     ----------
-    prims: tp.Tuple[pr.AxesY | pr.AxesXY]
+    prims: tp.Tuple[pr.Axes]
         The axes
     """
 
     @classmethod
     def init_tree(cls, bottom: bool, top: bool):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.AxesXY,)
+        ARG_TYPES = (pr.Axes,)
         ARG_PARAMETERS = namedtuple("Parameters", ())
         CONSTANTS = namedtuple("Constants", ())
 
@@ -1765,7 +1765,7 @@ class PositionXAxis(ParameterizedConstraint):
     def __init__(self, bottom: bool=True, top: bool=False):
         return super().__init__(bottom=bottom, top=top)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesXY]):
+    def assem_res(self, prims: tp.Tuple[pr.Axes]):
         return np.array([])
 
 
@@ -1775,14 +1775,14 @@ class PositionYAxis(ParameterizedConstraint):
 
     Parameters
     ----------
-    prims: tp.Tuple[pr.AxesY | pr.AxesXY]
+    prims: tp.Tuple[pr.Axes]
         The axes
     """
 
     @classmethod
     def init_tree(cls, left: bool=True, right: bool=False):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.AxesXY,)
+        ARG_TYPES = (pr.Axes,)
         ARG_PARAMETERS = namedtuple("Parameters", ())
         CONSTANTS = namedtuple("Constants", ())
 
@@ -1805,7 +1805,7 @@ class PositionYAxis(ParameterizedConstraint):
     def __init__(self, left: bool=True, right: bool=False):
         return super().__init__(left=left, right=right)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesXY]):
+    def assem_res(self, prims: tp.Tuple[pr.Axes]):
         return np.array([])
 
 
@@ -1815,7 +1815,7 @@ class PositionXAxisLabel(StaticConstraint):
 
     Parameters
     ----------
-    prims: tp.Tuple[pr.AxesX | pr.AxesXY]
+    prims: tp.Tuple[pr.AxesX | pr.Axes]
         The axes
     distance: float
         The axes fraction from the left to position the label
@@ -1824,7 +1824,7 @@ class PositionXAxisLabel(StaticConstraint):
     @classmethod
     def init_tree(cls):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.AxesXY,)
+        ARG_TYPES = (pr.Axes,)
         ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
         CONSTANTS = namedtuple("Constants", ())
 
@@ -1837,7 +1837,7 @@ class PositionXAxisLabel(StaticConstraint):
     def split_children_params(cls, params):
         return ({"distance": params.distance, "reverse": False},)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesXY], distance: float=0.5):
+    def assem_res(self, prims: tp.Tuple[pr.Axes], distance: float=0.5):
         return np.array([])
 
 
@@ -1847,7 +1847,7 @@ class PositionYAxisLabel(StaticConstraint):
 
     Parameters
     ----------
-    prims: tp.Tuple[pr.AxesX | pr.AxesXY]
+    prims: tp.Tuple[pr.AxesX | pr.Axes]
         The axes
     distance: float
         The axes fraction from the bottom to position the label
@@ -1856,7 +1856,7 @@ class PositionYAxisLabel(StaticConstraint):
     @classmethod
     def init_tree(cls):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.AxesXY,)
+        ARG_TYPES = (pr.Axes,)
         ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
         CONSTANTS = namedtuple("Constants", ())
 
@@ -1869,5 +1869,5 @@ class PositionYAxisLabel(StaticConstraint):
     def split_children_params(cls, params):
         return ({"distance": params.distance, "reverse": False},)
 
-    def assem_res(self, prims: tp.Tuple[pr.AxesXY], distance: float=0.5):
+    def assem_res(self, prims: tp.Tuple[pr.Axes], distance: float=0.5):
         return np.array([])
