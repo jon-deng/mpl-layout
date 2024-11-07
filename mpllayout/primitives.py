@@ -26,82 +26,26 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
 
     A `Primitive` can be parameterized by a parameter vector as well as
     other geometric primitives. For example, a point in 2D is parameterized by a
-    vector representing (x, y) coordinates. Primitives can also contain implicit
-    constraints to represent common use-cases. For example, an origin point may
-    be explicitly constrained to have (0, 0) coordinates.
-
-    To create a `Primitive` class, subclass `Primitive` and define the class
-    attributes `PARAM_SHAPE`, `CHILD_TYPES`, `CHILD_KEYS`
+    vector representing (x, y) coordinates.
 
     Parameters
     ----------
     value: NDArray with shape (n,)
         A parameter vector for the primitive
-    children: PrimList
-        A tuple of primitives parameterizing the primitive
-
-    Attributes
-    ----------
-    value: NDArray[float] with shape (n,)
-        A parameter vector for the primitive
-    children: tp.List[Primitive]
-        If non-empty, the primitive contains child geometric primitives in
-        `self.children`
-    keys: tp.List[str]
-
-    PARAM_SHAPE: ArrayShape
-        The shape of the parameter vector parameterizing the `Primitive`
-    CHILD_TYPES: tp.Tuple[tp.Type['Primitive'], ...]
-        The types of child primitives parameterizing the `Primitive`
-    CHILD_KEYS: tp.Tuple[str, ...]
-        Keys for the child primitives
+    child_keys: tp.List[str]
+        Child primitive keys
+    child_prims: tp.List[ChildPrimitive]
+        Child primitives representing the topology
     """
-
-    ## Specific primitive classes should define these to represent different primitives
-    PARAM_SHAPE: ArrayShape = (0,)
-    CHILD_TYPES: tp.Tuple[tp.Type[ChildPrimitive], ...]
-    CHILD_KEYS: tp.Tuple[str, ...]
 
     def __init__(
         self,
-        value: tp.Optional[NDArray] = None,
-        children: tp.Optional[tp.List["Primitive"]] = None,
+        value: NDArray,
+        child_keys: tp.List[str],
+        child_prims: tp.List[ChildPrimitive],
     ):
-        # NOTE: `Primitive` classes specify keys through `Primitive.CHILD_KEYS`
-        # This is unlike `Node`, so `keys` is basically ignored!
-
-        # Create default `value` if unspecified
-        if value is None:
-            value = np.zeros(self.PARAM_SHAPE, dtype=float)
-        elif isinstance(value, (list, tuple)):
-            value = np.array(value)
-        elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
-            value = value
-        else:
-            raise TypeError(f"Invalid type {type(value)} for `value`")
-
-        # Create default `children` if unspecified
-        if children is None:
-            children = tuple(Child() for Child in self.CHILD_TYPES)
-
-        # Validate the number of child primitives
-        if len(children) != len(self.CHILD_TYPES):
-            raise ValueError(
-                f"Expected {num_child} child primitives, got {len(children)}"
-            )
-
-        # Validate child primitive types
-        type_comparisons = (
-            type(child) == ref_type
-            for child, ref_type in zip(children, self.CHILD_TYPES)
-        )
-        if not all(type_comparisons):
-            raise TypeError(f"Expected child types {ref_types} got {child_types}")
-
-        # Create keys from class primitive labels
-        children_map = {key: prim for key, prim in zip(self.CHILD_KEYS, children)}
-
-        super().__init__(value, children_map)
+        children = {key: prim for key, prim in zip(child_keys, child_prims)}
+        super().__init__(value, children)
 
 
 class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
@@ -111,73 +55,138 @@ class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
 PrimList = tp.List[Primitive]
 
 
-## Actual primitive classes
-
-
-class Point(Primitive):
+class StaticPrimitive(Primitive):
     """
-    A point
-    """
+    A "static" geometric primitive
 
-    PARAM_SHAPE = (2,)
-    CHILD_TYPES = ()
-    CHILD_KEYS = ()
-
-
-class Line(Primitive[Point]):
-    """
-    A straight line segment between two points
+    Static primitives have predefined sizes and the signature below
     """
 
-    PARAM_SHAPE = (0,)
-    CHILD_TYPES = (Point, Point)
-    CHILD_KEYS = ("Point0", "Point1")
+    def default_value(self):
+        raise NotImplementedError()
 
+    def default_prims(self):
+        raise NotImplementedError()
 
-class Polygon(Primitive[Line]):
-    """
-    A polygon through a given set of points
-    """
-
-    PARAM_SHAPE = (0,)
-    CHILD_TYPES: tp.Tuple[Line, ...]
-    CHILD_KEYS: tp.Tuple[str, ...]
+    def init_topology(
+        self, value: NDArray, prims: tp.List[Primitive]
+    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        raise NotImplementedError()
 
     def __init__(
         self,
         value: tp.Optional[NDArray] = None,
-        children: tp.Optional[tp.List[Point]] = None,
+        prims: tp.Optional[tp.List[Primitive]] = None,
     ):
-        if children is None:
-            children = []
-
-        if not hasattr(self, "CHILD_TYPES"):
-            self.CHILD_TYPES = len(children) * (Line,)
-        if not hasattr(self, "CHILD_KEYS"):
-            self.CHILD_KEYS = tuple(f"Line{n}" for n in range(len(children)))
-
-        # Polygons contain lines as `CHILD_TYPES` but it's easier to
-        # pass the points the lines pass through as children instead.
-        # The constructor therefore accepts points instead of lines
-        # but passes the actual lines to the `Primitive`
-        if all(isinstance(prim, Point) for prim in children):
-            lines = self._points_to_lines(children)
+        if value is None:
+            value = self.default_value()
+        elif isinstance(value, (list, tuple)):
+            value = np.array(value)
+        elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
+            value = value
         else:
             raise TypeError()
 
-        super().__init__(value, lines)
+        if prims is None:
+            prims = self.default_prims()
 
-    @staticmethod
-    def _points_to_lines(children: tp.List[Point]) -> tp.List[Line]:
-        """
-        Return a sequence of joined lines through a set of points
-        """
-        lines = [
+        super().__init__(value, *self.init_topology(value, prims))
+
+
+class ParameterizedPrimitive(Primitive):
+    """
+    A "parameterized" geometric primitive
+
+    Parameterized primitives have variable sizes based on keyword arguments
+    """
+
+    def default_value(self, **kwargs):
+        raise NotImplementedError()
+
+    def default_prims(self, **kwargs):
+        raise NotImplementedError()
+
+    def init_topology(
+        self, value: NDArray, prims: tp.List[Primitive], **kwargs
+    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        raise NotImplementedError()
+
+    def __init__(
+        self,
+        value: tp.Optional[NDArray] = None,
+        prims: tp.Optional[tp.List[Primitive]] = None,
+        **kwargs
+    ):
+        if value is None:
+            value = self.default_value(**kwargs)
+        elif isinstance(value, (list, tuple)):
+            value = np.array(value)
+        else:
+            raise TypeError()
+
+        if prims is None:
+            prims = self.default_prims(**kwargs)
+
+        super().__init__(value, *self.init_topology(value, prims))
+
+
+## Primitive definitions
+
+class Point(StaticPrimitive):
+    """
+    A point
+    """
+
+    def default_value(self):
+        return np.array([0, 0])
+
+    def default_prims(self):
+        return ()
+
+    def init_topology(self, value, prims):
+        return (), ()
+
+
+class Line(StaticPrimitive):
+    """
+    A straight line segment between two points
+    """
+
+    def default_value(self):
+        return np.array([0, 0])
+
+    def default_prims(self):
+        return (Point([0, 0]), Point([0, 1]))
+
+    def init_topology(self, value, prims: tp.Tuple[Point, Point]):
+        return ("Point0", "Point1"), prims
+
+
+class Polygon(ParameterizedPrimitive):
+    """
+    A polygon through a given set of points
+    """
+
+    def default_value(self, size=3):
+        return np.array([])
+
+    def default_prims(self, size=3):
+        # Generate points around circle
+        ii = np.arange(size)
+        xs = np.cos(2*np.pi/size * ii)
+        ys = np.sin(2*np.pi/size * ii)
+        return [Point((x, y)) for x, y in zip(xs, ys)]
+
+    def init_topology(
+        self, value: NDArray, prims: tp.List[Point], size=3
+    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        points = prims
+        child_prims = [
             Line(np.array([]), [pointa, pointb])
-            for pointa, pointb in zip(children[:], children[1:] + children[:1])
+            for pointa, pointb in zip(points[:], points[1:] + points[:1])
         ]
-
-        return lines
+        child_keys = [f"Line{n}" for n, _ in enumerate(child_prims)]
+        return child_keys, child_prims
 
 
 class Quadrilateral(Polygon):
@@ -185,45 +194,64 @@ class Quadrilateral(Polygon):
     A 4 sided closed polygon
     """
 
-    PARAM_SHAPE = (0,)
-    CHILD_TYPES = (Line, Line, Line, Line)
-    CHILD_KEYS = ("Line0", "Line1", "Line2", "Line3")
-
     def __init__(
         self,
         value: tp.Optional[NDArray] = None,
         children: tp.Optional[tp.List[Point]] = None,
     ):
-        if children is None:
-            children = [
-                Point([0, 0]),
-                Point([1, 0]),
-                Point([1, 1]),
-                Point([0, 1]),
-            ]
-
-        super().__init__(value, children)
+        super().__init__(value, children, size=4)
 
 
-class Axes(Primitive[Quadrilateral]):
+class Axes(StaticPrimitive):
 
-    PARAM_SHAPE = (0,)
-    CHILD_TYPES = (Quadrilateral,)
-    CHILD_KEYS = ("Frame",)
+    def default_value(self):
+        return np.array([])
+
+    def default_prims(self):
+        return (Quadrilateral(),)
+
+    def init_topology(
+        self, value: NDArray, prims: tp.List[Primitive]
+    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        return ("Frame", ), prims
 
 
-class AxesX(Primitive[Quadrilateral | Point]):
+class AxesX(StaticPrimitive):
 
-    PARAM_SHAPE = (0,)
-    CHILD_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
-    CHILD_KEYS = ("Frame", "XAxis", "XAxisLabel")
+    def default_value(self):
+        return np.array([])
+
+    def default_prims(self):
+        return (
+            Quadrilateral(), Quadrilateral(), Point()
+        )
+
+    def init_topology(
+        self, value: NDArray, prims: tp.List[Primitive]
+    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        child_keys = ("Frame", "XAxis", "XAxisLabel")
+        child_prims = prims
+        return child_keys, child_prims
 
 
-class AxesXY(Primitive[Quadrilateral | Point]):
+class AxesXY(StaticPrimitive):
 
-    PARAM_SHAPE = (0,)
-    CHILD_TYPES = (Quadrilateral, Quadrilateral, Quadrilateral, Point, Point)
-    CHILD_KEYS = ("Frame", "XAxis", "YAxis", "XAxisLabel", "YAxisLabel")
+    def default_value(self):
+        return np.array([])
+
+    def default_prims(self):
+        return (
+            Quadrilateral(), Quadrilateral(), Point(), Quadrilateral(), Point()
+        )
+
+    def init_topology(
+        self, value: NDArray, prims: tp.List[Primitive]
+    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        child_keys = (
+            "Frame", "XAxis", "XAxisLabel", "YAxis", "YAxisLabel"
+        )
+        child_prims = prims
+        return child_keys, child_prims
 
 
 ## Register `Primitive` classes as `jax.pytree`

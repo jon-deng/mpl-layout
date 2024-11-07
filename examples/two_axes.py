@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # Call the box 'Axes2'
     layout.add_prim(
         geo.Axes(
-            children=[geo.Quadrilateral(children=[geo.Point(vert) for vert in verts])]
+            prims=[geo.Quadrilateral(children=[geo.Point(vert) for vert in verts])]
         ),
         "Axes2",
     )

@@ -48,7 +48,7 @@ class GeometryFixtures:
         Return a `geo.Line` with given origin and line vector
         """
         coords = (origin, origin + line_vec)
-        return geo.Line(value=[], children=tuple(geo.Point(x) for x in coords))
+        return geo.Line(value=[], prims=tuple(geo.Point(x) for x in coords))
 
     def make_relative_line(
         self, line: geo.Line, translation: NDArray, deformation: NDArray
@@ -503,7 +503,7 @@ class TestPointLine(GeometryFixtures):
     @pytest.fixture()
     def distance_on(self, point, line, line_unit_vec, reverse):
         if reverse:
-            rev_line = geo.Line(value=[], children=line.children[::-1])
+            rev_line = geo.Line(value=[], prims=line.children[::-1])
             return self.calc_point_on_line_distance(point, rev_line)
         else:
             return self.calc_point_on_line_distance(point, line)
@@ -800,7 +800,7 @@ class TestAxesConstraints(GeometryFixtures):
             [np.random.rand(), point_from_arclength(yaxis['Line1'], ylabel_position)[1]]
         )
 
-        return geo.AxesXY(children=(frame, xaxis, yaxis, xlabel_anchor, ylabel_anchor))
+        return geo.AxesXY(prims=(frame, xaxis, xlabel_anchor, yaxis, ylabel_anchor))
 
     def test_PositionXAxis(self, axes, xaxis_position):
         res = geo.PositionXAxis(**xaxis_position)((axes,), ())

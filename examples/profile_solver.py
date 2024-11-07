@@ -40,7 +40,7 @@ def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]] = (3, 3)) -> lay.Layo
     for n in range(num_axes):
         layout.add_prim(
             geo.Axes(
-                children=[
+                prims=[
                     geo.Quadrilateral(
                         children=[geo.Point(vert_coords) for vert_coords in verts]
                     )

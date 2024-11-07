@@ -933,7 +933,7 @@ class Collinear(StaticConstraint):
         """
         res_parallel = Parallel()
         line0, line1 = prims
-        line2 = pr.Line(children=(line1[0], line0[0]))
+        line2 = pr.Line(prims=(line1[0], line0[0]))
         # line3 = primitives.Line(children=(line1['Point0'], line0['Point1']))
 
         return jnp.concatenate(
