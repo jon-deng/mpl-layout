@@ -69,7 +69,7 @@ class StaticPrimitive(Primitive):
         raise NotImplementedError()
 
     def init_topology(
-        self, value: NDArray, prims: tp.List[Primitive]
+        self, prims: tp.List[Primitive]
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         raise NotImplementedError()
 
@@ -90,7 +90,7 @@ class StaticPrimitive(Primitive):
         if prims is None:
             prims = self.default_prims()
 
-        super().__init__(value, *self.init_topology(value, prims))
+        super().__init__(value, *self.init_topology(prims))
 
 
 class ParameterizedPrimitive(Primitive):
@@ -107,7 +107,7 @@ class ParameterizedPrimitive(Primitive):
         raise NotImplementedError()
 
     def init_topology(
-        self, value: NDArray, prims: tp.List[Primitive], **kwargs
+        self, prims: tp.List[Primitive], **kwargs
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         raise NotImplementedError()
 
@@ -127,7 +127,7 @@ class ParameterizedPrimitive(Primitive):
         if prims is None:
             prims = self.default_prims(**kwargs)
 
-        super().__init__(value, *self.init_topology(value, prims))
+        super().__init__(value, *self.init_topology(prims))
 
 
 ## Primitive definitions
@@ -143,7 +143,7 @@ class Point(StaticPrimitive):
     def default_prims(self):
         return ()
 
-    def init_topology(self, value, prims):
+    def init_topology(self, prims):
         return (), ()
 
 
@@ -158,7 +158,7 @@ class Line(StaticPrimitive):
     def default_prims(self):
         return (Point([0, 0]), Point([0, 1]))
 
-    def init_topology(self, value, prims: tp.Tuple[Point, Point]):
+    def init_topology(self, prims: tp.Tuple[Point, Point]):
         return ("Point0", "Point1"), prims
 
 
@@ -178,7 +178,7 @@ class Polygon(ParameterizedPrimitive):
         return [Point((x, y)) for x, y in zip(xs, ys)]
 
     def init_topology(
-        self, value: NDArray, prims: tp.List[Point], size=3
+        self, prims: tp.List[Point], size=3
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         points = prims
         child_prims = [
@@ -211,7 +211,7 @@ class Axes(StaticPrimitive):
         return (Quadrilateral(),)
 
     def init_topology(
-        self, value: NDArray, prims: tp.List[Primitive]
+        self, prims: tp.List[Primitive]
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         return ("Frame", ), prims
 
@@ -227,7 +227,7 @@ class AxesX(StaticPrimitive):
         )
 
     def init_topology(
-        self, value: NDArray, prims: tp.List[Primitive]
+        self, prims: tp.List[Primitive]
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         child_keys = ("Frame", "XAxis", "XAxisLabel")
         child_prims = prims
@@ -245,7 +245,7 @@ class AxesXY(StaticPrimitive):
         )
 
     def init_topology(
-        self, value: NDArray, prims: tp.List[Primitive]
+        self, prims: tp.List[Primitive]
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         child_keys = (
             "Frame", "XAxis", "XAxisLabel", "YAxis", "YAxisLabel"
