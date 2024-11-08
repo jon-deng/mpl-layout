@@ -296,7 +296,7 @@ class Polygon(ParameterizedPrimitive):
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         points = prims
         child_prims = [
-            Line(np.array([]), [pointa, pointb])
+            Line(np.array([]), (pointa, pointb))
             for pointa, pointb in zip(points[:], points[1:] + points[:1])
         ]
         child_keys = [f"Line{n}" for n, _ in enumerate(child_prims)]
@@ -327,6 +327,15 @@ class Quadrilateral(Polygon):
     prims: List[Point]
         A list of 4 vertices the quadrilateral passes through
     """
+
+    def default_value(self, size=4):
+        return np.array([])
+
+    def default_prims(self, size=4):
+        # Generate a unit square
+        xs = [0, 1, 1, 0]
+        ys = [0, 0, 1, 1]
+        return [Point((x, y)) for x, y in zip(xs, ys)]
 
     def __init__(
         self,
