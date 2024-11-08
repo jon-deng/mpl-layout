@@ -17,18 +17,13 @@ from .containers import Node, iter_flat
 Primitive = pr.Primitive
 
 
-ResConstants = namedtuple("Constants", ())
-
-ResParams = namedtuple("Parameters", ())
-ResParamsType = type[ResParams]
+Params = tp.Mapping[str, tp.Any]
 
 ResPrims = tp.Tuple[Primitive, ...]
 ResPrimTypes = tp.Tuple[type[Primitive], ...]
 
 PrimKeys = tp.Tuple[str, ...]
-ChildrenPrimKeys = tp.Tuple[PrimKeys, ...]
-
-ConstraintValue = tp.Tuple[ResConstants, ResPrimTypes, ResParamsType, ChildrenPrimKeys]
+ChildPrimKeys = tp.Tuple[PrimKeys, ...]
 
 def load_named_tuple(
         NamedTuple: namedtuple,
@@ -55,7 +50,7 @@ class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     pass
 
 
-class ParamsNode(Node[ResParams, "ParamsNode"]):
+class ParamsNode(Node[Params, "ParamsNode"]):
     """
     Tree of parameters corresponding to a constraint tree
 
@@ -65,7 +60,7 @@ class ParamsNode(Node[ResParams, "ParamsNode"]):
     pass
 
 
-class Constraint(Node[ConstraintValue, "Constraint"]):
+class Constraint(Node[ChildPrimKeys, "Constraint"]):
     """
     Geometric constraint on primitives
 
@@ -90,18 +85,11 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
 
     Parameters
     ----------
-    # TODO: Remove the constants attribute?
-    res_constants:
-        Constants for the constraint
-
-        Currently this is either empty or stores a shape
-    res_prim_types:
-        Primitive types for `assem_res`
-    res_params_type:
-        Primitive parameter vector named tuple
-    children_prim_keys:
+    child_prim_keys: Tuple[PrimKeys, ...]
         Primitive key tuples for each child constraint
 
+        This is stored as the "value" of the tree structure and explains how to
+        create primitive arguments for child constraints.
         For a given child constraint, a tuple of primitive keys indicates a subset of
         parent primitives to form child constraint primitive arguments.
 
@@ -111,27 +99,30 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
             ```children_primkeys[n] = ('arg0', 'arg3/Line2')```.
         This indicates the nth child constraint should be evaluated with
             ```parent.children[n].assem_res((prims[0], prims[3]['Line0']), **child_kwargs)```
-    children:
-        A dictionary of child constraints
+    child_keys: List[str]
+        Keys for any child constraints
+    child_contraints: List[Constraint]
+        Child constraints
+    aux_data: Mapping[str, Any]
+        Any auxiliary data
+
+        This is usually for type checking/validation of inputs
     """
 
     def __init__(
         self,
-        res_constants: ResConstants,
-        res_prim_types: ResPrimTypes,
-        res_params_type: ResParamsType,
-        children_prim_keys: ChildrenPrimKeys,
-        children: tp.Mapping[str, "Constraint"]
+        child_prim_keys: ChildPrimKeys,
+        child_keys: tp.List[str],
+        child_constraints: tp.List["Constraint"],
+        aux_data: tp.Optional[tp.Mapping[str, tp.Any]] = None
     ):
-        super().__init__((res_constants, res_prim_types, res_params_type, children_prim_keys), children)
+        # TODO: Store `aux_data` in the tree structure somehow?
+        children = {
+            key: child for key, child in zip(child_keys, child_constraints)
+        }
+        super().__init__((child_prim_keys, aux_data), children)
 
-    # TODO: Turn this into something passed through __init__ instead!
-    # This separate function is confusing because you have to specify a constraint
-    # through __init__ and this
-    def split_children_params(cls, parameters: ResParams):
-        raise NotImplementedError()
-
-    def root_params(self, parameters: ResParams):
+    def root_params(self, parameters: Params):
         parameters = load_named_tuple(self.RES_PARAMS_TYPE, parameters)
 
         keys, child_constraints = self.keys(), self.children
@@ -166,7 +157,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
                 replace_prim_key_prefix(prim_key, prim_keys)
                 for prim_key in child_prim_keys
             )
-            for child_prim_keys in self.CHILDREN_PRIM_KEYS
+            for child_prim_keys in self.child_prim_keys
         )
 
         children = {
@@ -177,20 +168,12 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         return PrimKeysNode(prim_keys, children)
 
     @property
-    def RES_CONSTANTS(self):
+    def child_prim_keys(self):
         return self.value[0]
 
     @property
-    def RES_PRIM_TYPES(self):
-        return self.value[1]
-
-    @property
     def RES_PARAMS_TYPE(self):
-        return self.value[2]
-
-    @property
-    def CHILDREN_PRIM_KEYS(self):
-        return self.value[3]
+        return self.value[1]['RES_PARAMS_TYPE']
 
     def __call__(
             self,
@@ -223,7 +206,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         return jnp.concatenate(residuals)
 
     def assem_res_atleast_1d(
-            self, prims: ResPrims, params: ResParams
+            self, prims: ResPrims, params: Params
         ) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims, **params._asdict()))
 
@@ -238,7 +221,7 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         ----------
         prims: ResPrims
             A tuple of primitives the constraint applies to
-        params: ResParams
+        **kwargs:
             A set of parameters for the residual
 
             These are things like length, distance, angle, etc.
@@ -251,8 +234,11 @@ class Constraint(Node[ConstraintValue, "Constraint"]):
         """
         raise NotImplementedError()
 
+    def split_children_params(self, params: Params) -> Params:
+        raise NotImplementedError()
 
-class ConstraintNode(Node[ConstraintValue, Constraint]):
+
+class ConstraintNode(Node[ChildPrimKeys, Constraint]):
     """
     Container tree for constraints
     """
@@ -266,78 +252,74 @@ class StaticConstraint(Constraint):
     """
     Constraint with static number of arguments and/or children
 
-    To specify a `StaticConstraint` you have to define `init_tree` to return
-    parameters for `Constraint.__init__`.
+    To specify a `StaticConstraint` you have to define `init_aux_data`.
+
+    You may want to defined `init_children` and `split_children_params` to used
+    child constraints.
+    If `init_children` is undefined, the constraint will have no child constraints.
+    If `split_children_params` is undefined, all child constraints will be passed
+    empty parameters, and therefore use default values.
     """
 
     @classmethod
-    def init_tree(
+    def init_children(
         cls
-    ) -> tp.Tuple[ConstraintValue, tp.Tuple[ChildKeys, ChildConstraints]]:
+    ) -> tp.Tuple[ChildPrimKeys, tp.Tuple[ChildKeys, ChildConstraints]]:
+        return (), ((), ())
+
+    def split_children_params(self, params: Params) -> Params:
+        return tuple({} for _ in self.children)
+
+    @classmethod
+    def init_aux_data(
+        cls
+    ) -> tp.Mapping[str, tp.Any]:
         raise NotImplementedError()
 
-    def split_children_params(self, parameters):
-        return tuple(child.RES_PARAMS_TYPE() for child in self.children)
-
     def __init__(self):
-        (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree()
-
-        constants = namedtuple("Constants", ())
-
-        children = {
-            key: constraint
-            for key, constraint in zip(CHILD_KEYS, CHILD_CONSTRAINTS)
-        }
-
-        super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
+        child_prim_keys, (child_keys, child_constraints) = self.init_children()
+        aux_data = self.init_aux_data()
+        super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
 
 
 class ParameterizedConstraint(Constraint):
     """
     Constraint parameterized by generic parameters
 
-    To specify a `ParameterizedConstraint` you have to define `init_tree` to
-    return parameters for `Constraint.__init__`.
+    To specify a `ParameterizedConstraint` you have to define `init_aux_data`.
+
+    You may want to defined `init_children` and `split_children_params` to used
+    child constraints.
+    If `init_children` is undefined, the constraint will have no child constraints.
+    If `split_children_params` is undefined, all child constraints will be passed
+    empty parameters, and therefore use default values.
     """
 
     @classmethod
-    def init_tree(
-        cls,
-        **kwargs
-    ) -> tp.Tuple[ConstraintValue, tp.Tuple[ChildKeys, ChildConstraints]]:
-        raise NotImplementedError()
+    def init_children(
+        cls, **kwargs
+    ) -> tp.Tuple[ChildPrimKeys, tp.Tuple[ChildKeys, ChildConstraints]]:
+        return (), ((), ())
 
-    def split_children_params(self, parameters):
+    def split_children_params(self, params: Params) -> Params:
+        return tuple({} for _ in self.children)
+
+    @classmethod
+    def init_aux_data(
+        cls, **kwargs
+    ) -> tp.Mapping[str, tp.Any]:
         raise NotImplementedError()
 
     def __init__(self, **kwargs):
-
-        constants = namedtuple("Constants", tuple(kwargs.keys()))(**kwargs)
-
-        (ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS) = self.init_tree(**kwargs)
-
-        children = {key: constraint for key, constraint in zip(CHILD_KEYS, CHILD_CONSTRAINTS)}
-
-        super().__init__(constants, ARG_TYPES, ARG_PARAMETERS, CHILDREN_ARGKEYS, children)
+        child_prim_keys, (child_keys, child_constraints) = self.init_children(**kwargs)
+        aux_data = self.init_aux_data(**kwargs)
+        super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
 
 
 class DynamicConstraint(ParameterizedConstraint):
     """
     Constraint with dynamic number of arguments and/or children depending on a shape
-
-    To specify a `DynamicConstraint` you have to define `init_tree` to return
-    parameters for `Constraint.__init__`.
     """
-
-    @classmethod
-    def init_tree(
-        cls,
-        shape: tp.Tuple[int, ...]
-    ) -> tp.Tuple[ConstraintValue, tp.Tuple[ChildKeys, ChildConstraints]]:
-        raise NotImplementedError()
-
-    def split_children_params(self, parameters):
-        raise NotImplementedError()
 
     def __init__(self, shape: tp.Tuple[int, ...]=(0,)):
         if isinstance(shape, int):
@@ -364,13 +346,11 @@ class Fix(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("location",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ["location"])
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Point], location: NDArray):
         """
@@ -398,13 +378,11 @@ class DirectedDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "direction"))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "direction"))
+        }
 
     def assem_res(
         self,
@@ -437,17 +415,21 @@ class XDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
-
-        CHILD_KEYS = ("DirectedDistance",)
-        CHILD_CONSTRAINTS = (DirectedDistance(),)
-        CHILD_ARGKEYS = (("arg0", "arg1"),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("DirectedDistance",)
+        child_constraints = (DirectedDistance(),)
+        child_prim_keys = (("arg0", "arg1"),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         return ({"distance": params.distance, "direction": np.array([1, 0])},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
 
     def assem_res(
         self, prims: tp.Tuple[pr.Point, pr.Point], distance: float=0.0
@@ -470,17 +452,21 @@ class YDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
-
-        CHILD_KEYS = ("DirectedDistance",)
-        CHILD_CONSTRAINTS = (DirectedDistance(),)
-        CHILD_ARGKEYS = (("arg0", "arg1"),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("DirectedDistance",)
+        child_constraints = (DirectedDistance(),)
+        child_prim_keys = (("arg0", "arg1"),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         return ({"distance": params.distance, "direction": np.array([0, 1])},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
 
     def assem_res(
         self, prims: tp.Tuple[pr.Point, pr.Point], distance: float=0.0
@@ -499,13 +485,11 @@ class Coincident(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", [])
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Point, pr.Point]):
         """
@@ -532,13 +516,11 @@ class Length(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line], length: float=0):
         """
@@ -561,13 +543,11 @@ class Vertical(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
@@ -589,13 +569,11 @@ class Horizontal(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line]):
         """
@@ -621,13 +599,11 @@ class DirectedLength(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("length", "direction"))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length", "direction"))
+        }
 
     def assem_res(
         self,
@@ -657,17 +633,21 @@ class XLength(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
-
-        CHILD_KEYS = ("DirectedLength",)
-        CHILD_CONSTRAINTS = (DirectedLength(),)
-        CHILD_ARGKEYS = (("arg0",),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("DirectedLength",)
+        child_constraints = (DirectedLength(),)
+        child_prim_keys = (("arg0",),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         return ({"length": params.length, "direction": np.array([1, 0])},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line], length: float=0):
         """
@@ -689,17 +669,21 @@ class YLength(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
-
-        CHILD_KEYS = ("DirectedLength",)
-        CHILD_CONSTRAINTS = (DirectedLength(),)
-        CHILD_ARGKEYS = (("arg0",),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("DirectedLength",)
+        child_constraints = (DirectedLength(),)
+        child_prim_keys = (("arg0",),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         return ({"length": params.length, "direction": np.array([0, 1])},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line], length: float=0):
         """
@@ -725,13 +709,11 @@ class RelativeLength(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("length",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], length: float=1):
         """
@@ -759,13 +741,11 @@ class MidpointXDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], distance: float=0):
         """
@@ -795,13 +775,11 @@ class MidpointYDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], distance: float=0):
         """
@@ -827,13 +805,11 @@ class Orthogonal(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -856,13 +832,11 @@ class Parallel(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -887,13 +861,11 @@ class Angle(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("angle",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("angle",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], angle: float=0):
         """
@@ -919,13 +891,11 @@ class Collinear(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line]):
         """
@@ -954,13 +924,11 @@ class CoincidentLines(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Point)
-        ARG_PARAMETERS = namedtuple("Parameters", ("reverse",))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, pr.Line], reverse=False):
         """
@@ -992,28 +960,26 @@ class RelativeLengthArray(DynamicConstraint):
     """
 
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_children(cls, shape: tp.Tuple[int, ...]):
         size = np.prod(shape)
 
-        ARG_TYPES = size * (pr.Line,) + (pr.Line,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("lengths",))
-
-        CHILD_KEYS = tuple(f"RelativeLength{n}" for n in range(size))
-        CHILD_CONSTRAINTS = (size) * (RelativeLength(),)
-        CHILD_ARGKEYS = tuple(
-            (f"arg{n}", f"arg{size}")
-            for n in range(size)
-        )
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        child_keys = tuple(f"RelativeLength{n}" for n in range(size))
+        child_constraints = (size) * (RelativeLength(),)
+        child_prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, parameters):
-        num_args = np.prod(self.RES_CONSTANTS.shape)
-
         return tuple(
-            child.RES_PARAMS_TYPE(length)
-            for child, length in zip(self.children, parameters.lengths)
+            {'length': length} for length in parameters.lengths
         )
+
+    @classmethod
+    def init_aux_data(cls, shape: tp.Tuple[int, ...]):
+        size = np.prod(shape)
+        return {
+            'RES_ARG_TYPES': size * (pr.Line,) + (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("lengths",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, ...], lengths: NDArray):
         return np.array([])
@@ -1033,25 +999,25 @@ class MidpointXDistanceArray(DynamicConstraint):
         The distances
     """
 
-    CONSTANTS = namedtuple("Constants", ("distances",))
-
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_children(cls, shape: tp.Tuple[int, ...]):
         num_child = np.prod(shape)
 
-        ARG_TYPES = num_child * (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
-        CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
-        CHILD_KEYS = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
-        CHILD_CONSTRAINTS = num_child * (MidpointXDistance(),)
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        child_keys = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
+        child_constraints = num_child * (MidpointXDistance(),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
-        return tuple(
-            child.RES_PARAMS_TYPE(distance)
-            for child, distance in zip(self.children, params.distances)
-        )
+        return tuple({"distance": distance} for distance in params.distances)
+
+    @classmethod
+    def init_aux_data(cls, shape: tp.Tuple[int, ...]):
+        num_child = np.prod(shape)
+        return {
+            'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, ...], distances: NDArray):
         return np.array(())
@@ -1072,22 +1038,24 @@ class MidpointYDistanceArray(DynamicConstraint):
     """
 
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_children(cls, shape: tp.Tuple[int, ...]):
         num_child = np.prod(shape)
 
-        ARG_TYPES = num_child * (pr.Line, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distances",))
-        CHILD_ARGKEYS = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
-        CHILD_KEYS = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
-        CHILD_CONSTRAINTS = num_child * (MidpointYDistance(),)
-
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
+        child_keys = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
+        child_constraints = num_child * (MidpointYDistance(),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
-        return tuple(
-            child.RES_PARAMS_TYPE(distance)
-            for child, distance in zip(self.children, params.distances)
-        )
+        return tuple({"distance": distance} for distance in params.distances)
+
+    @classmethod
+    def init_aux_data(cls, shape: tp.Tuple[int, ...]):
+        num_child = np.prod(shape)
+        return {
+            'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, ...], distances: NDArray):
         return np.array(())
@@ -1104,19 +1072,21 @@ class CollinearArray(DynamicConstraint):
     """
 
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_children(cls, shape: tp.Tuple[int, ...]):
         size = np.prod(shape)
 
-        ARG_TYPES = size * (pr.Line, )
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-        CHILD_ARGKEYS = tuple(("arg0", f"arg{n}") for n in range(1, size))
-        CHILD_KEYS = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        CHILD_CONSTRAINTS = size * (Collinear(),)
+        child_prim_keys = tuple(("arg0", f"arg{n}") for n in range(1, size))
+        child_keys = tuple(f"Collinear[0][{n}]" for n in range(1, size))
+        child_constraints = size * (Collinear(),)
+        return child_prim_keys, (child_keys, child_constraints)
 
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def split_children_params(self, parameters):
-        return tuple(child.RES_PARAMS_TYPE() for child in self.children)
+    @classmethod
+    def init_aux_data(cls, shape: tp.Tuple[int, ...]):
+        size = np.prod(shape)
+        return {
+            'RES_ARG_TYPES': size * (pr.Line, ),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Line, ...]):
         return np.array([])
@@ -1152,13 +1122,11 @@ class PointOnLineDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "reverse"))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
+        }
 
     def assem_res(
         self,
@@ -1201,13 +1169,11 @@ class RelativePointOnLineDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "reverse"))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
+        }
 
     def assem_res(
         self,
@@ -1250,13 +1216,11 @@ class PointToLineDistance(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Point, pr.Line)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance", "reverse"))
-
-        CHILD_ARGKEYS = ()
-        CHILD_KEYS, CHILD_CONSTRAINTS = (), ()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
+        }
 
     def assem_res(
         self,
@@ -1302,15 +1266,18 @@ class Box(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-        CONSTANTS = namedtuple("Constants", ())
+    def init_children(cls):
+        child_keys = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
+        child_constraints = (Horizontal(), Horizontal(), Vertical(), Vertical())
+        child_prim_keys = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
+        return child_prim_keys, (child_keys, child_constraints)
 
-        CHILD_KEYS = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
-        CHILD_CONSTRAINTS = (Horizontal(), Horizontal(), Vertical(), Vertical())
-        CHILD_ARGKEYS = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral]):
         return np.array(())
@@ -1329,18 +1296,21 @@ class AspectRatio(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("ar",))
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ("RelativeLength",)
-        CHILD_CONSTRAINTS = (RelativeLength(), )
-        CHILD_ARGKEYS = (("arg0/Line0", "arg0/Line1"),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("RelativeLength",)
+        child_constraints = (RelativeLength(), )
+        child_prim_keys = (("arg0/Line0", "arg0/Line1"),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, parameters):
         return ({'length': parameters.ar},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], ar:float=1):
         return np.array(())
@@ -1360,36 +1330,36 @@ class OuterMargin(ParameterizedConstraint):
     """
 
     @classmethod
-    def init_tree(cls, side: str="left"):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
-        CONSTANTS = namedtuple("Constants", ())
-
+    def init_children(cls, side: str="left"):
+        child_keys = ("Margin",)
         if side == "left":
-            CHILD_KEYS = ("MidpointXDistance",)
-            CHILD_CONSTRAINTS = (MidpointXDistance(),)
-            CHILD_ARGKEYS = (("arg1/Line1", "arg0/Line3"),)
+            child_constraints = (MidpointXDistance(),)
+            child_prim_keys = (("arg1/Line1", "arg0/Line3"),)
         elif side == "right":
-            CHILD_KEYS = ("MidpointXDistance",)
-            CHILD_CONSTRAINTS = (MidpointXDistance(),)
-            CHILD_ARGKEYS = (("arg0/Line1", "arg1/Line3"),)
+            child_constraints = (MidpointXDistance(),)
+            child_prim_keys = (("arg0/Line1", "arg1/Line3"),)
         elif side == "bottom":
-            CHILD_KEYS = ("MidpointYDistance",)
-            CHILD_CONSTRAINTS = (MidpointYDistance(),)
-            CHILD_ARGKEYS = (("arg1/Line2", "arg0/Line0"),)
+            child_constraints = (MidpointYDistance(),)
+            child_prim_keys = (("arg1/Line2", "arg0/Line0"),)
         elif side == "top":
-            CHILD_KEYS = ("MidpointYDistance",)
-            CHILD_CONSTRAINTS = (MidpointYDistance(),)
-            CHILD_ARGKEYS = (("arg0/Line2", "arg1/Line0"),)
+            child_constraints = (MidpointYDistance(),)
+            child_prim_keys = (("arg0/Line2", "arg1/Line0"),)
         else:
             raise ValueError()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         return ({"distance": params.margin},)
+
+    @classmethod
+    def init_aux_data(cls, side: str="left"):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
+        }
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
         return np.array(())
@@ -1407,33 +1377,36 @@ class InnerMargin(ParameterizedConstraint):
     """
 
     @classmethod
-    def init_tree(cls, side: str="left"):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("margin",))
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ("MidpointXDistance",)
+    def init_children(cls, side: str="left"):
+        child_keys = ("Margin",)
         if side == "left":
-            CHILD_CONSTRAINTS = (MidpointXDistance(),)
-            CHILD_ARGKEYS = (("arg1/Line3", "arg0/Line3"),)
+            child_constraints = (MidpointXDistance(),)
+            child_prim_keys = (("arg1/Line3", "arg0/Line3"),)
         elif side == "right":
-            CHILD_CONSTRAINTS = (MidpointXDistance(),)
-            CHILD_ARGKEYS = (("arg0/Line1", "arg1/Line1"),)
+            child_constraints = (MidpointXDistance(),)
+            child_prim_keys = (("arg0/Line1", "arg1/Line1"),)
         elif side == "bottom":
-            CHILD_CONSTRAINTS = (MidpointYDistance(),)
-            CHILD_ARGKEYS = (("arg1/Line0", "arg0/Line0"),)
+            child_constraints = (MidpointYDistance(),)
+            child_prim_keys = (("arg1/Line0", "arg0/Line0"),)
         elif side == "top":
-            CHILD_CONSTRAINTS = (MidpointYDistance(),)
-            CHILD_ARGKEYS = (("arg0/Line2", "arg1/Line2"),)
+            child_constraints = (MidpointYDistance(),)
+            child_prim_keys = (("arg0/Line2", "arg1/Line2"),)
         else:
             raise ValueError()
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         return ({"distance": params.margin},)
+
+    @classmethod
+    def init_aux_data(cls, side: str="left"):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
+        }
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
         return np.array(())
@@ -1459,19 +1432,16 @@ class RectilinearGrid(DynamicConstraint):
     """
 
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_children(cls, shape: tp.Tuple[int, ...]):
         size = np.prod(shape)
         num_row, num_col = shape
-
-        ARG_TYPES = size * (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
 
         def idx(i, j):
             return idx_1d((i, j), shape)
 
         # Specify child constraints given the grid shape
         # Line up bottom/top and left/right
-        CHILD_CONSTRAINTS = (
+        child_constraints = (
             2 * num_row * (CollinearArray(num_col),)
             + 2 * num_col * (CollinearArray(num_row),)
         )
@@ -1491,17 +1461,22 @@ class RectilinearGrid(DynamicConstraint):
             tuple(f"arg{idx(nrow, ncol)}/Line1" for nrow in range(num_row))
             for ncol in range(num_col)
         ]
-        CHILD_ARGKEYS = align_bottom + align_top + align_left + align_right
-        CHILD_KEYS = (
+        child_prim_keys = align_bottom + align_top + align_left + align_right
+        child_keys = (
             [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
             + [f"CollinearRowTop{nrow}" for nrow in range(num_row)]
             + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
             + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
         )
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, parameters):
-        return tuple(child.RES_PARAMS_TYPE() for child in self.children)
+    @classmethod
+    def init_aux_data(cls, shape: tp.Tuple[int, ...]):
+        size = np.prod(shape)
+        return {
+            'RES_ARG_TYPES': size * (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral, ...]):
         return np.array(())
@@ -1526,28 +1501,22 @@ class Grid(DynamicConstraint):
     """
 
     @classmethod
-    def init_tree(cls, shape: tp.Tuple[int, ...]):
+    def init_children(cls, shape: tp.Tuple[int, ...]):
         num_args = np.prod(shape)
         num_row, num_col = shape
-
-        ARG_TYPES = num_args * (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple(
-            "Parameters",
-            ("col_widths", "row_heights", "col_margins", "row_margins"),
-        )
 
         # Children constraints do:
         # 1. Align all quads in a grid
         # 2. Set relative column widths relative to column 0
         # 3. Set relative row heights relative to row 0
-        CHILD_KEYS = (
+        child_keys = (
             "RectilinearGrid",
             "ColumnWidths",
             "RowHeights",
             "ColumnMargins",
             "RowMargins",
         )
-        CHILD_CONSTRAINTS = (
+        child_constraints = (
             RectilinearGrid(shape),
             RelativeLengthArray(num_col-1),
             RelativeLengthArray(num_row-1),
@@ -1578,7 +1547,7 @@ class Grid(DynamicConstraint):
             for row in rows[:-1]
         )
 
-        CHILD_ARGKEYS = (
+        child_prim_keys = (
             rectilineargrid_args,
             colwidth_args,
             rowheight_args,
@@ -1586,7 +1555,7 @@ class Grid(DynamicConstraint):
             tuple(row_margin_line_labels),
         )
 
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, params):
         values = (
@@ -1600,6 +1569,17 @@ class Grid(DynamicConstraint):
             load_named_tuple(child.RES_PARAMS_TYPE, value)
             for child, value in zip(self.children, values)
         )
+
+    @classmethod
+    def init_aux_data(cls, shape: tp.Tuple[int, ...]):
+        size = np.prod(shape)
+        return {
+            'RES_ARG_TYPES': size * (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple(
+                "Parameters",
+                ("col_widths", "row_heights", "col_margins", "row_margins")
+            )
+        }
 
     def assem_res(
         self,
@@ -1669,15 +1649,11 @@ class XAxisHeight(StaticConstraint):
         return get_axis_dim(axis, axis.get_ticks_position())
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ('axis',))
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ("Height",)
-        CHILD_CONSTRAINTS = (YDistance(),)
-        CHILD_ARGKEYS = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("Height",)
+        child_constraints = (YDistance(),)
+        child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, parameters):
         xaxis: XAxis | None = parameters.axis
@@ -1685,6 +1661,13 @@ class XAxisHeight(StaticConstraint):
             return ({"distance": 0},)
         else:
             return ({"distance": self.get_xaxis_height(xaxis)},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], axis: XAxis):
         return np.array([])
@@ -1707,15 +1690,11 @@ class YAxisWidth(StaticConstraint):
         return get_axis_dim(axis, axis.get_ticks_position())
 
     @classmethod
-    def init_tree(cls):
-        ARG_TYPES = (pr.Quadrilateral,)
-        ARG_PARAMETERS = namedtuple("Parameters", ('axis',))
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ("Width",)
-        CHILD_CONSTRAINTS = (XDistance(),)
-        CHILD_ARGKEYS = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def init_children(cls):
+        child_keys = ("Width",)
+        child_constraints = (XDistance(),)
+        child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
+        return child_prim_keys, (child_keys, child_constraints)
 
     def split_children_params(self, parameters):
         yaxis: YAxis | None = parameters.axis
@@ -1723,6 +1702,13 @@ class YAxisWidth(StaticConstraint):
             return ({"distance": 0},)
         else:
             return ({"distance": self.get_yaxis_width(yaxis)},)
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Quadrilateral], axis: YAxis):
         return np.array([])
@@ -1740,27 +1726,30 @@ class PositionXAxis(ParameterizedConstraint):
     """
 
     @classmethod
-    def init_tree(cls, bottom: bool, top: bool):
+    def init_children(cls, bottom: bool, top: bool):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.Axes,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ('CoincidentLines',)
-        CHILD_CONSTRAINTS = (CoincidentLines(),)
+        child_keys = ('CoincidentLines',)
+        child_constraints = (CoincidentLines(),)
         if bottom:
-            CHILD_ARGKEYS = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
+            child_prim_keys = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
         elif top:
-            CHILD_ARGKEYS = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
+            child_prim_keys = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
         else:
             raise ValueError(
                 "Currently, 'bottom' and 'top' can't both be true"
             )
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        return child_prim_keys, (child_keys, child_constraints)
 
     @classmethod
     def split_children_params(cls, params):
         return ({"reverse": True},)
+
+    @classmethod
+    def init_aux_data(cls, bottom: bool, top: bool):
+        return {
+            'RES_ARG_TYPES': (pr.Axes,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def __init__(self, bottom: bool=True, top: bool=False):
         return super().__init__(bottom=bottom, top=top)
@@ -1780,27 +1769,30 @@ class PositionYAxis(ParameterizedConstraint):
     """
 
     @classmethod
-    def init_tree(cls, left: bool=True, right: bool=False):
+    def init_children(cls, left: bool=True, right: bool=False):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.Axes,)
-        ARG_PARAMETERS = namedtuple("Parameters", ())
-        CONSTANTS = namedtuple("Constants", ())
-
-        CHILD_KEYS = ('CoincidentLines',)
-        CHILD_CONSTRAINTS = (CoincidentLines(),)
+        child_keys = ('CoincidentLines',)
+        child_constraints = (CoincidentLines(),)
         if left:
-            CHILD_ARGKEYS = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
+            child_prim_keys = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
         elif right:
-            CHILD_ARGKEYS = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
+            child_prim_keys = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
         else:
             raise ValueError(
                 "Currently, 'left' and 'right' can't both be true"
             )
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+        return child_prim_keys, (child_keys, child_constraints)
 
     @classmethod
     def split_children_params(cls, params):
         return ({"reverse": True},)
+
+    @classmethod
+    def init_aux_data(cls, left: bool=True, right: bool=False):
+        return {
+            'RES_ARG_TYPES': (pr.Axes,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
 
     def __init__(self, left: bool=True, right: bool=False):
         return super().__init__(left=left, right=right)
@@ -1822,20 +1814,22 @@ class PositionXAxisLabel(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
+    def init_children(cls):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.Axes,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
-        CONSTANTS = namedtuple("Constants", ())
+        child_keys = ('RelativePointOnLineDistance',)
+        child_constraints = (RelativePointOnLineDistance(),)
+        child_prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
+        return child_prim_keys, (child_keys, child_constraints)
 
-        CHILD_KEYS = ('RelativePointOnLineDistance',)
-        CHILD_CONSTRAINTS = (RelativePointOnLineDistance(),)
-        CHILD_ARGKEYS = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def split_children_params(self, params):
+        return ({"distance": params.distance, "reverse": False},)
 
     @classmethod
-    def split_children_params(cls, params):
-        return ({"distance": params.distance, "reverse": False},)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Axes,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Axes], distance: float=0.5):
         return np.array([])
@@ -1854,20 +1848,22 @@ class PositionYAxisLabel(StaticConstraint):
     """
 
     @classmethod
-    def init_tree(cls):
+    def init_children(cls):
         # TODO: Handle more specialized x/y axes combos?
-        ARG_TYPES = (pr.Axes,)
-        ARG_PARAMETERS = namedtuple("Parameters", ("distance",))
-        CONSTANTS = namedtuple("Constants", ())
+        child_keys = ('RelativePointOnLineDistance',)
+        child_constraints = (RelativePointOnLineDistance(),)
+        child_prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
+        return child_prim_keys, (child_keys, child_constraints)
 
-        CHILD_KEYS = ('RelativePointOnLineDistance',)
-        CHILD_CONSTRAINTS = (RelativePointOnLineDistance(),)
-        CHILD_ARGKEYS = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
-        return (ARG_TYPES, ARG_PARAMETERS, CHILD_ARGKEYS), (CHILD_KEYS, CHILD_CONSTRAINTS)
+    def split_children_params(self, params):
+        return ({"distance": params.distance, "reverse": False},)
 
     @classmethod
-    def split_children_params(cls, params):
-        return ({"distance": params.distance, "reverse": False},)
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Axes,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
 
     def assem_res(self, prims: tp.Tuple[pr.Axes], distance: float=0.5):
         return np.array([])

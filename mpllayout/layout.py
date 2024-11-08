@@ -246,7 +246,7 @@ def update_layout_constraints(
 def update_params(
     root_constraint: geo.ConstraintNode,
     root_constraint_param: geo.ParamsNode,
-    constraintkey_to_param: tp.Mapping[str, geo.ResParams]
+    constraintkey_to_param: tp.Mapping[str, geo.Params]
 ) -> geo.ParamsNode:
 
     for key, param in constraintkey_to_param.items():
