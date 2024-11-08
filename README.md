@@ -7,24 +7,23 @@ MPLLayout is a package used to create figure layouts for [matplotlib](https://ma
 
 MPLLayout can be used to:
 
-* align figure components (such as axes sides or text label locations),
+* align figure elements (axes, text label location, x and y axis, etc.),
 * specify margins around axes,
-* specify relative sizes of axes,
+* specify the figure size,
 * and more!
 
 ## Motivation
 
-Matplotlib contains a few strategies for creating figure layouts, for example, `GridSpec` and `subplots` for grid-based axes layouts.
-These strategies are very useful but follow a predetermined strategy for arranging axes that is not easily customizable.
-This sometimes makes it difficult to precisely place axes or can result in extra whitespace.
-To address this, MPLLayout uses geometric constraints and primitives to precisely position figures, axes and other elements in matplotlib.
+Matplotlib contains several strategies for creating figure layouts (for example, `GridSpec` and `subplots` for grid-based layouts).
+These strategies work well, however, they can be insufficient for complex figures or if you want precise placement of figure elements.
+To address this, this package uses geometric primitives and constraints to represent and position figure elements.
 
 It consists of:
 
-* geometric primitives to represent plot elements (for example, a `Quadrilateral` primitive can represent a figure or axes, a `Point` primitive can represent a text anchor),
-* geometric constraints to specify arrangements of plot elements (for example, axes sides can be aligned with `Collinear` constraints, line lengths can be fixed with `Length` constraints),
-* a solver to find geometric primitives that satisfy the constraints,
-* and utilities to generate `matplotlib` figures and axes from geometric primitives.
+* geometric primitives to represent figure elements (for example, a `Quadrilateral` primitive represents a figure, a `Point` represents a text anchor, etc.),
+* geometric constraints to position figure elements (for example, `Collinear` constraints align lines, `Length` constraints fix line lengths, etc.),
+* a solver to find primitives that satisfy the constraints,
+* and utilities to generate matplotlib figures and axes from the primitives.
 
 ## Installation
 
@@ -34,13 +33,15 @@ Navigate to the project directory and run
 pip install .
 ```
 
-The package also requires `numpy`, `matplotlib`, and `jax`.
+The package requires `numpy`, `matplotlib`, and `jax`.
 
 ## How to use
 
-Basic usage of the package is shown in the `examples` folder.
-The notebook at `examples/ten_simple_rules_demo.ipynb` contains an interactive demo using MPLLayout to recreate figures from ["Ten Simple Rules For Better Figures"](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003833) (Rougier, Droettboom and Bourne 2014).
-This demo splits the layout creation across several steps to better explain the result of different geometric constraints.
+Usage of the package is very simple if you are familiar with geometric constraints from CAD programs like AutoCAD, SolidWorks, etc.
+The tutorial notebook in `examples/tutorial.ipynb` demonstrates the basic usage of the package and explains some of the commonly used geometric constraints.
+Other examples are also given in the `examples` folder.
+
+The notebook at `examples/ten_simple_rules_demo.ipynb` contains an interactive demo to recreate figures from ["Ten Simple Rules For Better Figures"](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003833) (Rougier, Droettboom and Bourne 2014).
 
 ## Contributing
 
