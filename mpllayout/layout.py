@@ -208,27 +208,40 @@ from matplotlib.axis import Axis, XAxis, YAxis
 
 
 def update_layout_constraints(
-        root_constraint: geo.ConstraintNode,
-        root_constraint_param: geo.ParamsNode,
+        layout: Layout,
         axs: tp.Mapping[str, Axes]
     ) -> geo.ParamsNode:
-    # Update constraints based on bboxes
-    from mpllayout.containers import Node
+    """
+    Update layout constraints which depend on matplotlib elements
 
-    # Update x/y axis bbox dimensions
+    For example x and y axis dimensions depend on the size of tick labels
+    from generated figures.
+    """
     constraintkey_to_param = {}
-    for ax_key, ax in axs.items():
-        constraintkey_xaxis = f"{ax_key}.XAxisHeight"
-        if constraintkey_xaxis in root_constraint_param:
-            constraintkey_to_param[constraintkey_xaxis] = (ax.xaxis,)
+    for key, constraint in iter_flat('', layout.root_constraint):
+        # `key[1:]` removes the initial "/" from the key
+        key = key[1:]
+        if key != "":
+            prim_keys = layout.root_constraint_graph[key]
+            constraint_param = layout.root_constraint_param[key]
 
-        constraintkey_yaxis = f"{ax_key}.YAxisWidth"
-        if constraintkey_yaxis in root_constraint_param:
-            constraintkey_to_param[constraintkey_yaxis] = (ax.yaxis,)
+            if isinstance(constraint, geo.XAxisHeight):
+                axis_key, = prim_keys.value
+                axes_key = axis_key.split("/", 1)[0]
+                constraintkey_to_param[key] = (axs[axes_key].xaxis,)
 
-    update_params(root_constraint, root_constraint_param, constraintkey_to_param)
+            if isinstance(constraint, geo.YAxisWidth):
+                axis_key, = prim_keys.value
+                axes_key = axis_key.split("/", 1)[0]
+                constraintkey_to_param[key] = (axs[axes_key].yaxis,)
 
-    return root_constraint_param
+    update_params(
+        layout.root_constraint,
+        layout.root_constraint_param,
+        constraintkey_to_param
+    )
+
+    return layout
 
 def update_params(
     root_constraint: geo.ConstraintNode,

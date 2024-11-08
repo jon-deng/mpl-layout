@@ -80,10 +80,10 @@ if __name__ == "__main__":
     # axis width/height must be linked to matplotlib and updated from plot
     # elements.
     layout.add_constraint(
-        geo.XAxisHeight(), ("Axes/XAxis",), (None,), 'Axes.XAxisHeight'
+        geo.XAxisHeight(), ("Axes/XAxis",), (None,),
     )
     layout.add_constraint(
-        geo.YAxisWidth(), ("Axes/YAxis",), (None,), 'Axes.YAxisWidth'
+        geo.YAxisWidth(), ("Axes/YAxis",), (None,),
     )
 
     ## Position the x/y axis label text anchors
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     # Using the generated axes and x/y axis contents, the layout constraints
     # can be updated with those matplotlib elements
-    lay.update_layout_constraints(layout.root_constraint, layout.root_constraint_param, axs)
+    layout = lay.update_layout_constraints(layout, axs)
     prim_tree_n, solve_info = solver.solve(
         layout.root_prim, *layout.flat_constraints()
     )
