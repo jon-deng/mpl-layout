@@ -65,4 +65,4 @@ if __name__ == "__main__":
     x = np.linspace(0, 1)
     axs["Axes1"].plot(x, x**2)
 
-    fig.savefig("out/one_axes.png")
+    fig.savefig("one_axes.png")

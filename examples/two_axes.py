@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # Constrain the origin to be at (0, 0)
     layout.add_constraint(geo.Fix(), ("Origin",), (np.array([0, 0]),))
 
-    plot_layout(layout, "out/2Axes--0.png")
+    plot_layout(layout, "2Axes--0.png")
 
     ## Create a box to represent the figure
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     layout.add_prim(geo.Quadrilateral(), "Figure")
     layout.add_constraint(geo.Box(), ("Figure",), ())
 
-    plot_layout(layout, "out/2Axes--1.png")
+    plot_layout(layout, "2Axes--1.png")
 
     ## Create another box to represent the left axes
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     layout.add_prim(geo.Axes(), "Axes1")
     layout.add_constraint(geo.Box(), ("Axes1/Frame",), ())
 
-    plot_layout(layout, "out/2Axes--2.png")
+    plot_layout(layout, "2Axes--2.png")
 
     ## Create another box to represent the right axes
 
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     )
     layout.add_constraint(geo.Box(), ("Axes2/Frame",), ())
 
-    plot_layout(layout, "out/2Axes--3.png")
+    plot_layout(layout, "2Axes--3.png")
 
     ## Constrain the figure size
     fig_width, fig_height = 6, 3
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # to be coincident with the origin
     layout.add_constraint(geo.Coincident(), ("Figure/Line0/Point0", "Origin"), ())
 
-    plot_layout(layout, "out/2Axes--4.png")
+    plot_layout(layout, "2Axes--4.png")
 
     ## Constrain the left margin to `Axes1`
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         geo.InnerMargin(side='left'), ("Axes1/Frame", "Figure",), (margin_left,)
     )
 
-    plot_layout(layout, "out/2Axes--5.png")
+    plot_layout(layout, "2Axes--5.png")
 
     ## Constrain the right margin to `Axes2`
 
@@ -102,13 +102,13 @@ if __name__ == "__main__":
         geo.InnerMargin(side='right'), ("Axes2/Frame", "Figure"), (margin_right,)
     )
 
-    plot_layout(layout, "out/2Axes--6.png")
+    plot_layout(layout, "2Axes--6.png")
 
     ## Constrain the width of 'Axes1' by setting the length of the bottom edge
     width = 2
     layout.add_constraint(geo.Length(), ("Axes1/Frame/Line0",), (width,))
 
-    plot_layout(layout, "out/2Axes--7.png")
+    plot_layout(layout, "2Axes--7.png")
 
     ## Constrain the gap between the left and right axes ('Axes1' and `Axes2`)
     margin_inter = 0.5
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         geo.OuterMargin(side='right'), ("Axes1/Frame", "Axes2/Frame"), (margin_inter,)
     )
 
-    plot_layout(layout, "out/2Axes--8.png")
+    plot_layout(layout, "2Axes--8.png")
 
     ## Constrain the top/bottom margins on the left axes ('Axes1')
     margin_top = 1.0
@@ -128,14 +128,14 @@ if __name__ == "__main__":
         geo.InnerMargin(side="top"), ("Axes1/Frame", "Figure"), (margin_top,)
     )
 
-    plot_layout(layout, "out/2Axes--9.png")
+    plot_layout(layout, "2Axes--9.png")
 
     ## Make the top/bottom edges of the right axes ('Axes2') line up with the
     # top/bottom edges of the left axes ('Axes1')
     layout.add_constraint(geo.Collinear(), ("Axes1/Frame/Line0", "Axes2/Frame/Line0"), ())
     layout.add_constraint(geo.Collinear(), ("Axes1/Frame/Line2", "Axes2/Frame/Line2"), ())
 
-    plot_layout(layout, "out/2Axes--10.png")
+    plot_layout(layout, "2Axes--10.png")
 
     ## Solve for the constrained positions of the primitives
     prims, info = solver.solve(
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     axs["Axes1"].plot(x, 4 * x)
     axs["Axes2"].plot(x, x**2)
 
-    fig.savefig("out/two_axes.png")
+    fig.savefig("two_axes.png")
 
     ## Plot the constrained primitives in a figure
     root_prim_labels = [label for label in prims.keys() if "." not in label]
@@ -167,4 +167,4 @@ if __name__ == "__main__":
     ax.set_ylim(0, fig_height + 1)
     ax.set_aspect(1)
     ui.plot_prims(ax, prims)
-    fig.savefig("out/two_axes_layout.png")
+    fig.savefig("two_axes_layout.png")
