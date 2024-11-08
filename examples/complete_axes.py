@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # The `Axes` primtive contains quadrilaterals to specify x and y axis
     # locations as well as axis labels
-    layout.add_prim(geo.Axes(), "Axes")
+    layout.add_prim(geo.Axes(xaxis=True, yaxis=True), "Axes")
 
     ## Make all quadrilaterals rectangular/boxes
     # NOTE: This step is needed because `Quadrilateral` by default don't have
