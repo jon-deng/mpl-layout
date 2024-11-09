@@ -321,8 +321,8 @@ def unflatten(
 ## pytree flattening/unflattening implementation
 # These functions register `Node` classes as a `jax.pytree` so jax can flatten/unflatten
 # them
-NodeType = TypeVar("NodeType", bound="Node")
-FlatNode = tuple[ValueType, list[Node]]
+NodeType = TypeVar("NodeType", bound=Node)
+FlatNode = tuple[ValueType, dict[str, Node]]
 AuxData = Any
 
 def _make_flatten_unflatten(node_type: type[NodeType]):
