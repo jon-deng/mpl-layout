@@ -123,7 +123,7 @@ class Node(Generic[ValueType, ChildType]):
         """
         return self.children_map.items()
 
-    def __setitem__(self, key: str, node: "Node"):
+    def __setitem__(self, key: str, node: ChildType):
         """
         Set the node indexed by a slash-separated key
 
@@ -177,7 +177,7 @@ class Node(Generic[ValueType, ChildType]):
     def get_child_from_str_nonrecursive(self, key: str):
         return self.children_map[key]
 
-    def add_child(self, key: str, child: "Node"):
+    def add_child(self, key: str, child: ChildType):
         """
         Add a primitive indexed by a slash-separated key
 
