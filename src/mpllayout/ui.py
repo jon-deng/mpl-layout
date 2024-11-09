@@ -20,6 +20,7 @@ def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     """
     x, y = point.value
     ax.plot([x], [y], marker=".", **kwargs)
+    ax.annotate(label, (x, y))
 
 
 def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
@@ -29,6 +30,10 @@ def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
     xs = np.array([point.value[0] for point in line_segment.children])
     ys = np.array([point.value[1] for point in line_segment.children])
     ax.plot(xs, ys, **kwargs)
+
+    xmid = 1/2*xs.sum()
+    ymid = 1/2*ys.sum()
+    ax.annotate(label, (xmid, ymid))
 
 
 def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
@@ -43,7 +48,7 @@ def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
 
     (line,) = ax.plot(xs, ys, **kwargs)
     if label is not None:
-        # Plot the label in the lower left corner
+        # Place the label at the first point
         ax.annotate(
             label,
             (xs[0:1], ys[0:1]),
