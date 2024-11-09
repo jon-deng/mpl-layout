@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 from . import geometry as geo
+from .containers import iter_flat
 
 ## Functions for plotting geometric primitives
 
@@ -20,7 +21,7 @@ def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     """
     x, y = point.value
     ax.plot([x], [y], marker=".", **kwargs)
-    ax.annotate(label, (x, y))
+    ax.annotate(label, (x, y), ha='center')
 
 
 def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
@@ -33,7 +34,7 @@ def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
 
     xmid = 1/2*xs.sum()
     ymid = 1/2*ys.sum()
-    ax.annotate(label, (xmid, ymid))
+    ax.annotate(label, (xmid, ymid), ha='center')
 
 
 def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
@@ -62,12 +63,15 @@ def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
 
 
 def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
+    pass
+
+def plot_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
     """
-    Plot any child primitives of a generic primitive
+    Plot all child primitives of a generic primitive
     """
-    for key, child_prim in prim.items():
+    for child_key, child_prim in iter_flat(label, prim):
         plot = make_plot(child_prim)
-        plot(ax, child_prim, key)
+        plot(ax, child_prim, label=child_key.split("/")[-1], **kwargs)
 
 
 ## Functions for plotting arbitrary geometric primitives
@@ -94,8 +98,7 @@ def plot_prims(ax: Axes, root_prim: geo.Primitive):
     """
 
     for label, prim in root_prim.items():
-        plot = make_plot(prim)
-        plot(ax, prim, label=label)
+        plot_prim(ax, prim, label=label)
 
 
 def figure_prims(
