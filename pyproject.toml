@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0", "jax", "numpy", "matplotlib"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mpllayout"
+name = "mpllayout_jon-deng"
 version = "0.0.1"
 authors = [
   { name="Jonathan Deng", email="jonathan.j.deng@gmail.com" },
 ]
-description = "A package for structuring plot elements"
+description = "A package for laying out figures with geometric constraints"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
