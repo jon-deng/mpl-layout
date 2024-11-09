@@ -166,9 +166,7 @@ class TestPrimitiveTree:
         print(f"Duration {t1-t0:.2e} s")
 
     def test_solve(self, layout: lay.Layout):
-        prim_tree_n, solve_info = solver.solve(
-            layout.root_prim, *layout.flat_constraints()
-        )
+        prim_tree_n, solve_info = solver.solve(layout)
 
         prim_keys_to_value = {
             key: prim.value for key, prim in cn.iter_flat("", prim_tree_n)

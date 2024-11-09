@@ -13,7 +13,7 @@ import numpy as np
 
 from . import geometry as geo
 
-from . import layout
+from . import layout as lay
 
 IntGraph = tp.List[tp.Tuple[int, ...]]
 StrGraph = tp.List[tp.Tuple[str, ...]]
@@ -22,10 +22,7 @@ SolverInfo = tp.Mapping[str, tp.Any]
 
 
 def solve(
-    root_prim: geo.Primitive,
-    constraints: tp.List[geo.Constraint],
-    constraint_graph: StrGraph,
-    constraint_params,
+    layout: lay.Layout,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
@@ -77,9 +74,12 @@ def solve(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
-    prim_graph, prims = layout.build_prim_graph(root_prim)
+    root_prim = layout.root_prim
+    prim_graph, prims = lay.build_prim_graph(root_prim)
     prim_idx_bounds = np.cumsum([0] + [prim.value.size for prim in prims])
     global_param_n = np.concatenate([prim.value for prim in prims])
+
+    constraints, constraint_graph, constraint_params = layout.flat_constraints()
 
     @jax.jit
     def assem_global_res(global_param):
@@ -126,7 +126,7 @@ def solve(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    root_prim_n = layout.build_tree(root_prim, prim_graph, prim_params_n)
+    root_prim_n = lay.build_tree(root_prim, prim_graph, prim_params_n)
 
     return root_prim_n, nonlinear_solve_info
 
@@ -160,7 +160,7 @@ def assem_constraint_residual(
     residuals: tp.List[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
-    root_prim = layout.build_tree(root_prim, prim_graph, prim_values)
+    root_prim = lay.build_tree(root_prim, prim_graph, prim_values)
     residuals = [
         constraint(tuple(root_prim[key] for key in prim_keys), param)
         for constraint, prim_keys, param in zip(constraints, constraint_graph, constraint_params)

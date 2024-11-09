@@ -16,12 +16,7 @@ from mpllayout import (
 
 def plot_layout(layout: lay.Layout, fig_path: str):
 
-    prim_tree_n, info = solver.solve(
-        layout.root_prim,
-        *layout.flat_constraints(),
-        max_iter=40,
-        rel_tol=1e-9,
-    )
+    prim_tree_n, info = solver.solve(layout, max_iter=40, rel_tol=1e-9)
     fig, ax = ui.figure_prims(prim_tree_n)
     fig.savefig(fig_path)
 
@@ -138,12 +133,7 @@ if __name__ == "__main__":
     plot_layout(layout, "2Axes--10.png")
 
     ## Solve for the constrained positions of the primitives
-    prims, info = solver.solve(
-        layout.root_prim,
-        *layout.flat_constraints(),
-        max_iter=40,
-        rel_tol=1e-9,
-    )
+    prims, info = solver.solve(layout, max_iter=40, rel_tol=1e-9)
     print("Figure:", prims["Figure"])
     print("Axes1:", prims["Axes1"])
     print("Axes2:", prims["Axes2"])
