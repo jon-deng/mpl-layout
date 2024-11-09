@@ -22,7 +22,7 @@ def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     ax.plot([x], [y], marker=".", **kwargs)
 
 
-def plot_line_segment(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
+def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
     """
     Plot a `LineSegment`
     """
@@ -76,7 +76,7 @@ def make_plot(
     if isinstance(prim, geo.Point):
         return plot_point
     elif isinstance(prim, geo.Line):
-        return plot_line_segment
+        return plot_line
     elif isinstance(prim, geo.Polygon):
         return plot_polygon
     else:
