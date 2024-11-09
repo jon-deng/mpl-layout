@@ -106,9 +106,7 @@ if __name__ == "__main__":
     # layout.add_constraint(on_line, ("Axes/YAxisLabel", "Axes/YAxis/Line1"), {"distance": 0.5, "reverse": True})
 
     ## Solve the constraints and form the figure/axes layout
-    prim_tree_n, solve_info = solver.solve(
-        layout.root_prim, *layout.flat_constraints()
-    )
+    prim_tree_n, solve_info = solver.solve(layout)
     print("First layout solve")
     print(f"Absolute errors: {solve_info['abs_errs']}")
     print(f"Relative errors: {solve_info['rel_errs']}")
@@ -133,9 +131,7 @@ if __name__ == "__main__":
     # Using the generated axes and x/y axis contents, the layout constraints
     # can be updated with those matplotlib elements
     layout = lay.update_layout_constraints(layout, axs)
-    prim_tree_n, solve_info = solver.solve(
-        layout.root_prim, *layout.flat_constraints()
-    )
+    prim_tree_n, solve_info = solver.solve(layout)
     print("\nUpdated layout solve")
     print(f"Absolute errors: {solve_info['abs_errs']}")
     print(f"Relative errors: {solve_info['rel_errs']}")
