@@ -1,14 +1,8 @@
 """
-Container/array objects with both integer and string indices
+Tree class (`Node`) definition and related utilities for trees
 
-This modules contains container objects with both string and integer indices.
-These act basically as `dictionary` objects but can also be indexed with
-integers.
-
-The dual string/integer indices are used to facilitate creation of constraints
-and primitives. String labels for primitives are easy to keep track of and apply
-constraints to while integer indices are needed to solve systems of equations
-and build matrices.
+This module defines a tree class `Node` and related utilities.
+This class is used by itself as well as to define geometric primitives and constraints.
 """
 
 from typing import TypeVar, Generic, Any
