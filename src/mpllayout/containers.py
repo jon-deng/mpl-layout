@@ -11,25 +11,23 @@ constraints to while integer indices are needed to solve systems of equations
 and build matrices.
 """
 
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Any
 from collections.abc import Callable
 
 import itertools
 
 import jax
 
-T = TypeVar("T")
+ValueType = TypeVar("ValueType")
 ChildType = TypeVar("ChildType", bound="Node")
-AnyNode = TypeVar("AnyNode", bound="Node")
 
-
-class Node(Generic[T, ChildType]):
+class Node(Generic[ValueType, ChildType]):
     """
     Tree structure with labelled child nodes
 
     Parameters
     ----------
-    value: T
+    value: ValueType
         A value associated with the node
     children: tuple[Node, ...]
         Child nodes
@@ -37,13 +35,13 @@ class Node(Generic[T, ChildType]):
         Child node labels
     """
 
-    def __init__(self, value: None | T, children: dict[str, ChildType]):
+    def __init__(self, value: ValueType, children: dict[str, ChildType]):
         assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
 
     @classmethod
-    def from_tree(cls, value: None | T, children: dict[str, ChildType]):
+    def from_tree(cls, value: ValueType, children: dict[str, ChildType]):
         node = super().__new__(cls)
         Node.__init__(node, value, children)
         return node
@@ -63,7 +61,7 @@ class Node(Generic[T, ChildType]):
         return self._key_to_child
 
     @property
-    def value(self) -> T:
+    def value(self):
         """
         Return the value
         """
@@ -131,7 +129,7 @@ class Node(Generic[T, ChildType]):
         """
         return self.children_map.items()
 
-    def __setitem__(self, key: str | int, node: AnyNode):
+    def __setitem__(self, key: str, node: "Node"):
         """
         Set the node indexed by a slash-separated key
 
@@ -185,7 +183,7 @@ class Node(Generic[T, ChildType]):
     def get_child_from_str_nonrecursive(self, key: str):
         return self.children_map[key]
 
-    def add_child(self, key: str, child: AnyNode):
+    def add_child(self, key: str, child: "Node"):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -270,11 +268,9 @@ class ItemCounter(Generic[V]):
 
 
 ## Manual flattening/unflattening implementation
-NodeType = type[Node]
-FlatNodeStructure = tuple[NodeType, str, T, int]
+FlatNodeStructure = tuple[type[Node], str, ValueType, int]
 
-
-def iter_flat(key: str, node: Node[T, ChildType]):
+def iter_flat(key: str, node: Node):
     """
     Return a flat iterator over all nodes
     """
@@ -283,6 +279,7 @@ def iter_flat(key: str, node: Node[T, ChildType]):
     if num_child == 0:
         nodes = [(key, node)]
     else:
+        # TODO: mypy says there's something wrong with the typing here?
         cnodes = [
             iter_flat("/".join((key, ckey)), cnode) for ckey, cnode in node.items()
         ]
@@ -303,11 +300,11 @@ def flatten(key: str, node: Node) -> list[FlatNodeStructure]:
 def unflatten(
     node_structs: list[FlatNodeStructure],
 ) -> tuple[Node, list[FlatNodeStructure]]:
-    NodeType, pkey, value, num_child = node_structs[0]
+    node_type, pkey, value, num_child = node_structs[0]
     node_structs = node_structs[1:]
 
     if num_child == 0:
-        node = NodeType.from_tree(value, {})
+        node = node_type.from_tree(value, {})
     else:
         ckeys = []
         children = []
@@ -320,7 +317,7 @@ def unflatten(
             ckeys.append(ckey)
             children.append(child)
 
-        node = NodeType.from_tree(
+        node = node_type.from_tree(
             value, {key: child for key, child in zip(ckeys, children)}
         )
 
@@ -330,14 +327,11 @@ def unflatten(
 ## pytree flattening/unflattening implementation
 # These functions register `Node` classes as a `jax.pytree` so jax can flatten/unflatten
 # them
+NodeType = TypeVar("NodeType", bound="Node")
+FlatNode = tuple[ValueType, list[Node]]
+AuxData = Any
 
-Children = list[Node[T, ChildType]]
-FlatNode = tuple[T, Children]
-Keys = list[str]
-AuxData = tuple[Keys]
-
-
-def _make_flatten_unflatten(NodeType: type[Node[T, ChildType]]):
+def _make_flatten_unflatten(node_type: type[NodeType]):
 
     def _flatten_node(node: NodeType) -> tuple[FlatNode, AuxData]:
         flat_node = (node.value, node.children_map)
@@ -346,13 +340,12 @@ def _make_flatten_unflatten(NodeType: type[Node[T, ChildType]]):
 
     def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeType:
         value, children = flat_node
-        return NodeType.from_tree(value, children)
+        return node_type.from_tree(value, children)
 
     return _flatten_node, _unflatten_node
 
 
 ## Register `Node` as `jax.pytree`
-_NodeClasses = [Node]
-for _NodeClass in _NodeClasses:
-    _flatten, _unflatten = _make_flatten_unflatten(_NodeClass)
-    jax.tree_util.register_pytree_node(_NodeClass, _flatten, _unflatten)
+for _NodeType in [Node]:
+    _flatten, _unflatten = _make_flatten_unflatten(_NodeType)
+    jax.tree_util.register_pytree_node(_NodeType, _flatten, _unflatten)
