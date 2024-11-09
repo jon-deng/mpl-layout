@@ -12,10 +12,11 @@ import itertools
 
 import jax
 
-ValueType = TypeVar("ValueType")
-ChildType = TypeVar("ChildType", bound="Node")
+TValue = TypeVar("TValue")
+TChild = TypeVar("TChild", bound="Node")
+TNode = TypeVar("TNode", bound="Node")
 
-class Node(Generic[ValueType, ChildType]):
+class Node(Generic[TValue, TChild]):
     """
     Tree structure with labelled child nodes
 
@@ -29,13 +30,13 @@ class Node(Generic[ValueType, ChildType]):
         Child node labels
     """
 
-    def __init__(self, value: ValueType, children: dict[str, ChildType]):
+    def __init__(self, value: TValue, children: dict[str, TChild]):
         assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
 
     @classmethod
-    def from_tree(cls, value: ValueType, children: dict[str, ChildType]):
+    def from_tree(cls, value: TValue, children: dict[str, TChild]):
         node = super().__new__(cls)
         Node.__init__(node, value, children)
         return node
@@ -123,7 +124,7 @@ class Node(Generic[ValueType, ChildType]):
         """
         return self.children_map.items()
 
-    def __setitem__(self, key: str, node: ChildType):
+    def __setitem__(self, key: str, node: TChild):
         """
         Set the node indexed by a slash-separated key
 
@@ -177,7 +178,7 @@ class Node(Generic[ValueType, ChildType]):
     def get_child_from_str_nonrecursive(self, key: str):
         return self.children_map[key]
 
-    def add_child(self, key: str, child: ChildType):
+    def add_child(self, key: str, child: TChild):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -198,7 +199,7 @@ class Node(Generic[ValueType, ChildType]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def add_child_nonrecursive(self, key: str, child: ChildType):
+    def add_child_nonrecursive(self, key: str, child: TChild):
         """
         Add a primitive indexed by a key
 
@@ -210,19 +211,19 @@ class Node(Generic[ValueType, ChildType]):
             self.children_map[key] = child
 
 
-V = TypeVar("V")
+TItem = TypeVar("TItem")
 
 
-class ItemCounter(Generic[V]):
+class ItemCounter(Generic[TItem]):
     """
     Count items by a prefix
     """
 
     @staticmethod
-    def __classname(item: V) -> str:
+    def __classname(item: TItem) -> str:
         return type(item).__name__
 
-    def __init__(self, gen_prefix: Callable[[V], str] = __classname):
+    def __init__(self, gen_prefix: Callable[[TItem], str] = __classname):
         self._prefix_to_count = {}
         self._gen_prefix = gen_prefix
 
@@ -233,10 +234,10 @@ class ItemCounter(Generic[V]):
     def __contains__(self, key):
         return key in self._p
 
-    def gen_prefix(self, item: V) -> str:
+    def gen_prefix(self, item: TItem) -> str:
         return self._gen_prefix(item)
 
-    def add_item(self, item: V) -> str:
+    def add_item(self, item: TItem) -> str:
         prefix = self.gen_prefix(item)
         if prefix in self.prefix_to_count:
             self.prefix_to_count[prefix] += 1
@@ -246,7 +247,7 @@ class ItemCounter(Generic[V]):
         postfix = self.prefix_to_count[prefix] - 1
         return f"{prefix}{postfix}"
 
-    def add_item_until_valid(self, item: V, valid: Callable[[str], bool]):
+    def add_item_until_valid(self, item: TItem, valid: Callable[[str], bool]):
 
         key = self.add_item(item)
         while not valid(key):
@@ -254,7 +255,7 @@ class ItemCounter(Generic[V]):
 
         return key
 
-    def add_item_to_nodes(self, item: V, *nodes: tuple[Node, ...]):
+    def add_item_to_nodes(self, item: TItem, *nodes: tuple[Node, ...]):
         def valid(key):
             key_notin_nodes = (key not in node for node in nodes)
             return all(key_notin_nodes)
@@ -262,9 +263,9 @@ class ItemCounter(Generic[V]):
 
 
 ## Manual flattening/unflattening implementation
-FlatNodeStructure = tuple[type[Node], str, ValueType, int]
+FlatNodeStructure = tuple[type[TNode], str, TValue, int]
 
-def iter_flat(key: str, node: Node):
+def iter_flat(key: str, node: TNode):
     """
     Return a flat iterator over all nodes
     """
@@ -283,7 +284,7 @@ def iter_flat(key: str, node: Node):
     return nodes
 
 
-def flatten(key: str, node: Node) -> list[FlatNodeStructure]:
+def flatten(key: str, node: TNode) -> list[FlatNodeStructure]:
     node_structs = [
         (type(_node), _key, _node.value, len(_node))
         for _key, _node in iter_flat(key, node)
@@ -293,7 +294,7 @@ def flatten(key: str, node: Node) -> list[FlatNodeStructure]:
 
 def unflatten(
     node_structs: list[FlatNodeStructure],
-) -> tuple[Node, list[FlatNodeStructure]]:
+) -> tuple[TNode, list[FlatNodeStructure]]:
     node_type, pkey, value, num_child = node_structs[0]
     node_structs = node_structs[1:]
 
@@ -321,18 +322,17 @@ def unflatten(
 ## pytree flattening/unflattening implementation
 # These functions register `Node` classes as a `jax.pytree` so jax can flatten/unflatten
 # them
-NodeType = TypeVar("NodeType", bound=Node)
-FlatNode = tuple[ValueType, dict[str, Node]]
+FlatNode = tuple[TValue, dict[str, TNode]]
 AuxData = Any
 
-def _make_flatten_unflatten(node_type: type[NodeType]):
+def _make_flatten_unflatten(node_type: type[TNode]):
 
-    def _flatten_node(node: NodeType) -> tuple[FlatNode, AuxData]:
+    def _flatten_node(node: TNode) -> tuple[FlatNode, AuxData]:
         flat_node = (node.value, node.children_map)
         aux_data = None
         return (flat_node, aux_data)
 
-    def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeType:
+    def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> TNode:
         value, children = flat_node
         return node_type.from_tree(value, children)
 
