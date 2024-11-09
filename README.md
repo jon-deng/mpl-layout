@@ -27,7 +27,12 @@ It consists of:
 
 ## Installation
 
-To install this package, clone the repository into a local drive.
+You can install the package from PyPI using
+```
+pip install matplotlib-layout
+```
+
+Alternateively, clone the repository into a local drive.
 Navigate to the project directory and run
 ```
 pip install .
