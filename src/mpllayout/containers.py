@@ -1,48 +1,42 @@
 """
-Container/array objects with both integer and string indices
+Tree class (`Node`) definition and related utilities for trees
 
-This modules contains container objects with both string and integer indices.
-These act basically as `dictionary` objects but can also be indexed with
-integers.
-
-The dual string/integer indices are used to facilitate creation of constraints
-and primitives. String labels for primitives are easy to keep track of and apply
-constraints to while integer indices are needed to solve systems of equations
-and build matrices.
+This module defines a tree class `Node` and related utilities.
+This class is used by itself as well as to define geometric primitives and constraints.
 """
 
-import typing as tp
+from typing import TypeVar, Generic, Any
+from collections.abc import Callable
 
 import itertools
 
 import jax
 
-T = tp.TypeVar("T")
-ChildType = tp.TypeVar("ChildType", bound="Node")
-AnyNode = tp.TypeVar("AnyNode", bound="Node")
+TValue = TypeVar("TValue")
+TChild = TypeVar("TChild", bound="Node")
+TNode = TypeVar("TNode", bound="Node")
 
-
-class Node(tp.Generic[T, ChildType]):
+class Node(Generic[TValue, TChild]):
     """
     Tree structure with labelled child nodes
 
     Parameters
     ----------
-    value: T
+    value: ValueType
         A value associated with the node
-    children: tp.Tuple[Node, ...]
+    children: tuple[Node, ...]
         Child nodes
-    labels: tp.Tuple[str, ...]
+    labels: tuple[str, ...]
         Child node labels
     """
 
-    def __init__(self, value: None | T, children: tp.Mapping[str, ChildType]):
+    def __init__(self, value: TValue, children: dict[str, TChild]):
         assert isinstance(children, dict)
         self._value = value
         self._key_to_child = children
 
     @classmethod
-    def from_tree(cls, value: None | T, children: tp.Mapping[str, ChildType]):
+    def from_tree(cls, value: TValue, children: dict[str, TChild]):
         node = super().__new__(cls)
         Node.__init__(node, value, children)
         return node
@@ -62,11 +56,19 @@ class Node(tp.Generic[T, ChildType]):
         return self._key_to_child
 
     @property
-    def value(self) -> T:
+    def value(self):
         """
         Return the value
         """
         return self._value
+
+    ## Tree methods
+
+    def node_height(self) -> int:
+        if len(self) == 0:
+            return 0
+        else:
+            return 1 + max(child.node_height() for _, child in self.items())
 
     ## Flattened interface
 
@@ -130,7 +132,7 @@ class Node(tp.Generic[T, ChildType]):
         """
         return self.children_map.items()
 
-    def __setitem__(self, key: str | int, node: AnyNode):
+    def __setitem__(self, key: str, node: TChild):
         """
         Set the node indexed by a slash-separated key
 
@@ -158,7 +160,7 @@ class Node(tp.Generic[T, ChildType]):
         """
         return self.get_child(key)
 
-    def get_child(self, key: tp.Union[str, int]):
+    def get_child(self, key: str | int):
         if isinstance(key, int):
             return self.get_child_from_int(key)
         elif isinstance(key, str):
@@ -184,7 +186,7 @@ class Node(tp.Generic[T, ChildType]):
     def get_child_from_str_nonrecursive(self, key: str):
         return self.children_map[key]
 
-    def add_child(self, key: str, child: AnyNode):
+    def add_child(self, key: str, child: TChild):
         """
         Add a primitive indexed by a slash-separated key
 
@@ -205,7 +207,7 @@ class Node(tp.Generic[T, ChildType]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def add_child_nonrecursive(self, key: str, child: ChildType):
+    def add_child_nonrecursive(self, key: str, child: TChild):
         """
         Add a primitive indexed by a key
 
@@ -217,19 +219,19 @@ class Node(tp.Generic[T, ChildType]):
             self.children_map[key] = child
 
 
-V = tp.TypeVar("V")
+TItem = TypeVar("TItem")
 
 
-class ItemCounter(tp.Generic[V]):
+class ItemCounter(Generic[TItem]):
     """
     Count items by a prefix
     """
 
     @staticmethod
-    def __classname(item: V) -> str:
+    def __classname(item: TItem) -> str:
         return type(item).__name__
 
-    def __init__(self, gen_prefix: tp.Callable[[V], str] = __classname):
+    def __init__(self, gen_prefix: Callable[[TItem], str] = __classname):
         self._prefix_to_count = {}
         self._gen_prefix = gen_prefix
 
@@ -240,10 +242,10 @@ class ItemCounter(tp.Generic[V]):
     def __contains__(self, key):
         return key in self._p
 
-    def gen_prefix(self, item: V) -> str:
+    def gen_prefix(self, item: TItem) -> str:
         return self._gen_prefix(item)
 
-    def add_item(self, item: V) -> str:
+    def add_item(self, item: TItem) -> str:
         prefix = self.gen_prefix(item)
         if prefix in self.prefix_to_count:
             self.prefix_to_count[prefix] += 1
@@ -253,7 +255,7 @@ class ItemCounter(tp.Generic[V]):
         postfix = self.prefix_to_count[prefix] - 1
         return f"{prefix}{postfix}"
 
-    def add_item_until_valid(self, item: V, valid: tp.Callable[[str], bool]):
+    def add_item_until_valid(self, item: TItem, valid: Callable[[str], bool]):
 
         key = self.add_item(item)
         while not valid(key):
@@ -261,7 +263,7 @@ class ItemCounter(tp.Generic[V]):
 
         return key
 
-    def add_item_to_nodes(self, item: V, *nodes: tp.Tuple[Node, ...]):
+    def add_item_to_nodes(self, item: TItem, *nodes: tuple[Node, ...]):
         def valid(key):
             key_notin_nodes = (key not in node for node in nodes)
             return all(key_notin_nodes)
@@ -269,11 +271,9 @@ class ItemCounter(tp.Generic[V]):
 
 
 ## Manual flattening/unflattening implementation
-NodeType = tp.Type[Node]
-FlatNodeStructure = tp.Tuple[NodeType, str, T, int]
+FlatNodeStructure = tuple[type[TNode], str, TValue, int]
 
-
-def iter_flat(key: str, node: Node[T, ChildType]):
+def iter_flat(key: str, node: TNode):
     """
     Return a flat iterator over all nodes
     """
@@ -282,6 +282,7 @@ def iter_flat(key: str, node: Node[T, ChildType]):
     if num_child == 0:
         nodes = [(key, node)]
     else:
+        # TODO: mypy says there's something wrong with the typing here?
         cnodes = [
             iter_flat("/".join((key, ckey)), cnode) for ckey, cnode in node.items()
         ]
@@ -291,7 +292,7 @@ def iter_flat(key: str, node: Node[T, ChildType]):
     return nodes
 
 
-def flatten(key: str, node: Node) -> tp.List[FlatNodeStructure]:
+def flatten(key: str, node: TNode) -> list[FlatNodeStructure]:
     node_structs = [
         (type(_node), _key, _node.value, len(_node))
         for _key, _node in iter_flat(key, node)
@@ -300,13 +301,13 @@ def flatten(key: str, node: Node) -> tp.List[FlatNodeStructure]:
 
 
 def unflatten(
-    node_structs: tp.List[FlatNodeStructure],
-) -> tp.Tuple[Node, tp.List[FlatNodeStructure]]:
-    NodeType, pkey, value, num_child = node_structs[0]
+    node_structs: list[FlatNodeStructure],
+) -> tuple[TNode, list[FlatNodeStructure]]:
+    node_type, pkey, value, num_child = node_structs[0]
     node_structs = node_structs[1:]
 
     if num_child == 0:
-        node = NodeType.from_tree(value, {})
+        node = node_type.from_tree(value, {})
     else:
         ckeys = []
         children = []
@@ -319,7 +320,7 @@ def unflatten(
             ckeys.append(ckey)
             children.append(child)
 
-        node = NodeType.from_tree(
+        node = node_type.from_tree(
             value, {key: child for key, child in zip(ckeys, children)}
         )
 
@@ -329,29 +330,24 @@ def unflatten(
 ## pytree flattening/unflattening implementation
 # These functions register `Node` classes as a `jax.pytree` so jax can flatten/unflatten
 # them
+FlatNode = tuple[TValue, dict[str, TNode]]
+AuxData = Any
 
-Children = tp.List[Node[T, ChildType]]
-FlatNode = tp.Tuple[T, Children]
-Keys = tp.List[str]
-AuxData = tp.Tuple[Keys]
+def _make_flatten_unflatten(node_type: type[TNode]):
 
-
-def _make_flatten_unflatten(NodeType: tp.Type[Node[T, ChildType]]):
-
-    def _flatten_node(node: NodeType) -> tp.Tuple[FlatNode, AuxData]:
+    def _flatten_node(node: TNode) -> tuple[FlatNode, AuxData]:
         flat_node = (node.value, node.children_map)
         aux_data = None
         return (flat_node, aux_data)
 
-    def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> NodeType:
+    def _unflatten_node(aux_data: AuxData, flat_node: FlatNode) -> TNode:
         value, children = flat_node
-        return NodeType.from_tree(value, children)
+        return node_type.from_tree(value, children)
 
     return _flatten_node, _unflatten_node
 
 
 ## Register `Node` as `jax.pytree`
-_NodeClasses = [Node]
-for _NodeClass in _NodeClasses:
-    _flatten, _unflatten = _make_flatten_unflatten(_NodeClass)
-    jax.tree_util.register_pytree_node(_NodeClass, _flatten, _unflatten)
+for _NodeType in [Node]:
+    _flatten, _unflatten = _make_flatten_unflatten(_NodeType)
+    jax.tree_util.register_pytree_node(_NodeType, _flatten, _unflatten)
