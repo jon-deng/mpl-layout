@@ -62,6 +62,14 @@ class Node(Generic[TValue, TChild]):
         """
         return self._value
 
+    ## Tree methods
+
+    def node_height(self) -> int:
+        if len(self) == 0:
+            return 0
+        else:
+            return 1 + max(child.node_height() for _, child in self.items())
+
     ## Flattened interface
 
     ## String

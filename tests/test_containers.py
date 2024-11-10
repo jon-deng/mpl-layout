@@ -11,6 +11,7 @@ from mpllayout import containers as cn
 
 class TestNode:
 
+    # TODO: Make the node more general for a height, etc.
     @pytest.fixture()
     def node(self):
         childd = cn.Node.from_tree(99, {})
@@ -21,6 +22,9 @@ class TestNode:
         childc = cn.Node.from_tree(3, {})
         node = cn.Node.from_tree(0, {"a": childa, "b": childb, "c": childc})
         return node
+
+    def test_node_height(self, node: cn.Node):
+        assert node.node_height() == 2
 
     def test_repr(self, node: cn.Node):
         print(node)
