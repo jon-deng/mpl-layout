@@ -39,17 +39,17 @@ def rotation_from_line(line: geo.Line) -> float:
     return theta
 
 
-def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
+def plot_line(ax: Axes, line: geo.Line, label=None, **kwargs):
     """
     Plot a `LineSegment`
     """
-    xs = np.array([point.value[0] for point in line_segment.children])
-    ys = np.array([point.value[1] for point in line_segment.children])
+    xs = np.array([point.value[0] for point in line.children])
+    ys = np.array([point.value[1] for point in line.children])
     ax.plot(xs, ys, **kwargs)
 
     xmid = 1/2*xs.sum()
     ymid = 1/2*ys.sum()
-    theta = rotation_from_line(line_segment)
+    theta = rotation_from_line(line)
     ax.annotate(label, (xmid, ymid), ha='center', va='center', rotation=theta)
 
 
