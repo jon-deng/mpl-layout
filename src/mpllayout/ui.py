@@ -7,6 +7,7 @@ from matplotlib.axes import Axes
 
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+from matplotlib.colors import Colormap
 import numpy as np
 
 from . import geometry as geo
@@ -20,9 +21,8 @@ def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     Plot a `Point`
     """
     x, y = point.value
-    ax.plot([x], [y], marker=".", **kwargs)
-    ax.annotate(label, (x, y), ha='center')
-
+    line, = ax.plot([x], [y], marker=".", **kwargs)
+    ax.annotate(label, (x, y), ha='center', **kwargs)
 
 def rotation_from_line(line: geo.Line) -> float:
     """
@@ -38,7 +38,6 @@ def rotation_from_line(line: geo.Line) -> float:
 
     return theta
 
-
 def plot_line(ax: Axes, line: geo.Line, label=None, **kwargs):
     """
     Plot a `LineSegment`
@@ -50,33 +49,33 @@ def plot_line(ax: Axes, line: geo.Line, label=None, **kwargs):
     xmid = 1/2*xs.sum()
     ymid = 1/2*ys.sum()
     theta = rotation_from_line(line)
-    ax.annotate(label, (xmid, ymid), ha='center', va='center', rotation=theta)
-
+    # ax.annotate(label, (xmid, ymid), ha='center', va='center', rotation=theta, **kwargs)
+    ax.annotate(label, (xmid, ymid), ha='center', va='baseline', rotation=theta, **kwargs)
 
 def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
     """
     Plot a `Polygon`
     """
-    points = [polygon[f"Line0"]["Point0"]] + [
-        polygon[f"Line{ii}"]["Point1"] for ii in range(len(polygon))
-    ]
-    xs = np.array([point.value[0] for point in points])
-    ys = np.array([point.value[1] for point in points])
+    origin = polygon[f"Line0"]["Point0"].value
+    # points = [polygon[f"Line0"]["Point0"]] + [
+    #     polygon[f"Line{ii}"]["Point1"] for ii in range(len(polygon))
+    # ]
+    # xs = np.array([point.value[0] for point in points])
+    # ys = np.array([point.value[1] for point in points])
 
-    (line,) = ax.plot(xs, ys, **kwargs)
+    # (line,) = ax.plot(xs, ys, **kwargs)
     if label is not None:
         # Place the label at the first point
         ax.annotate(
             label,
-            (xs[0:1], ys[0:1]),
+            (origin[0:1], origin[0:1]),
             xycoords="data",
             xytext=(2.0, 2.0),
             textcoords="offset points",
             ha="left",
             va="bottom",
-            color=line.get_color(),
+            **kwargs
         )
-
 
 def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
     pass
@@ -85,9 +84,27 @@ def plot_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
     """
     Plot all child primitives of a generic primitive
     """
+    prim_height = prim.node_height()
     for child_key, child_prim in iter_flat(label, prim):
         plot = make_plot(child_prim)
-        plot(ax, child_prim, label=child_key.split("/")[-1], **kwargs)
+        split_child_key = child_key.split("/")
+
+        # Use the height of the child prim to increase the transparency
+        # The root primitive has zero transparency while child primitives
+        # have lower transparency
+        depth = len(split_child_key) - 1
+
+        # This is the height of a node relative to the tree height
+        # The root node has relative height 1 and the deepest child has relative
+        # height 0
+        if prim_height == 0:
+            s = 1
+        else:
+            s = (prim_height - depth)/prim_height
+        alpha = 1*s + 0.2*(1-s)
+
+        parent_key = depth*"."
+        plot(ax, child_prim, label=f"{parent_key}/{split_child_key[-1]}", alpha=alpha, **kwargs)
 
 
 ## Functions for plotting arbitrary geometric primitives
@@ -108,13 +125,14 @@ def make_plot(
         return plot_generic_prim
 
 
-def plot_prims(ax: Axes, root_prim: geo.Primitive):
+def plot_prims(ax: Axes, root_prim: geo.Primitive, cmap: Colormap=mpl.colormaps['viridis']):
     """
     Plot all the child primitives in a `geo.Primitive` tree
     """
-
-    for label, prim in root_prim.items():
-        plot_prim(ax, prim, label=label)
+    num_prims = len(root_prim)
+    for ii, (label, prim) in enumerate(root_prim.items()):
+        color = cmap(ii / num_prims)
+        plot_prim(ax, prim, label=label, color=color)
 
 
 def figure_prims(
