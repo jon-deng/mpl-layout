@@ -24,6 +24,21 @@ def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     ax.annotate(label, (x, y), ha='center')
 
 
+def rotation_from_line(line: geo.Line) -> float:
+    """
+    Return the rotation of a line vector
+    """
+    line_vec = geo.line_vector(line)
+    unit_vec = line_vec / np.linalg.norm(line_vec)
+
+    # Since `unit_vec` has unit length, the x-component is the cosine
+    theta = 180/np.pi * np.arccos(unit_vec[0])
+    if unit_vec[1] < 0:
+        theta = theta + 180
+
+    return theta
+
+
 def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
     """
     Plot a `LineSegment`
@@ -34,7 +49,8 @@ def plot_line(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
 
     xmid = 1/2*xs.sum()
     ymid = 1/2*ys.sum()
-    ax.annotate(label, (xmid, ymid), ha='center')
+    theta = rotation_from_line(line_segment)
+    ax.annotate(label, (xmid, ymid), ha='center', va='center', rotation=theta)
 
 
 def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
