@@ -73,24 +73,35 @@ class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
 PrimList = tp.List[Primitive]
 
 
+# TODO: Implement input validation for `StaticPrimitive` and `ParameterizedPrimitive`
+# Both the classes have requirements on the types of `value` and `prims` but
+# these aren't validated at all now
 class StaticPrimitive(Primitive):
     """
     A "static" geometric primitive
 
-    Static primitives have predefined sizes and the signature below
+    Static primitives have fixed (see `Parameters`):
+    - parameter vector shape
+    - and child primitive types
 
-    To define a static primitive, create a subclass and define the functions
+    To define a static primitive, create a subclass and define
     `default_value`, `default_prims` and `init_children`.
 
     Parameters
     ----------
-    value: NDArray with shape (n,)
-        A parameter vector for the primitive
-    prims: tp.List[Primitive]
-        Primitives used to parameterize the primitive
+    value: NDArray, optional
+        A parameter vector
 
-        In many cases, `prims` consists of the child primitives; however,
-        this depends on the implementation of `init_children`.
+        The parameter vector should match a known shape.
+
+        If not supplied, `default_value` will be used to generate a default.
+    prims: list[Primitive], optional
+        Parameterizing primitives
+
+        The parameterizing primitives must match the known primitive types.
+
+        Note that in many cases parameterizing primitives are child primitives
+        ; however, this depends on `init_children`.
     """
 
     def default_value(self) -> NDArray:
@@ -110,9 +121,6 @@ class StaticPrimitive(Primitive):
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         """
         Return child primitives from parameterizing primitives
-
-        In many cases the parameterizing primitives are child primitives.
-        An exception is for `Polygon`.
 
         Parameters
         ----------
@@ -152,21 +160,36 @@ class ParameterizedPrimitive(Primitive):
     """
     A "parameterized" geometric primitive
 
-    Parameterized primitives have variable sizes based on keyword arguments
-    To define a parameterized primitive, create a subclass and define the
-    functions `default_value`, `default_prims` and `init_children`.
+    Parameterized primitives have variable (see `Parameters`):
+    - parameter vector shape
+    - and child primitive types
+    based on additional keyword arguments.
+
+    To define a parameterized primitive, create a subclass and define
+    `default_value`, `default_prims` and `init_children`.
 
     Parameters
     ----------
-    value: NDArray with shape (n,)
-        A parameter vector for the primitive
-    prims: tp.List[Primitive]
-        Primitives used to parameterize the primitive
+    value: NDArray, optional
+        A parameter vector
 
-        In many cases, `prims` consists of the child primitives; however,
-        this depends on the implementation of `init_children`.
+        The parameter vector should match a known shape.
+
+        If not supplied, `default_value` will be used to generate a default.
+    prims: list[Primitive], optional
+        Parameterizing primitives
+
+        The parameterizing primitives should match known primitive types.
+
+        Note that in many cases parameterizing primitives are child primitives
+        ; however, this depends on `init_children`.
     **kwargs
-        Any additional arguments to parameterize the primitive
+        Arbitrary additional keyword arguments
+
+        Subclasses should define what these arguments are and how they affect
+        the primitive.
+        For example, a `size` keyword argument could specify the length of
+        `prims` (see `Polygon`).
     """
 
     def default_value(self, **kwargs) -> NDArray:
@@ -186,9 +209,6 @@ class ParameterizedPrimitive(Primitive):
     ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
         """
         Return child primitives from parameterizing primitives
-
-        In many cases the parameterizing primitives are child primitives.
-        An exception is for `Polygon`.
 
         Parameters
         ----------
