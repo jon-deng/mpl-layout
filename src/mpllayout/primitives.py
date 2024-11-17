@@ -456,7 +456,14 @@ class Axes(ParameterizedPrimitive):
 
 
 ## Register `Primitive` classes as `jax.pytree`
-_PrimitiveClasses = [Primitive, Quadrilateral, Point, Line, Polygon]
+_PrimitiveClasses = [
+    Primitive,
+    Point,
+    Line,
+    Polygon,
+    Quadrilateral,
+    Axes,
+]
 for _PrimitiveClass in _PrimitiveClasses:
     _flatten_primitive, _unflatten_primitive = _make_flatten_unflatten(_PrimitiveClass)
     jax.tree_util.register_pytree_node(
