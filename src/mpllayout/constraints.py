@@ -62,46 +62,65 @@ class ParamsNode(Node[Params, "ParamsNode"]):
 
 class Constraint(Node[ChildPrimKeys, "Constraint"]):
     """
-    Geometric constraint on primitives
+    The base geometric constraint class
 
-    A geometric constraint is a condition on parameters of geometric primitives.
+    A geometric constraint represents a condition on the parameter vectors of
+    geometric primitives.
     The condition is implemented through a residual function
-        `Constraint.assem_res(prims, **kwargs)`
-    where `prims` are geometric primitives and `params` are parameters for the residual.
-    For constraint is satisified when `Constraint.assem_res(prims, **kwargs) == 0` for a
-    given `prims` and `params`.
+        `assem_res(self, prims, **kwargs)`
+    where
+    - `prims` are the geometric primitives to constraint
+    - and `**kwargs` are additional arguments for the residual.
+    The constraint is satisified when `assem_res(self, prims, **kwargs) == 0`.
+    To implement `assem_res`, `jax` functions should be used to return a
+    residual vector from the parameter vectors of input primitives.
 
-    For more details on how to implement `Constaint.assem_res`, see the docstring below.
+    Constraints have a tree-like structure.
+    A constraint can contain child constraints by passing subsets of its input
+    primitives (`prims` in `assem_res`) on to child constraints.
+    The residual of a constraint is the result of concatenating all child
+    constraint residuals.
 
-    Constraints also have a tree structure where constraints can contain child
-    constraints. The residual of a constraint is the result of joining all child
-    constraint residuals together.
-
-    To create a constraint, you have to subclass `Constraint` then:
+    To create a constraint, subclass `Constraint` then:
         1. Define the residual for the constraint (`assem_res`)
-        2. Specify the parameters for `Constraint.__init__` (see below)
-    Note that some of the `Constraint.__init__` parameters are for type checking inputs
-    to `assem_res` while the others are for specifying child constraints.
+        2. Specify the parameters for `Constraint.__init__` (see `Parameters`)
+    Note that some of the `Constraint.__init__` parameters are for type checking
+    inputs to `assem_res` while the others are for specifying child constraints.
+    `StaticConstraint` and `ParameterizedConstraint` are two `Constraint`
+    subclasses that can be subclassed to create constraints.
 
     Parameters
     ----------
-    child_prim_keys: Tuple[PrimKeys, ...]
+    child_prim_keys: tuple[PrimKeys, ...]
         Primitive key tuples for each child constraint
 
-        This is stored as the "value" of the tree structure and explains how to
-        create primitive arguments for child constraints.
-        For a given child constraint, a tuple of primitive keys indicates a subset of
-        parent primitives to form child constraint primitive arguments.
+        This is stored as the "value" of the tree structure and encodes how to
+        create primitives for each child constraint from the parent constraint's
+        `prims` (in `assem_res(self, prims, **kwargs)`).
+        For each child constraint, a tuple of primitive keys indicates a
+        subset of parent primitives to form child constraint primitive
+        arguments.
 
-        Consider a parent constraint with residual
-            ```parent.assem_res(prims, **kwargs)```
-        and the nth child constraint with primitive key tuple
-            ```children_primkeys[n] = ('arg0', 'arg3/Line2')```.
-        This indicates the nth child constraint should be evaluated with
-            ```parent.children[n].assem_res((prims[0], prims[3]['Line0']), **child_kwargs)```
-    child_keys: List[str]
+        To illustrate this, consider a parent constraint with residual
+
+        ```python
+        Parent.assem_res(self, prims, **kwargs)
+        ```
+
+        and the n'th child constraint with primitive key tuple
+
+        ```python
+        child_prim_keys[n] == ('arg0', 'arg3/Line2')
+        ```.
+
+        This indicates the n'th child constraint should be evaluated with
+
+        ```
+        child_prims = (prims[0], prims[3]['Line2'])
+        ```
+    child_keys: list[str]
         Keys for any child constraints
-    child_contraints: List[Constraint]
+    child_contraints: list[Constraint]
         Child constraints
     aux_data: Mapping[str, Any]
         Any auxiliary data
@@ -109,6 +128,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         This is usually for type checking/validation of inputs
     """
 
+    # TODO: Implement type checking for aux_data??
     def __init__(
         self,
         child_prim_keys: ChildPrimKeys,
@@ -331,7 +351,7 @@ class DynamicConstraint(ParameterizedConstraint):
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
 
-# Argument type: Tuple[Point,]
+# Argument type: tuple[Point,]
 
 class Fix(StaticConstraint):
     """
@@ -359,7 +379,7 @@ class Fix(StaticConstraint):
         (point,) = prims
         return point.value - location
 
-# Argument type: Tuple[Point, Point]
+# Argument type: tuple[Point, Point]
 
 class DirectedDistance(StaticConstraint):
     """
@@ -501,7 +521,7 @@ class Coincident(StaticConstraint):
 
 ## Line constraints
 
-# Argument type: Tuple[Line,]
+# Argument type: tuple[Line,]
 
 class Length(StaticConstraint):
     """
@@ -692,7 +712,7 @@ class YLength(StaticConstraint):
         return np.array([])
 
 
-# Argument type: Tuple[Line, Line]
+# Argument type: tuple[Line, Line]
 
 class RelativeLength(StaticConstraint):
     """
@@ -943,7 +963,7 @@ class CoincidentLines(StaticConstraint):
             point1_err = line1["Point1"].value - line0["Point0"].value
         return jnp.concatenate([point0_err, point1_err])
 
-# Argument type: Tuple[Line, ...]
+# Argument type: tuple[Line, ...]
 
 class RelativeLengthArray(DynamicConstraint):
     """
@@ -1253,7 +1273,7 @@ class PointToLineDistance(StaticConstraint):
 
 ## Quad constraints
 
-# Argument type: Tuple[Quadrilateral]
+# Argument type: tuple[Quadrilateral]
 
 class Box(StaticConstraint):
     """
@@ -1316,7 +1336,7 @@ class AspectRatio(StaticConstraint):
         return np.array(())
 
 
-# Argument type: Tuple[Quadrilateral, Quadrilateral]
+# Argument type: tuple[Quadrilateral, Quadrilateral]
 
 class OuterMargin(ParameterizedConstraint):
     """
@@ -1412,7 +1432,7 @@ class InnerMargin(ParameterizedConstraint):
         return np.array(())
 
 
-# Argument type: Tuple[Quadrilateral, ...]
+# Argument type: tuple[Quadrilateral, ...]
 
 def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
     """
@@ -1600,7 +1620,7 @@ def line_vector(line: pr.Line):
 
 from matplotlib.axis import XAxis, YAxis
 
-# Argument type: Tuple[Quadrilateral]
+# Argument type: tuple[Quadrilateral]
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
 
@@ -1713,7 +1733,7 @@ class YAxisWidth(StaticConstraint):
     def assem_res(self, prims: tuple[pr.Quadrilateral], axis: YAxis):
         return np.array([])
 
-# Argument type: Tuple[Axes]
+# Argument type: tuple[Axes]
 
 class PositionXAxis(ParameterizedConstraint):
     """
