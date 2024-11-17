@@ -2,7 +2,7 @@
 Geometric primitive definitions
 """
 
-import typing as tp
+from typing import Optional, TypeVar
 from numpy.typing import NDArray
 
 import numpy as np
@@ -11,13 +11,13 @@ import jax
 from .containers import Node, _make_flatten_unflatten
 
 
-ArrayShape = tp.Tuple[int, ...]
+ArrayShape = tuple[int, ...]
 
 ## Generic primitive class/interface
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
 
-ChildPrimitive = tp.TypeVar("ChildPrimitive", bound="Primitive")
+ChildPrimitive = TypeVar("ChildPrimitive", bound="Primitive")
 
 
 class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
@@ -41,17 +41,17 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
     ----------
     value: NDArray with shape (n,)
         A parameter vector for the primitive
-    child_keys: tp.List[str]
+    child_keys: list[str]
         Child primitive keys
-    child_prims: tp.List[ChildPrimitive]
+    child_prims: list[ChildPrimitive]
         Child primitives
     """
 
     def __init__(
         self,
         value: NDArray,
-        child_keys: tp.List[str],
-        child_prims: tp.List[ChildPrimitive],
+        child_keys: list[str],
+        child_prims: list[ChildPrimitive],
     ):
         children = {key: prim for key, prim in zip(child_keys, child_prims)}
         super().__init__(value, children)
@@ -70,7 +70,7 @@ class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
     pass
 
 
-PrimList = tp.List[Primitive]
+PrimList = list[Primitive]
 
 
 # TODO: Implement input validation for `StaticPrimitive` and `ParameterizedPrimitive`
@@ -110,21 +110,21 @@ class StaticPrimitive(Primitive):
         """
         raise NotImplementedError()
 
-    def default_prims(self) -> tp.List[Primitive]:
+    def default_prims(self) -> list[Primitive]:
         """
         Return default parameterizing primitives
         """
         raise NotImplementedError()
 
     def init_children(
-        self, prims: tp.List[Primitive]
-    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        self, prims: list[Primitive]
+    ) -> tuple[list[str], list[ChildPrimitive]]:
         """
         Return child primitives from parameterizing primitives
 
         Parameters
         ----------
-        prims: tp.List[Primitive]
+        prims: list[Primitive]
             Parameterizing primitives
 
         Returns
@@ -138,8 +138,8 @@ class StaticPrimitive(Primitive):
 
     def __init__(
         self,
-        value: tp.Optional[NDArray] = None,
-        prims: tp.Optional[tp.List[Primitive]] = None,
+        value: Optional[NDArray] = None,
+        prims: Optional[list[Primitive]] = None,
     ):
         if value is None:
             value = self.default_value()
@@ -198,21 +198,21 @@ class ParameterizedPrimitive(Primitive):
         """
         raise NotImplementedError()
 
-    def default_prims(self, **kwargs) -> tp.List[Primitive]:
+    def default_prims(self, **kwargs) -> list[Primitive]:
         """
         Return default parameterizing primitives
         """
         raise NotImplementedError()
 
     def init_children(
-        self, prims: tp.List[Primitive], **kwargs
-    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        self, prims: list[Primitive], **kwargs
+    ) -> tuple[list[str], list[ChildPrimitive]]:
         """
         Return child primitives from parameterizing primitives
 
         Parameters
         ----------
-        prims: tp.List[Primitive]
+        prims: list[Primitive]
             Parameterizing primitives
 
         Returns
@@ -226,8 +226,8 @@ class ParameterizedPrimitive(Primitive):
 
     def __init__(
         self,
-        value: tp.Optional[NDArray] = None,
-        prims: tp.Optional[tp.List[Primitive]] = None,
+        value: Optional[NDArray] = None,
+        prims: Optional[list[Primitive]] = None,
         **kwargs
     ):
         if value is None:
@@ -292,7 +292,7 @@ class Line(StaticPrimitive):
     def default_prims(self):
         return (Point([0, 0]), Point([0, 1]))
 
-    def init_children(self, prims: tp.Tuple[Point, Point]):
+    def init_children(self, prims: tuple[Point, Point]):
         return ("Point0", "Point1"), prims
 
 
@@ -331,8 +331,8 @@ class Polygon(ParameterizedPrimitive):
         return [Point((x, y)) for x, y in zip(xs, ys)]
 
     def init_children(
-        self, prims: tp.List[Point], size=3
-    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        self, prims: list[Point], size=3
+    ) -> tuple[list[str], list[ChildPrimitive]]:
         points = prims
         child_prims = [
             Line(np.array([]), (pointa, pointb))
@@ -378,8 +378,8 @@ class Quadrilateral(Polygon):
 
     def __init__(
         self,
-        value: tp.Optional[NDArray] = None,
-        children: tp.Optional[tp.List[Point]] = None,
+        value: Optional[NDArray] = None,
+        children: Optional[list[Point]] = None,
     ):
         super().__init__(value, children, size=4)
 
@@ -427,8 +427,8 @@ class Axes(ParameterizedPrimitive):
         return (Quadrilateral(),) + xaxis_prims + yaxis_prims
 
     def init_children(
-        self, prims: tp.List[Primitive], xaxis=False, yaxis=False
-    ) -> tp.Tuple[tp.List[str], tp.List[ChildPrimitive]]:
+        self, prims: list[Primitive], xaxis=False, yaxis=False
+    ) -> tuple[list[str], list[ChildPrimitive]]:
 
         if xaxis:
             xaxis_keys = ("XAxis", "XAxisLabel")
