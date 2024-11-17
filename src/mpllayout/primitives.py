@@ -1,5 +1,5 @@
 """
-Geometry primitives
+Geometric primitive definitions
 """
 
 import typing as tp
@@ -22,14 +22,20 @@ ChildPrimitive = tp.TypeVar("ChildPrimitive", bound="Primitive")
 
 class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
     """
-    A geometric primitive
+    The base geometric primitive class
 
     A `Primitive` is represented by a parameter vector and child primitives.
-    For example, a point in 2D is parameterized by a vector representing (x, y)
-    coordinates.
+    For example in 2D:
+    - a point has a size 2 parameter vector representing (x, y) coordinates and
+    no child primitives,
+    - a straight line segment has an empty parameter vector with two point
+    child primitives representing the start point and end point.
 
-    Subclasses "StaticPrimitive" and "DynamicPrimitive" provide more
-    specific ways to create primitives.
+    This class shouldn't be used to create geometric primitives directly.
+    Subclasses that represent specific geometric primitives should
+    be defined instead (for example, see `Point` or `Line` below).
+    Subclasses `StaticPrimitive` and `DynamicPrimitive` are intermediate
+    sub-classes that can be used to define these subclasses.
 
     Parameters
     ----------
@@ -38,7 +44,7 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
     child_keys: tp.List[str]
         Child primitive keys
     child_prims: tp.List[ChildPrimitive]
-        Child primitives representing the topology
+        Child primitives
     """
 
     def __init__(
