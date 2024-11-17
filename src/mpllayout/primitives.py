@@ -58,6 +58,15 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
 
 
 class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
+    """
+    A container to store an arbitrary number of child primitives
+
+    You can use the `Node` methods to add child primitives to this container.
+    """
+    # TODO: Define `Primitive` methods for this?
+    # NOTE: `PrimitiveNode` has a mutable number of child primitives while
+    # other geometric primitives are immutable (points, lines, etc.)
+    # TODO: Make classes to differ between immutable/mutable Nodes?
     pass
 
 
