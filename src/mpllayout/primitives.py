@@ -11,8 +11,6 @@ import jax
 from .containers import Node, _make_flatten_unflatten
 
 
-ArrayShape = tuple[int, ...]
-
 ## Generic primitive class/interface
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
@@ -68,9 +66,6 @@ class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
     # other geometric primitives are immutable (points, lines, etc.)
     # TODO: Make classes to differ between immutable/mutable Nodes?
     pass
-
-
-PrimList = list[Primitive]
 
 
 # TODO: Implement input validation for `StaticPrimitive` and `ParameterizedPrimitive`
