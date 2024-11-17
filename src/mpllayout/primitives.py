@@ -320,10 +320,10 @@ class Polygon(ParameterizedPrimitive):
         The number of points in the polygon
     """
 
-    def default_value(self, size=3):
+    def default_value(self, size: int=3):
         return np.array([])
 
-    def default_prims(self, size=3):
+    def default_prims(self, size: int=3):
         # Generate points around circle
         ii = np.arange(size)
         xs = np.cos(2*np.pi/size * ii)
@@ -331,8 +331,8 @@ class Polygon(ParameterizedPrimitive):
         return [Point((x, y)) for x, y in zip(xs, ys)]
 
     def init_children(
-        self, prims: list[Point], size=3
-    ) -> tuple[list[str], list[ChildPrimitive]]:
+        self, prims: list[Point], size: int=3
+    ):
         points = prims
         child_prims = [
             Line(np.array([]), (pointa, pointb))
@@ -367,10 +367,10 @@ class Quadrilateral(Polygon):
         A list of 4 vertices the quadrilateral passes through
     """
 
-    def default_value(self, size=4):
+    def default_value(self, size: int=4):
         return np.array([])
 
-    def default_prims(self, size=4):
+    def default_prims(self, size: int=4):
         # Generate a unit square
         xs = [0, 1, 1, 0]
         ys = [0, 0, 1, 1]
@@ -384,6 +384,7 @@ class Quadrilateral(Polygon):
         super().__init__(value, children, size=4)
 
 
+AxesChildPrims = tuple[Quadrilateral, Quadrilateral, Point, Quadrilateral, Point]
 class Axes(ParameterizedPrimitive):
     """
     A collection of quadrilaterals and points representing an axes
@@ -411,10 +412,10 @@ class Axes(ParameterizedPrimitive):
         be present.
     """
 
-    def default_value(self, xaxis=False, yaxis=False):
+    def default_value(self, xaxis: bool=False, yaxis: bool=False):
         return np.array([])
 
-    def default_prims(self, xaxis=False, yaxis=False):
+    def default_prims(self, xaxis: bool=False, yaxis: bool=False):
         if xaxis:
             xaxis_prims = (Quadrilateral(), Point())
         else:
@@ -427,7 +428,10 @@ class Axes(ParameterizedPrimitive):
         return (Quadrilateral(),) + xaxis_prims + yaxis_prims
 
     def init_children(
-        self, prims: list[Primitive], xaxis=False, yaxis=False
+        self,
+        prims: AxesChildPrims,
+        xaxis: bool=False,
+        yaxis: bool=False
     ) -> tuple[list[str], list[ChildPrimitive]]:
 
         if xaxis:
@@ -441,7 +445,13 @@ class Axes(ParameterizedPrimitive):
             yaxis_keys = ()
         return ("Frame",) + xaxis_keys + yaxis_keys, prims
 
-    def __init__(self, value=None, prims=None, xaxis=False, yaxis=False):
+    def __init__(
+            self,
+            value: Optional[NDArray]=None,
+            prims: Optional[AxesChildPrims]=None,
+            xaxis: bool=False,
+            yaxis: bool=False
+        ):
         super().__init__(value, prims, xaxis=xaxis, yaxis=yaxis)
 
 
