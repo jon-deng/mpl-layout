@@ -249,13 +249,15 @@ class Point(StaticPrimitive):
     """
     A point
 
-    A point has no child primitives.
+    Child primitives are:
+    - no child primitives
 
     Parameters
     ----------
-    value: NDArray (2,)
+    value: NDArray (2,), optional
         The point coordinates
-    prims: Tuple[]
+    prims: tuple[]
+        An empty set of primitives
     """
 
     def default_value(self):
@@ -278,7 +280,7 @@ class Line(StaticPrimitive):
 
     Parameters
     ----------
-    value: NDArray ()
+    value: NDArray (), optional
         An empty array
     prims: Tuple[Point, Point]
         The start and end point
@@ -301,7 +303,8 @@ class Polygon(ParameterizedPrimitive):
     Child primitives are:
     - `Polygon[f'Line{n}']` : the n'th line in the polygon
 
-    Lines are directed in a clockwise fashion around a loop.
+    The end point of a line joins the start point of the next line to form a
+    closed loop.
 
     Parameters
     ----------
@@ -312,6 +315,7 @@ class Polygon(ParameterizedPrimitive):
 
         The final point in `prims` will automatically be connected to the first
         point in `prims`.
+        The length of `prims` should match `size`.
     size: int
         The number of points in the polygon
     """
@@ -343,11 +347,11 @@ class Quadrilateral(Polygon):
     A quadrilateral (4 sided polygon)
 
     Child primitives are:
-    - `quad['Line0']` : the first line in the quad
+    - `quad['Line0']` : the first line in the quadrilateral
     - ...
-    - `quad['Line3']` : the last line in the quad
+    - `quad['Line3']` : the last line in the quadrilateral
 
-    For modelling rectangle in matplotlib (axes, bbox, etc.) the lines are
+    For modelling rectangles in matplotlib (axes, bbox, etc.) the lines are
     treated as the bottom, right, top, and left of a box in a clockwise fasion.
     Specifically, the lines correspond to:
     - 'Line0' : bottom
@@ -382,7 +386,7 @@ class Quadrilateral(Polygon):
 
 class Axes(ParameterizedPrimitive):
     """
-    A collection of `Quadrilateral`s and `Point`s representing an axes
+    A collection of quadrilaterals and points representing an axes
 
     Child primitives are:
     - `quad['Frame']` : A `Quadrilateral` representing the plotting area
@@ -395,11 +399,11 @@ class Axes(ParameterizedPrimitive):
     ----------
     value: NDArray ()
         An empty array
-    prims: List[Point]
-        A list of vertices the polygon passes through
+    prims: tuple[Quadrilateral, Quadrilateral, Point, Quadrilateral, Point]
+        A tuple of quadrilateral and points
 
-        The final point in `prims` will automatically be connected to the first
-        point in `prims`.
+        The the number of quadrilaterals and points to supply depends on
+        where an x/y axis is included.
     xaxis, yaxis: bool
         Whether to include an x/y axis and corresponding label
 
