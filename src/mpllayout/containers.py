@@ -42,6 +42,15 @@ class Node(Generic[TValue, TChild]):
 
     @classmethod
     def from_tree(cls, value: TValue, children: dict[str, TChild]):
+        """
+        Return any `Node` subclass from its value and children
+
+        This method is needed because some `Node` subclasses have different `__init__`
+        signatures.
+        `from_tree` can be used to recreate any `Node` subclass using just a known value
+        and children.
+        This is particularly important for flattening and unflattening a tree.
+        """
         node = super().__new__(cls)
         Node.__init__(node, value, children)
         return node
