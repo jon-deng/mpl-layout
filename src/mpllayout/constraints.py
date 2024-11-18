@@ -284,7 +284,6 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         ) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims, **params._asdict()))
 
-    # TODO: Replace params with actual keywords arguments? would be more readable
     def assem_res(
             self, prims: ResPrims, **kwargs
         ) -> NDArray:
