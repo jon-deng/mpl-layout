@@ -11,11 +11,12 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
-from mpllayout import geometry as geo
+from . import primitives as pr
+from . import constraints as cr
 
 
 def subplots(
-    root_prim: geo.Primitive,
+    root_prim: pr.Primitive,
     fig_key: str = "Figure",
     axs_keys: Optional[list[str]] = None,
 ) -> tuple[Figure, dict[str, Axes]]:
@@ -23,13 +24,13 @@ def subplots(
     Create `Figure` and `Axes` objects from geometric primitives
 
     The `Figure` and `Axes` objects are extracted based on labels in `root_prim`.
-    A `geo.Quadrilateral` primitive named 'Figure' is used to create the `Figure` with
-    corresponding dimensions. Any `geo.Quadrilateral` primitives prefixed with 'Axes' are
+    A `pr.Quadrilateral` primitive named 'Figure' is used to create the `Figure` with
+    corresponding dimensions. Any `pr.Quadrilateral` primitives prefixed with 'Axes' are
     used to create `Axes` objects in the output dictionary `axs`.
 
     Parameters
     ----------
-    root_prim: geo.Primitive
+    root_prim: pr.Primitive
         The root `Primitive` tree
 
         `Figure` and `Axes` objects are created from primitives with labels
@@ -59,7 +60,7 @@ def subplots(
 
 
 def update_subplots(
-    root_prim: geo.Primitive,
+    root_prim: pr.Primitive,
     fig_key: str,
     fig: Figure,
     key_to_ax: dict[str, Axes],
@@ -83,7 +84,7 @@ def update_subplots(
             # Set the axis label position
             axis_label = f"{axis_prefix}AxisLabel"
             if axis_label in root_prim[key]:
-                axis_label_point: geo.Point = root_prim[f"{key}/{axis_label}"]
+                axis_label_point: pr.Point = root_prim[f"{key}/{axis_label}"]
                 label_coords = axis_label_point.value
                 axis.set_label_coords(
                     *(label_coords / fig_size), transform=fig.transFigure
@@ -99,8 +100,8 @@ def update_subplots(
     return fig, key_to_ax
 
 
-def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
-    coincident_line = geo.CoincidentLines()
+def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral):
+    coincident_line = cr.CoincidentLines()
     params = {"reverse": True}
     bottom_res = coincident_line((axes_frame["Line0"], axis["Line2"]), params)
     top_res = coincident_line((axes_frame["Line2"], axis["Line0"]), params)
@@ -118,13 +119,13 @@ def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
     return position
 
 
-def width_and_height_from_quad(quad: geo.Quadrilateral) -> tuple[float, float]:
+def width_and_height_from_quad(quad: pr.Quadrilateral) -> tuple[float, float]:
     """
     Return the width and height of a quadrilateral primitive
 
     Parameters
     ----------
-    quad: geo.Quadrilateral
+    quad: pr.Quadrilateral
 
     Returns
     -------
@@ -144,17 +145,17 @@ def width_and_height_from_quad(quad: geo.Quadrilateral) -> tuple[float, float]:
 
 
 def rect_from_box(
-    quad: geo.Quadrilateral, fig_size: Optional[tuple[float, float]] = (1, 1)
+    quad: pr.Quadrilateral, fig_size: Optional[tuple[float, float]] = (1, 1)
 ) -> tuple[float, float, float, float]:
     """
-    Return a `rect` tuple, `(left, bottom, width, height)`, from a `geo.Quadrilateral`
+    Return a `rect` tuple, `(left, bottom, width, height)`, from a `pr.Quadrilateral`
 
     This tuple of quad information can be used to create a `Bbox` or `Axes`
     object from `matplotlib`.
 
     Parameters
     ----------
-    quad: geo.Quadrilateral
+    quad: pr.Quadrilateral
         The quadrilateral
     fig_size: Optional[tuple[float, float]]
         The width and height of the figure

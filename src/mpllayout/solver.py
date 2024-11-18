@@ -11,7 +11,8 @@ import jax
 from jax import numpy as jnp
 import numpy as np
 
-from . import geometry as geo
+from . import primitives as pr
+from . import constraints as cr
 
 from . import layout as lay
 
@@ -26,7 +27,7 @@ def solve(
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> tuple[geo.Primitive, SolverInfo]:
+) -> tuple[pr.Primitive, SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -51,7 +52,7 @@ def solve(
 
     Returns
     -------
-    geo.Primitive
+    pr.Primitive
         A primitive tree satisfying the constraints
     SolverInfo
         Information about the solve
@@ -132,10 +133,10 @@ def solve(
 
 
 def assem_constraint_residual(
-    root_prim: geo.Primitive,
+    root_prim: pr.Primitive,
     prim_graph: dict[str, int],
     prim_values: list[NDArray],
-    constraints: list[geo.Constraint],
+    constraints: list[cr.Constraint],
     constraint_graph: StrGraph,
     constraint_params
 ) -> list[NDArray]:

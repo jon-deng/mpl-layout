@@ -8,7 +8,10 @@ from pprint import pprint
 
 import numpy as np
 
-from mpllayout import geometry as geo, layout as lat, containers as cn
+from mpllayout import primitives as pr
+from mpllayout import constraints as co
+from mpllayout import layout as lat
+from mpllayout import containers as cn
 
 
 class TestPrimitiveTree:
@@ -18,17 +21,17 @@ class TestPrimitiveTree:
         return cn.Node(np.array([]), {})
 
     def test_set_prim(self, prim_node):
-        prim_node.add_child("MyBox", geo.Quadrilateral())
+        prim_node.add_child("MyBox", pr.Quadrilateral())
 
         pprint(f"Keys:")
         pprint(prim_node["MyBox"].keys())
 
     def test_build_primtree(self, prim_node):
-        point_a = geo.Point([0, 0])
-        point_b = geo.Point([1, 1])
+        point_a = pr.Point([0, 0])
+        point_b = pr.Point([1, 1])
         prim_node.add_child("PointA", point_a)
-        prim_node.add_child("LineA", geo.Line([], (point_a, point_b)))
-        prim_node.add_child("MySpecialBox", geo.Quadrilateral())
+        prim_node.add_child("LineA", pr.Line([], (point_a, point_b)))
+        prim_node.add_child("MySpecialBox", pr.Quadrilateral())
 
         prim_graph, prims = lat.build_prim_graph(prim_node)
 
@@ -69,10 +72,10 @@ class TestLayout:
     def test_layout(self):
         layout = lat.Layout()
 
-        layout.add_prim(geo.Quadrilateral(), "MyBox")
-        layout.add_constraint(geo.Box(), ("MyBox",), ())
+        layout.add_prim(pr.Quadrilateral(), "MyBox")
+        layout.add_constraint(co.Box(), ("MyBox",), ())
 
-        layout.add_constraint(geo.Fix(), ("MyBox/Line0/Point0",), ([0, 0],))
+        layout.add_constraint(co.Fix(), ("MyBox/Line0/Point0",), ([0, 0],))
 
         pprint(layout.root_prim)
         constraints, constraints_argkeys, constraints_param = layout.flat_constraints()

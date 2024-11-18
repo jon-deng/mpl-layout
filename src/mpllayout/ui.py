@@ -9,12 +9,13 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import numpy as np
 
-from . import geometry as geo
+from . import primitives as pr
+from . import constraints as cr
 
 ## Functions for plotting geometric primitives
 
 
-def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
+def plot_point(ax: Axes, point: pr.Point, label=None, **kwargs):
     """
     Plot a `Point`
     """
@@ -22,7 +23,7 @@ def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
     ax.plot([x], [y], marker=".", **kwargs)
 
 
-def plot_line_segment(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
+def plot_line_segment(ax: Axes, line_segment: pr.Line, label=None, **kwargs):
     """
     Plot a `LineSegment`
     """
@@ -31,7 +32,7 @@ def plot_line_segment(ax: Axes, line_segment: geo.Line, label=None, **kwargs):
     ax.plot(xs, ys, **kwargs)
 
 
-def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
+def plot_polygon(ax: Axes, polygon: pr.Polygon, label=None, **kwargs):
     """
     Plot a `Polygon`
     """
@@ -56,7 +57,7 @@ def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
         )
 
 
-def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
+def plot_generic_prim(ax: Axes, prim: pr.Primitive, label=None, **kwargs):
     """
     Plot any child primitives of a generic primitive
     """
@@ -67,25 +68,25 @@ def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
 
 ## Functions for plotting arbitrary geometric primitives
 def make_plot(
-    prim: geo.Primitive,
-) -> Callable[[Axes, tuple[geo.Primitive, ...]], None]:
+    prim: pr.Primitive,
+) -> Callable[[Axes, tuple[pr.Primitive, ...]], None]:
     """
-    Return a function that can plot a `geo.Primitive` object
+    Return a function that can plot a `pr.Primitive` object
     """
 
-    if isinstance(prim, geo.Point):
+    if isinstance(prim, pr.Point):
         return plot_point
-    elif isinstance(prim, geo.Line):
+    elif isinstance(prim, pr.Line):
         return plot_line_segment
-    elif isinstance(prim, geo.Polygon):
+    elif isinstance(prim, pr.Polygon):
         return plot_polygon
     else:
         return plot_generic_prim
 
 
-def plot_prims(ax: Axes, root_prim: geo.Primitive):
+def plot_prims(ax: Axes, root_prim: pr.Primitive):
     """
-    Plot all the child primitives in a `geo.Primitive` tree
+    Plot all the child primitives in a `pr.Primitive` tree
     """
 
     for label, prim in root_prim.items():
@@ -94,7 +95,7 @@ def plot_prims(ax: Axes, root_prim: geo.Primitive):
 
 
 def figure_prims(
-    root_prim: geo.PrimitiveNode,
+    root_prim: pr.PrimitiveNode,
     fig_size: tuple[float, float] = (8, 8),
     major_tick_interval: float = 1.0,
     minor_tick_interval: float = 1/8

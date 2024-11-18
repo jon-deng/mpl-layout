@@ -13,7 +13,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
-from mpllayout import geometry as geo
+from mpllayout import primitives as pr
+from mpllayout import constraints as co
 from mpllayout import ui
 from mpllayout.containers import Node
 
@@ -26,15 +27,15 @@ class GeometryFixtures:
     ## Point creation
     def make_point(self, coord):
         """
-        Return a `geo.Point` at the given coordinates
+        Return a `pr.Point` at the given coordinates
         """
-        return geo.Point(value=coord)
+        return pr.Point(value=coord)
 
-    def make_relative_point(self, point: geo.Point, displacement: NDArray):
+    def make_relative_point(self, point: pr.Point, displacement: NDArray):
         """
-        Return a `geo.Point` displaced from a given point
+        Return a `pr.Point` displaced from a given point
         """
-        return geo.Point(value=point.value + displacement)
+        return pr.Point(value=point.value + displacement)
 
     ## Line creation
     def make_rotation(self, theta: float):
@@ -45,16 +46,16 @@ class GeometryFixtures:
 
     def make_line(self, origin: NDArray, line_vec: NDArray):
         """
-        Return a `geo.Line` with given origin and line vector
+        Return a `pr.Line` with given origin and line vector
         """
         coords = (origin, origin + line_vec)
-        return geo.Line(value=[], prims=tuple(geo.Point(x) for x in coords))
+        return pr.Line(value=[], prims=tuple(pr.Point(x) for x in coords))
 
     def make_relative_line(
-        self, line: geo.Line, translation: NDArray, deformation: NDArray
+        self, line: pr.Line, translation: NDArray, deformation: NDArray
     ):
         """
-        Return a `geo.Line` deformed about it's start point then translated
+        Return a `pr.Line` deformed about it's start point then translated
         """
         lineb_vec = line[1].value - line[0].value
         lineb_vec = deformation @ lineb_vec
@@ -63,10 +64,10 @@ class GeometryFixtures:
         return self.make_line(lineb_start, lineb_vec)
 
     def make_relline_about_mid(
-        self, line: geo.Line, translation: NDArray, deformation: NDArray
+        self, line: pr.Line, translation: NDArray, deformation: NDArray
     ):
         """
-        Return a `geo.Line` deformed about it's midpoint then translated
+        Return a `pr.Line` deformed about it's midpoint then translated
         """
         lineb_vec = line[1].value - line[0].value
         lineb_vec = deformation @ lineb_vec
@@ -78,15 +79,15 @@ class GeometryFixtures:
     ## Quadrilateral creation
     def make_quad(self, displacement, deformation):
         """
-        Return a `geo.Quadrilateral` translated and deformed from a unit quadrilateral
+        Return a `pr.Quadrilateral` translated and deformed from a unit quadrilateral
         """
         # Specify vertices of a unit square, then deform it and translate it
         verts = np.array([[0, 0], [1, 0], [1, 1], [0, 1]])
         verts = np.tensordot(verts, deformation, axes=(-1, -1))
         verts = verts + displacement
 
-        return geo.Quadrilateral(
-            value=[], children=tuple(geo.Point(vert) for vert in verts)
+        return pr.Quadrilateral(
+            value=[], children=tuple(pr.Point(vert) for vert in verts)
         )
 
     def make_quad_grid(
@@ -157,7 +158,7 @@ class TestPoint(GeometryFixtures):
         return np.random.rand()
 
     def test_Fix(self, pointa):
-        constraint = geo.Fix()
+        constraint = co.Fix()
         res = constraint((pointa,), (pointa.value,))
         assert np.all(np.isclose(res, 0))
 
@@ -185,9 +186,9 @@ class TestPointPoint(GeometryFixtures):
         return self.make_relative_point(pointa, distance * direction)
 
     def test_DirectedDistance(
-        self, pointa: geo.Point, pointb: geo.Point, distance: float, direction: NDArray
+        self, pointa: pr.Point, pointb: pr.Point, distance: float, direction: NDArray
     ):
-        constraint = geo.DirectedDistance()
+        constraint = co.DirectedDistance()
         res = constraint((pointa, pointb), (distance, direction))
         assert np.all(np.isclose(res, 0))
 
@@ -196,9 +197,9 @@ class TestPointPoint(GeometryFixtures):
         return distance*direction[0]
 
     def test_XDistance(
-        self, pointa: geo.Point, pointb: geo.Point, xdistance: float
+        self, pointa: pr.Point, pointb: pr.Point, xdistance: float
     ):
-        res = geo.XDistance()((pointa, pointb), (xdistance,))
+        res = co.XDistance()((pointa, pointb), (xdistance,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -206,16 +207,16 @@ class TestPointPoint(GeometryFixtures):
         return distance*direction[1]
 
     def test_YDistance(
-        self, pointa: geo.Point, pointb: geo.Point, ydistance: float
+        self, pointa: pr.Point, pointb: pr.Point, ydistance: float
     ):
-        res = geo.YDistance()((pointa, pointb), (ydistance,))
+        res = co.YDistance()((pointa, pointb), (ydistance,))
         assert np.all(np.isclose(res, 0))
 
 
     def test_Coincident(
-        self, pointa: geo.Point,
+        self, pointa: pr.Point,
     ):
-        res = geo.Coincident()((pointa, pointa), ())
+        res = co.Coincident()((pointa, pointa), ())
         assert np.all(np.isclose(res, 0))
 
 
@@ -240,7 +241,7 @@ class TestLine(GeometryFixtures):
         return self.make_line(origin, direction * length)
 
     def test_Length(self, linea, length):
-        res = geo.Length()((linea,), (length,))
+        res = co.Length()((linea,), (length,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -250,7 +251,7 @@ class TestLine(GeometryFixtures):
         return proj_length
 
     def test_XLength(self, linea, xlength):
-        res = geo.XLength()((linea,), (xlength,))
+        res = co.XLength()((linea,), (xlength,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -260,7 +261,7 @@ class TestLine(GeometryFixtures):
         return proj_length
 
     def test_YLength(self, linea, ylength):
-        res = geo.YLength()((linea,), (ylength,))
+        res = co.YLength()((linea,), (ylength,))
         assert np.all(np.isclose(res, 0))
 
 
@@ -292,7 +293,7 @@ class TestLineLine(GeometryFixtures):
         return self.make_relative_line(linea, displacement, self.make_rotation(0))
 
     def test_Parallel(self, linea, line_parallel):
-        res = geo.Parallel()((linea, line_parallel), ())
+        res = co.Parallel()((linea, line_parallel), ())
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -302,7 +303,7 @@ class TestLineLine(GeometryFixtures):
         )
 
     def test_Orthogonal(self, linea, line_orthogonal):
-        res = geo.Orthogonal()((linea, line_orthogonal), ())
+        res = co.Orthogonal()((linea, line_orthogonal), ())
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture(params=[False, True])
@@ -312,12 +313,12 @@ class TestLineLine(GeometryFixtures):
     @pytest.fixture()
     def line_coincident(self, linea, reverse):
         if reverse:
-            return self.make_line(linea['Point1'].value, -1*geo.line_vector(linea))
+            return self.make_line(linea['Point1'].value, -1*co.line_vector(linea))
         else:
             return linea
 
     def test_CoincidentLines(self, linea, line_coincident, reverse):
-        res = geo.CoincidentLines()((linea, line_coincident), (reverse,))
+        res = co.CoincidentLines()((linea, line_coincident), (reverse,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -327,12 +328,12 @@ class TestLineLine(GeometryFixtures):
 
     @pytest.fixture()
     def relative_length(self, linea, lineb):
-        lengtha = np.linalg.norm(geo.line_vector(linea))
-        lengthb = np.linalg.norm(geo.line_vector(lineb))
+        lengtha = np.linalg.norm(co.line_vector(linea))
+        lengthb = np.linalg.norm(co.line_vector(lineb))
         return lengtha/lengthb
 
     def test_RelativeLength(self, linea, lineb, relative_length):
-        res = geo.RelativeLength()((linea, lineb), (relative_length,))
+        res = co.RelativeLength()((linea, lineb), (relative_length,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -346,16 +347,16 @@ class TestLineLine(GeometryFixtures):
         return self.make_relative_line(linea, displacement, scale @ rotate)
 
     def test_Angle(self, linea, line_angle, angle):
-        res = geo.Angle()((linea, line_angle), (angle,))
+        res = co.Angle()((linea, line_angle), (angle,))
         assert np.all(np.isclose(res, 0))
 
     def test_Collinear(self, linea):
-        line_vec = geo.line_vector(linea)
+        line_vec = co.line_vector(linea)
 
         lineb = self.make_relative_line(
             linea, np.random.rand()*line_vec, np.diag(np.ones(2))
         )
-        res = geo.Collinear()((linea, lineb), ())
+        res = co.Collinear()((linea, lineb), ())
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -365,11 +366,11 @@ class TestLineLine(GeometryFixtures):
         return midpointb - midpointa
 
     def test_MidpointXDistance(self, linea, lineb, midpoint_distance):
-        res = geo.MidpointXDistance()((linea, lineb), (midpoint_distance[0],))
+        res = co.MidpointXDistance()((linea, lineb), (midpoint_distance[0],))
         assert np.all(np.isclose(res, 0))
 
     def test_MidpointYDistance(self, linea, lineb, midpoint_distance):
-        res = geo.MidpointYDistance()((linea, lineb), (midpoint_distance[1],))
+        res = co.MidpointYDistance()((linea, lineb), (midpoint_distance[1],))
         assert np.all(np.isclose(res, 0))
 
 
@@ -399,7 +400,7 @@ class TestLineArray(GeometryFixtures):
 
     @pytest.fixture()
     def lines_collinear(self, linea, num_lines):
-        line_vec = geo.line_vector(linea)
+        line_vec = co.line_vector(linea)
         dists = np.random.rand(num_lines-1)
         return tuple(
             self.make_relative_line(linea, dist*line_vec, np.diag(np.ones(2)))
@@ -407,7 +408,7 @@ class TestLineArray(GeometryFixtures):
         )
 
     def test_CollinearArray(self, linea, lines_collinear):
-        res = geo.CollinearArray(1+len(lines_collinear))(
+        res = co.CollinearArray(1+len(lines_collinear))(
             (linea,) + lines_collinear, ()
         )
         assert np.all(np.isclose(res, 0))
@@ -434,7 +435,7 @@ class TestLineArray(GeometryFixtures):
 
     def test_RelativeLengthArray(self, linea, lines_relative, relative_lengths):
 
-        constraint = geo.RelativeLengthArray(len(relative_lengths))
+        constraint = co.RelativeLengthArray(len(relative_lengths))
         res = constraint(tuple(lines_relative) + (linea,), (relative_lengths,))
         assert np.all(np.isclose(res, 0))
 
@@ -460,7 +461,7 @@ class TestLineArray(GeometryFixtures):
 
     def test_XDistanceMidpointsArray(self, lines_midpointsarray, midpoint_distances):
         num_pairs = len(lines_midpointsarray) // 2
-        res = geo.MidpointXDistanceArray(num_pairs)(
+        res = co.MidpointXDistanceArray(num_pairs)(
             lines_midpointsarray, (midpoint_distances[:, 0],)
         )
         assert np.all(np.isclose(res, 0))
@@ -496,20 +497,20 @@ class TestPointLine(GeometryFixtures):
         origin = line['Point0'].value
         point_vec = point.value - origin
 
-        line_vec = geo.line_vector(line)
+        line_vec = co.line_vector(line)
         line_unit_vec = line_vec / np.linalg.norm(line_vec)
         return np.dot(point_vec, line_unit_vec)
 
     @pytest.fixture()
     def distance_on(self, point, line, line_unit_vec, reverse):
         if reverse:
-            rev_line = geo.Line(value=[], prims=line.children[::-1])
+            rev_line = pr.Line(value=[], prims=line.children[::-1])
             return self.calc_point_on_line_distance(point, rev_line)
         else:
             return self.calc_point_on_line_distance(point, line)
 
     def test_DistanceOnLine(self, point, line, distance_on, reverse):
-        res = geo.PointOnLineDistance()((point, line), (distance_on, reverse))
+        res = co.PointOnLineDistance()((point, line), (distance_on, reverse))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -517,7 +518,7 @@ class TestPointLine(GeometryFixtures):
         return distance_on/line_length
 
     def test_RelativeDistanceOnLine(self, point, line, relative_distance_on, reverse):
-        res = geo.RelativePointOnLineDistance()((point, line), (relative_distance_on, reverse))
+        res = co.RelativePointOnLineDistance()((point, line), (relative_distance_on, reverse))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -527,7 +528,7 @@ class TestPointLine(GeometryFixtures):
         return np.dot(point.value - line['Point0'].value, orth_unit_vec)
 
     def test_DistanceToLine(self, point, line, distance_to, reverse):
-        res = geo.PointToLineDistance()((point, line), (distance_to, reverse))
+        res = co.PointToLineDistance()((point, line), (distance_to, reverse))
         assert np.all(np.isclose(res, 0))
 
 
@@ -542,12 +543,12 @@ class TestQuadrilateral(GeometryFixtures):
 
     @pytest.fixture()
     def aspect_ratio(self, quada):
-        width = np.linalg.norm(geo.line_vector(quada['Line0']))
-        height = np.linalg.norm(geo.line_vector(quada['Line1']))
+        width = np.linalg.norm(co.line_vector(quada['Line0']))
+        height = np.linalg.norm(co.line_vector(quada['Line1']))
         return width/height
 
-    def test_AspectRatio(self, quada: geo.Quadrilateral, aspect_ratio: float):
-        res = geo.AspectRatio()((quada,), (aspect_ratio,))
+    def test_AspectRatio(self, quada: pr.Quadrilateral, aspect_ratio: float):
+        res = co.AspectRatio()((quada,), (aspect_ratio,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -556,8 +557,8 @@ class TestQuadrilateral(GeometryFixtures):
         deformation = np.diag(np.random.rand(2))
         return self.make_quad(translation, deformation)
 
-    def test_Box(self, quad_box: geo.Quadrilateral):
-        res = geo.Box()((quad_box,), ())
+    def test_Box(self, quad_box: pr.Quadrilateral):
+        res = co.Box()((quad_box,), ())
         assert np.all(np.isclose(res, 0))
 
 
@@ -604,7 +605,7 @@ class TestQuadrilateralQuadrilateral(GeometryFixtures):
         return margin
 
     def test_OuterMargin(self, boxa, boxb, outer_margin, margin_side):
-        res = geo.OuterMargin(side=margin_side)((boxa, boxb), (outer_margin,))
+        res = co.OuterMargin(side=margin_side)((boxa, boxb), (outer_margin,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -625,7 +626,7 @@ class TestQuadrilateralQuadrilateral(GeometryFixtures):
         return margin
 
     def test_InnerMargin(self, boxa, boxb, inner_margin, margin_side):
-        res = geo.InnerMargin(side=margin_side)((boxa, boxb), (inner_margin,))
+        res = co.InnerMargin(side=margin_side)((boxa, boxb), (inner_margin,))
         assert np.all(np.isclose(res, 0))
 
 
@@ -693,14 +694,14 @@ class TestQuadrilateralArray(GeometryFixtures):
         )
 
     def test_RectilinearGrid(
-        self, quads_grid: list[geo.Quadrilateral], grid_shape: tuple[int, int]
+        self, quads_grid: list[pr.Quadrilateral], grid_shape: tuple[int, int]
     ):
-        res = geo.RectilinearGrid(grid_shape)(quads_grid, ())
+        res = co.RectilinearGrid(grid_shape)(quads_grid, ())
         assert np.all(np.isclose(res, 0))
 
     def test_Grid(
         self,
-        quads_grid: list[geo.Quadrilateral],
+        quads_grid: list[pr.Quadrilateral],
         grid_shape: tuple[int, int],
         grid_parameters: tuple[NDArray, NDArray, NDArray, NDArray],
     ):
@@ -715,7 +716,7 @@ class TestQuadrilateralArray(GeometryFixtures):
 
         fig.savefig(f"quad_grid_{grid_shape}.png")
 
-        res = geo.Grid(grid_shape)(quads_grid, grid_parameters)
+        res = co.Grid(grid_shape)(quads_grid, grid_parameters)
         assert np.all(np.isclose(res, 0))
 
 
@@ -788,9 +789,9 @@ class TestAxesConstraints(GeometryFixtures):
         else:
             raise ValueError()
 
-        def point_from_arclength(line: geo.Line, s: float):
+        def point_from_arclength(line: pr.Line, s: float):
             origin = line['Point0'].value
-            line_vector = geo.line_vector(line)
+            line_vector = co.line_vector(line)
             return origin + s*line_vector
 
         xlabel_anchor = self.make_point(
@@ -800,27 +801,27 @@ class TestAxesConstraints(GeometryFixtures):
             [np.random.rand(), point_from_arclength(yaxis['Line1'], ylabel_position)[1]]
         )
 
-        return geo.Axes(
+        return pr.Axes(
             prims=(frame, xaxis, xlabel_anchor, yaxis, ylabel_anchor),
             xaxis=True,
             yaxis=True
         )
 
     def test_PositionXAxis(self, axes, xaxis_position):
-        res = geo.PositionXAxis(**xaxis_position)((axes,), ())
+        res = co.PositionXAxis(**xaxis_position)((axes,), ())
         assert np.all(np.isclose(res, 0))
 
     def test_PositionYAxis(self, axes, yaxis_position):
-        res = geo.PositionYAxis(**yaxis_position)((axes,), ())
+        res = co.PositionYAxis(**yaxis_position)((axes,), ())
 
         assert np.all(np.isclose(res, 0))
 
     def test_PositionXAxisLabel(self, axes, xlabel_position):
-        res = geo.PositionXAxisLabel()((axes,), (xlabel_position,))
+        res = co.PositionXAxisLabel()((axes,), (xlabel_position,))
         assert np.all(np.isclose(res, 0))
 
     def test_PositionYAxisLabel(self, axes, ylabel_position):
-        res = geo.PositionYAxisLabel()((axes,), (ylabel_position,))
+        res = co.PositionYAxisLabel()((axes,), (ylabel_position,))
 
         assert np.all(np.isclose(res, 0))
 
@@ -859,17 +860,17 @@ class TestAxesConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def xaxis_height(self, axes_mpl):
-        return geo.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
+        return co.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
 
     def test_XAxisHeight(self, axes, axes_mpl):
-        res = geo.XAxisHeight()((axes['XAxis'],), (axes_mpl.xaxis,))
+        res = co.XAxisHeight()((axes['XAxis'],), (axes_mpl.xaxis,))
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
     def yaxis_width(self, axes_mpl):
-        return geo.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
+        return co.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
 
     def test_YAxisWidth(self, axes, axes_mpl):
-        res = geo.YAxisWidth()((axes['YAxis'],), (axes_mpl.yaxis,))
+        res = co.YAxisWidth()((axes['YAxis'],), (axes_mpl.yaxis,))
         assert np.all(np.isclose(res, 0))
 
