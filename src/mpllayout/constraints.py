@@ -175,7 +175,10 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
 
         The tree structure should match the tree structure of the constraint.
 
-        # TODO: Explain the format of primitive keys for each constraint
+        For a given constraint, `c`, every key tuple in
+        `c.root_prim_keys(prim_keys)` specifies a tuple of primitives for the
+        corresponding constraint by indexing from
+        `c.root_prim(prim_keys, prims)`.
 
         Parameters
         ----------
@@ -219,6 +222,26 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         }
         return PrimKeysNode(prim_keys, children)
 
+    def root_prim(self, prim_keys: PrimKeys, prims: ResPrims) -> pr.PrimitiveNode:
+        """
+        Return a root primitive containing primitives for the constraint
+
+        Parameters
+        ----------
+        prim_keys: PrimKeys
+            Primitive keys for the constraint
+        prims: ResPrims
+            Primitives for the constraint
+
+        Returns
+        -------
+        PrimitiveNode
+            A root primitive containing primitives for the constraint
+        """
+        return pr.PrimitiveNode(
+            np.array([]), {key: prim for key, prim in zip(prim_keys, prims)}
+        )
+
     @property
     def child_prim_keys(self):
         return self.value[0]
@@ -232,10 +255,9 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
             prims: ResPrims,
             params: tuple[Any, ...] | dict[str, Any]
         ):
-        root_prim = pr.PrimitiveNode(
-            np.array([]), {f"arg{n}": prim for n, prim in enumerate(prims)}
-        )
-        root_prim_keys = self.root_prim_keys(root_prim.keys())
+        prim_keys = tuple(f'arg{n}' for n, _ in enumerate(prims))
+        root_prim = self.root_prim(prim_keys, prims)
+        root_prim_keys = self.root_prim_keys(prim_keys)
         root_params = self.root_params(params)
         return self.assem_res_from_tree(root_prim, root_prim_keys, root_params)
 
