@@ -5,8 +5,7 @@ This module defines a tree class `Node` and related utilities.
 This class is used by itself as well as to define geometric primitives and constraints.
 """
 
-from typing import TypeVar, Generic, Any
-from collections.abc import Callable
+from typing import TypeVar, Generic, Any, Iterable, Callable
 
 import itertools
 
@@ -365,22 +364,36 @@ class ItemCounter(Generic[TItem]):
 ## Manual flattening/unflattening implementation
 FlatNodeStructure = tuple[type[TNode], str, TValue, int]
 
-def iter_flat(key: str, node: TNode):
+def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
     """
-    Return a flat iterator over all nodes
+    Return an iterable over all nodes in the root node (recursively depth-first)
+
+    Parameters
+    ----------
+    root_key: str
+        A key for the node
+
+        All child node keys will be appended to this key with a '/' separator.
+    root_node: TNode
+        The root node
+
+    Returns
+    -------
+    Iterable[tuple[str, TNode]]
+        An iterable over all nodes in the root node
     """
-    num_child = len(node)
+    num_child = len(root_node)
 
     if num_child == 0:
-        nodes = [(key, node)]
+        nodes = [(root_key, root_node)]
     else:
         # TODO: mypy says there's something wrong with the typing here?
         cnodes = [
-            iter_flat("/".join((key, ckey)), cnode) for ckey, cnode in node.items()
+            iter_flat("/".join((root_key, ckey)), cnode) for ckey, cnode in root_node.items()
         ]
         cnodes = itertools.chain(cnodes)
 
-        nodes = itertools.chain([(key, node)], *cnodes)
+        nodes = itertools.chain([(root_key, root_node)], *cnodes)
     return nodes
 
 
