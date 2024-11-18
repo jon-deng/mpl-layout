@@ -245,49 +245,117 @@ class Node(Generic[TValue, TChild]):
 
 TItem = TypeVar("TItem")
 
-
 class ItemCounter(Generic[TItem]):
     """
-    Count items by a prefix
+    Count the number of added items by category (a string)
+
+    This is used to generate unique string keys for objects
+    (see `Layout.add_constraint`).
+
+    Parameters
+    ----------
+    categorize: Callable[[TItem], str]
+        A function that returns the category (string) of an item
+
+    Attributes
+    ----------
+    category_counts: dict[str, int]
+        The number of items added to each category
     """
 
     @staticmethod
-    def __classname(item: TItem) -> str:
+    def categorize_by_classname(item: TItem) -> str:
         return type(item).__name__
 
-    def __init__(self, gen_prefix: Callable[[TItem], str] = __classname):
-        self._prefix_to_count = {}
-        self._gen_prefix = gen_prefix
+    def __init__(self, categorize: Callable[[TItem], str] = categorize_by_classname):
+        self._category_counts = {}
+        self._categorize = categorize
 
     @property
-    def prefix_to_count(self):
-        return self._prefix_to_count
+    def category_counts(self) -> dict[str, int]:
+        return self._category_counts
 
     def __contains__(self, key):
         return key in self._p
 
-    def gen_prefix(self, item: TItem) -> str:
-        return self._gen_prefix(item)
+    def categorize(self, item: TItem) -> str:
+        """
+        Return the category string of an item
+        """
+        return self._categorize(item)
 
     def add_item(self, item: TItem) -> str:
-        prefix = self.gen_prefix(item)
-        if prefix in self.prefix_to_count:
-            self.prefix_to_count[prefix] += 1
+        """
+        Add an item
+
+        Parameters
+        ----------
+        item: TItem
+            The item to add
+
+        Returns
+        -------
+        str
+            A string identifying the added item's category and count
+        """
+        category = self.categorize(item)
+        if category in self.category_counts:
+            self.category_counts[category] += 1
         else:
-            self.prefix_to_count[prefix] = 1
+            self.category_counts[category] = 1
 
-        postfix = self.prefix_to_count[prefix] - 1
-        return f"{prefix}{postfix}"
+        count = self.category_counts[category] - 1
+        return f"{category}{count}"
 
-    def add_item_until_valid(self, item: TItem, valid: Callable[[str], bool]):
+    def add_item_until_valid(self, item: TItem, valid: Callable[[str], bool]) -> str:
+        """
+        Add an item until the return item key is valid
 
+        This can be used to keep adding items until a unique key is generated for some
+        existing collection.
+        For example, if a dictionary of items already exists, this function can be used
+        to generate new item keys until one that doesn't already exist in the dictionary
+        is found.
+
+        Parameters
+        ----------
+        item: TItem
+            The item to add
+        valid: Callable[[str], bool]
+            The condition the generated item key must satisfy
+
+        Returns
+        -------
+        str
+            A string identifying the added item's category and count
+        """
         key = self.add_item(item)
         while not valid(key):
             key = self.add_item(item)
 
         return key
 
-    def add_item_to_nodes(self, item: TItem, *nodes: tuple[Node, ...]):
+    def add_item_to_nodes(self, item: TItem, *nodes: tuple[Node, ...]) -> str:
+        """
+        Add an item until the item key is unique within a set of trees
+
+        This is used generate a unique key for an item for a set of existing trees
+        (`Node`).
+
+        Parameters
+        ----------
+        item: TItem
+            The item to add
+        *nodes: tuple[Node, ...]
+            The set of trees
+
+            The returned item key should exist in these trees.
+
+        Returns
+        -------
+        str
+            A string identifying the added item's category and count
+        """
         def valid(key):
             key_notin_nodes = (key not in node for node in nodes)
             return all(key_notin_nodes)
