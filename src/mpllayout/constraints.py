@@ -17,7 +17,7 @@ from .containers import Node, iter_flat
 Primitive = pr.Primitive
 
 
-Params = dict[str, Any]
+ResParams = dict[str, Any]
 
 ResPrims = tuple[Primitive, ...]
 ResPrimTypes = tuple[type[Primitive], ...]
@@ -50,7 +50,7 @@ class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     pass
 
 
-class ParamsNode(Node[Params, "ParamsNode"]):
+class ParamsNode(Node[ResParams, "ParamsNode"]):
     """
     Tree of parameters corresponding to a constraint tree
 
@@ -142,16 +142,31 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         }
         super().__init__((child_prim_keys, aux_data), children)
 
-    def root_params(self, parameters: Params):
-        parameters = load_named_tuple(self.RES_PARAMS_TYPE, parameters)
+    def root_params(self, params: ResParams) -> ParamsNode:
+        """
+        Return a tree of residual kwargs for the constraint and all children
+
+        The tree structure should match the tree structure of the constraint.
+
+        Parameters
+        ----------
+        params: ResParams
+            Residual keyword arguments for the constraint
+
+        Returns
+        -------
+        root_params: ParamsNode
+            A tree of keyword arguments for the constraint and all children
+        """
+        params = load_named_tuple(self.RES_PARAMS_TYPE, params)
 
         keys, child_constraints = self.keys(), self.children
-        child_parameters = self.split_children_params(parameters)
+        child_parameters = self.split_children_params(params)
         children = {
             key: child_constraint.root_params(child_params)
             for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
         }
-        root_params = ParamsNode(parameters, children)
+        root_params = ParamsNode(params, children)
         return root_params
 
     def root_prim_keys(self, prim_keys: PrimKeys):
@@ -226,7 +241,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         return jnp.concatenate(residuals)
 
     def assem_res_atleast_1d(
-            self, prims: ResPrims, params: Params
+            self, prims: ResPrims, params: ResParams
         ) -> NDArray:
         return jnp.atleast_1d(self.assem_res(prims, **params._asdict()))
 
@@ -254,7 +269,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         """
         raise NotImplementedError()
 
-    def split_children_params(self, params: Params) -> Params:
+    def split_children_params(self, params: ResParams) -> ResParams:
         raise NotImplementedError()
 
 
@@ -287,7 +302,7 @@ class StaticConstraint(Constraint):
     ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
         return (), ((), ())
 
-    def split_children_params(self, params: Params) -> Params:
+    def split_children_params(self, params: ResParams) -> ResParams:
         return tuple({} for _ in self.children)
 
     @classmethod
@@ -321,7 +336,7 @@ class ParameterizedConstraint(Constraint):
     ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
         return (), ((), ())
 
-    def split_children_params(self, params: Params) -> Params:
+    def split_children_params(self, params: ResParams) -> ResParams:
         return tuple({} for _ in self.children)
 
     @classmethod
