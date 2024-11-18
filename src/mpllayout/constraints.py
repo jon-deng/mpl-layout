@@ -83,7 +83,8 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
 
     To create a constraint, subclass `Constraint` then:
         1. Define the residual for the constraint (`assem_res`)
-        2. Specify the parameters for `Constraint.__init__` (see `Parameters`)
+        2. Specify the parameters for `Constraint.__init__` (see `Parameters`)\
+        3. Define `Constraint.split_children_params` (see below)
     Note that some of the `Constraint.__init__` parameters are for type checking
     inputs to `assem_res` while the others are for specifying child constraints.
     `StaticConstraint` and `ParameterizedConstraint` are two `Constraint`
@@ -141,6 +142,14 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
             key: child for key, child in zip(child_keys, child_constraints)
         }
         super().__init__((child_prim_keys, aux_data), children)
+
+    # TODO: Make this something that's passed through __init__?
+    # That would make it harder to forget defining this?
+    def split_children_params(self, params: ResParams) -> tuple[ResParams, ...]:
+        """
+        Return children constraint parameters from parent constraint parameters
+        """
+        raise NotImplementedError()
 
     def root_params(self, params: ResParams) -> ParamsNode:
         """
@@ -305,9 +314,6 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
             The residual representing whether the constraint is satisfied. The
             constraint is satisfied when the residual is 0.
         """
-        raise NotImplementedError()
-
-    def split_children_params(self, params: ResParams) -> ResParams:
         raise NotImplementedError()
 
 
