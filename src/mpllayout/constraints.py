@@ -169,7 +169,24 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         root_params = ParamsNode(params, children)
         return root_params
 
-    def root_prim_keys(self, prim_keys: PrimKeys):
+    def root_prim_keys(self, prim_keys: PrimKeys) -> PrimKeysNode:
+        """
+        Return a tree of primitive keys for the constraint and all children
+
+        The tree structure should match the tree structure of the constraint.
+
+        # TODO: Explain the format of primitive keys for each constraint
+
+        Parameters
+        ----------
+        prim_keys: PrimKeys
+            Primitive keys for the constraint
+
+        Returns
+        -------
+        root_prim_keys: PrimKeysNode
+            A tree of primitive keys for the constraint and all children
+        """
         # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
 
         def parent_argnum_from_key(arg_key: str):
