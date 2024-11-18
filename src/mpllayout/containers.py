@@ -56,14 +56,14 @@ class Node(Generic[TValue, TChild]):
         return node
 
     @property
-    def value(self):
+    def value(self) -> TValue:
         """
         Return the node value
         """
         return self._value
 
     @property
-    def children(self):
+    def children(self) -> dict[str, TChild]:
         """
         Return all child nodes
         """
@@ -104,7 +104,7 @@ class Node(Generic[TValue, TChild]):
     def __len__(self) -> int:
         return len(self.children)
 
-    def keys(self):
+    def keys(self) -> list[str]:
         """
         Return child keys
 
@@ -117,7 +117,7 @@ class Node(Generic[TValue, TChild]):
         """
         return list(self.children.keys())
 
-    def values(self, flat: bool = False):
+    def values(self) -> list[TChild]:
         """
         Return child primitives
 
@@ -128,7 +128,7 @@ class Node(Generic[TValue, TChild]):
         """
         return list(self.children.values())
 
-    def items(self, flat: bool = False):
+    def items(self):
         """
         Return paired child keys and associated trees
 
@@ -156,7 +156,7 @@ class Node(Generic[TValue, TChild]):
         else:
             self[parent_key].children[child_key] = node
 
-    def __getitem__(self, key: str | int | slice):
+    def __getitem__(self, key: str | int | slice) -> TChild | list[TChild]:
         """
         Return the value indexed by a slash-separated key
 
@@ -172,10 +172,10 @@ class Node(Generic[TValue, TChild]):
         else:
             raise TypeError("")
 
-    def get_child_from_int_or_slice(self, key: int | slice):
+    def get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
         return list(self.children.values())[key]
 
-    def get_child_from_str(self, key: str):
+    def get_child_from_str(self, key: str) -> TChild:
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
@@ -187,7 +187,7 @@ class Node(Generic[TValue, TChild]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def get_child_from_str_nonrecursive(self, key: str):
+    def get_child_from_str_nonrecursive(self, key: str) -> TChild:
         return self.children[key]
 
     def add_child(self, key: str, child: TChild):
