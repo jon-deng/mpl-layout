@@ -72,6 +72,17 @@ class Node(Generic[TValue, TChild]):
     ## Tree methods
 
     def node_height(self) -> int:
+        """
+        Return the height of a node
+
+        Returns
+        -------
+        int
+            The node height
+
+            The node height is the number of edges from the current node to the
+            "furthest" child node.
+        """
         if len(self) == 0:
             return 0
         else:
@@ -107,46 +118,33 @@ class Node(Generic[TValue, TChild]):
     def keys(self) -> list[str]:
         """
         Return child keys
-
-        Parameters
-        ----------
-        flat:
-            Toggle whether to recursively flatten keys
-
-            Child keys are separated using '/'
         """
         return list(self.children.keys())
 
     def values(self) -> list[TChild]:
         """
-        Return child primitives
-
-        Parameters
-        ----------
-        flat:
-            Toggle whether to recursively flatten child primitives
+        Return child nodes
         """
         return list(self.children.values())
 
     def items(self):
         """
-        Return paired child keys and associated trees
-
-        Parameters
-        ----------
-        flat:
-            Toggle whether to recursively flatten keys and trees
+        Return an iterator of (child key, child node) pairs
         """
         return self.children.items()
 
     def __setitem__(self, key: str, node: TChild):
         """
-        Set the node indexed by a slash-separated key
+        Set the child node at the given key
 
         Parameters
         ----------
         key: str
-            A slash-separated key, for example 'Box/Line0/Point2'
+            A child node key
+
+            see `__getitem__`
+        node: TChild
+            The node to set
         """
         split_keys = key.split("/")
         parent_key = "/".join(split_keys[:-1])
@@ -162,8 +160,15 @@ class Node(Generic[TValue, TChild]):
 
         Parameters
         ----------
-        key: str
-            A slash-separated key, for example 'Box/Line0/Point2'
+        key: str | int | slice
+            A child node key
+
+            The interpretation depends on the key type:
+            - `str` keys indicate a child key and can be slash separated to denote
+                child keys of child keys,
+                for example, 'childa/grandchildb/greatgrandchildc'.
+            - `int` keys indicate a child by integer index.
+            - `slice` keys indicate a range of children.
         """
         if isinstance(key, str):
             return self.get_child_from_str(key)
@@ -192,12 +197,18 @@ class Node(Generic[TValue, TChild]):
 
     def add_child(self, key: str, child: TChild):
         """
-        Add a primitive indexed by a slash-separated key
+        Add a child node at the given key
+
+        Raises an error if the key already has a node.
 
         Parameters
         ----------
         key: str
-            A slash-separated key, for example 'Box/Line0/Point2'
+            A child node key
+
+            see `__getitem__`
+        node: TChild
+            The node to set
         """
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
