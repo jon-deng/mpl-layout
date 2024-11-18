@@ -22,12 +22,19 @@ class Node(Generic[TValue, TChild]):
 
     Parameters
     ----------
-    value: ValueType
+    value: TValue
         A value associated with the node
-    children: tuple[Node, ...]
-        Child nodes
-    labels: tuple[str, ...]
-        Child node labels
+    children: dict[str, TChild]
+        A dictionary of child nodes
+
+    Attributes
+    ----------
+    value: TValue
+        The value stored in the node
+    children: list[TChild]
+        A list of child nodes
+    children_map: dict[str, TChild]
+        A dictionary of child nodes
     """
 
     def __init__(self, value: TValue, children: dict[str, TChild]):
@@ -41,6 +48,7 @@ class Node(Generic[TValue, TChild]):
         Node.__init__(node, value, children)
         return node
 
+    # TODO: Replace `children_map` with `children`?
     @property
     def children(self):
         """
