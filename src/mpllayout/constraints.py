@@ -406,9 +406,9 @@ class ParameterizedConstraint(Constraint):
         super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
 
 
-class DynamicConstraint(ParameterizedConstraint):
+class ArrayConstraint(ParameterizedConstraint):
     """
-    Constraint with dynamic number of arguments and/or children depending on a shape
+    Constraint representing an array of child constraints
     """
 
     def __init__(self, shape: tuple[int, ...]=(0,)):
@@ -1035,7 +1035,7 @@ class CoincidentLines(StaticConstraint):
 
 # Argument type: tuple[Line, ...]
 
-class RelativeLengthArray(DynamicConstraint):
+class RelativeLengthArray(ArrayConstraint):
     """
     Constrain the lengths of a set of lines relative to the last
 
@@ -1075,7 +1075,7 @@ class RelativeLengthArray(DynamicConstraint):
         return np.array([])
 
 
-class MidpointXDistanceArray(DynamicConstraint):
+class MidpointXDistanceArray(ArrayConstraint):
     """
     Constrain the x-distances between a set of line midpoints
 
@@ -1113,7 +1113,7 @@ class MidpointXDistanceArray(DynamicConstraint):
         return np.array(())
 
 
-class MidpointYDistanceArray(DynamicConstraint):
+class MidpointYDistanceArray(ArrayConstraint):
     """
     Constrain the y-distances between a set of line midpoints
 
@@ -1151,7 +1151,7 @@ class MidpointYDistanceArray(DynamicConstraint):
         return np.array(())
 
 
-class CollinearArray(DynamicConstraint):
+class CollinearArray(ArrayConstraint):
     """
     Constrain a set of lines to be collinear
 
@@ -1511,7 +1511,7 @@ def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
     strides = shape[1:] + (1,)
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
-class RectilinearGrid(DynamicConstraint):
+class RectilinearGrid(ArrayConstraint):
     """
     Constrain a set of quads to lie on a rectilinear grid
 
@@ -1572,7 +1572,7 @@ class RectilinearGrid(DynamicConstraint):
         return np.array(())
 
 
-class Grid(DynamicConstraint):
+class Grid(ArrayConstraint):
     """
     Constrain a set of quads to lie on a dimensioned rectilinear grid
 
