@@ -137,6 +137,8 @@ class Node(Generic[TValue, TChild]):
         """
         Set the child node at the given key
 
+        Raises an error if the key doesn't exist.
+
         Parameters
         ----------
         key: str
@@ -146,13 +148,20 @@ class Node(Generic[TValue, TChild]):
         node: TChild
             The node to set
         """
+        # This splits `key = 'a/b/c/d'`
+        # into `parent_key = 'a/b/c'` and `child_key = 'd'`
         split_keys = key.split("/")
         parent_key = "/".join(split_keys[:-1])
         child_key = split_keys[-1]
-        if parent_key == "":
-            self.children[child_key] = node
+
+        if key not in self:
+            raise KeyError(key)
         else:
-            self[parent_key].children[child_key] = node
+            if parent_key == "":
+                parent = self
+            else:
+                parent = self[parent_key]
+            parent.children[child_key] = node
 
     def __getitem__(self, key: str | int | slice) -> TChild | list[TChild]:
         """
@@ -199,7 +208,7 @@ class Node(Generic[TValue, TChild]):
         """
         Add a child node at the given key
 
-        Raises an error if the key already has a node.
+        Raises an error if the key already exists.
 
         Parameters
         ----------
