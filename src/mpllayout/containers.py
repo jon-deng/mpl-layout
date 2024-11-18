@@ -394,6 +394,7 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
         cnodes = itertools.chain(cnodes)
 
         nodes = itertools.chain([(root_key, root_node)], *cnodes)
+    # TODO: Rewrite this in a tail-call form?
     return nodes
 
 
