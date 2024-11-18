@@ -329,13 +329,15 @@ ChildConstraints = tuple[Constraint, ...]
 
 class StaticConstraint(Constraint):
     """
-    Constraint with static number of arguments and/or children
+    Constraint with static primitive argument types and child constraints
 
-    To specify a `StaticConstraint` you have to define `init_aux_data`.
+    To specify a `StaticConstraint`:
+    - define `init_aux_data`,
+    - and optionally define, `init_children` and `split_children_params`.
 
-    You may want to defined `init_children` and `split_children_params` to used
-    child constraints.
-    If `init_children` is undefined, the constraint will have no child constraints.
+    If `init_children` is undefined the constraint will have no child
+    constraints by default.
+
     If `split_children_params` is undefined, all child constraints will be passed
     empty parameters, and therefore use default values.
     """
@@ -363,15 +365,24 @@ class StaticConstraint(Constraint):
 
 class ParameterizedConstraint(Constraint):
     """
-    Constraint parameterized by generic parameters
+    Constraint with parameterized primitive argument types and child constraints
 
-    To specify a `ParameterizedConstraint` you have to define `init_aux_data`.
+    To specify a `ParameterizedConstraint`:
+    - define `init_aux_data`,
+    - and optionally define, `init_children` and `split_children_params`.
 
-    You may want to defined `init_children` and `split_children_params` to used
-    child constraints.
-    If `init_children` is undefined, the constraint will have no child constraints.
+    If `init_children` is undefined the constraint will have no child
+    constraints by default.
+
     If `split_children_params` is undefined, all child constraints will be passed
     empty parameters, and therefore use default values.
+
+    Parameters
+    ----------
+    **kwargs
+        Parameter controlling the constraint definition
+
+        Subclasses should define what these keyword arguments are.
     """
 
     @classmethod
