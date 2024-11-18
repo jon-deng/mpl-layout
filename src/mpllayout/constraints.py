@@ -169,11 +169,10 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         """
         params = load_named_tuple(self.RES_PARAMS_TYPE, params)
 
-        keys, child_constraints = self.keys(), self.children
         child_parameters = self.split_children_params(params)
         children = {
-            key: child_constraint.root_params(child_params)
-            for key, child_constraint, child_params in zip(keys, child_constraints, child_parameters)
+            key: child.root_params(child_params)
+            for (key, child), child_params in zip(self.items(), child_parameters)
         }
         root_params = ParamsNode(params, children)
         return root_params
@@ -227,7 +226,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         children = {
             key: child.root_prim_keys(child_prim_keys)
             for (key, child), child_prim_keys
-            in zip(self.children_map.items(), children_prim_keys)
+            in zip(self.items(), children_prim_keys)
         }
         return PrimKeysNode(prim_keys, children)
 
@@ -349,7 +348,7 @@ class StaticConstraint(Constraint):
         return (), ((), ())
 
     def split_children_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self.children)
+        return tuple({} for _ in self)
 
     @classmethod
     def init_aux_data(
@@ -392,7 +391,7 @@ class ParameterizedConstraint(Constraint):
         return (), ((), ())
 
     def split_children_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self.children)
+        return tuple({} for _ in self)
 
     @classmethod
     def init_aux_data(
@@ -1657,7 +1656,7 @@ class Grid(ArrayConstraint):
         )
         return tuple(
             load_named_tuple(child.RES_PARAMS_TYPE, value)
-            for child, value in zip(self.children, values)
+            for (_, child), value in zip(self.items(), values)
         )
 
     @classmethod

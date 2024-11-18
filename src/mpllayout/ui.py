@@ -27,8 +27,8 @@ def plot_line_segment(ax: Axes, line_segment: pr.Line, label=None, **kwargs):
     """
     Plot a `LineSegment`
     """
-    xs = np.array([point.value[0] for point in line_segment.children])
-    ys = np.array([point.value[1] for point in line_segment.children])
+    xs = np.array([point.value[0] for point in line_segment.values()])
+    ys = np.array([point.value[1] for point in line_segment.values()])
     ax.plot(xs, ys, **kwargs)
 
 

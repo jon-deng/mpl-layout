@@ -504,7 +504,7 @@ class TestPointLine(GeometryFixtures):
     @pytest.fixture()
     def distance_on(self, point, line, line_unit_vec, reverse):
         if reverse:
-            rev_line = pr.Line(value=[], prims=line.children[::-1])
+            rev_line = pr.Line(value=[], prims=line[::-1])
             return self.calc_point_on_line_distance(point, rev_line)
         else:
             return self.calc_point_on_line_distance(point, line)

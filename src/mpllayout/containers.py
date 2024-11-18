@@ -31,16 +31,14 @@ class Node(Generic[TValue, TChild]):
     ----------
     value: TValue
         The value stored in the node
-    children: list[TChild]
-        A list of child nodes
-    children_map: dict[str, TChild]
+    children: dict[str, TChild]
         A dictionary of child nodes
     """
 
     def __init__(self, value: TValue, children: dict[str, TChild]):
         assert isinstance(children, dict)
         self._value = value
-        self._key_to_child = children
+        self._children = children
 
     @classmethod
     def from_tree(cls, value: TValue, children: dict[str, TChild]):
@@ -48,27 +46,19 @@ class Node(Generic[TValue, TChild]):
         Node.__init__(node, value, children)
         return node
 
-    # TODO: Replace `children_map` with `children`?
-    @property
-    def children(self):
-        """
-        Return any children
-        """
-        return list(self.children_map.values())
-
-    @property
-    def children_map(self):
-        """
-        Return any children
-        """
-        return self._key_to_child
-
     @property
     def value(self):
         """
-        Return the value
+        Return the node value
         """
         return self._value
+
+    @property
+    def children(self):
+        """
+        Return all child nodes
+        """
+        return self._children
 
     ## Tree methods
 
@@ -84,7 +74,7 @@ class Node(Generic[TValue, TChild]):
 
     def __repr__(self) -> str:
         keys_repr = ", ".join(self.keys())
-        children_repr = ", ".join([node.__repr__() for node in self.children])
+        children_repr = ", ".join([node.__repr__() for _, node in self.children.items()])
         return f"{type(self).__name__}({self.value}, ({children_repr}), ({keys_repr}))"
 
     def __str__(self) -> str:
@@ -98,7 +88,7 @@ class Node(Generic[TValue, TChild]):
         child_key = "/".join(split_keys[1:])
 
         if child_key == "":
-            return parent_key in self.children_map
+            return parent_key in self.children
         else:
             return child_key in self[parent_key]
 
@@ -116,7 +106,7 @@ class Node(Generic[TValue, TChild]):
 
             Child keys are separated using '/'
         """
-        return list(self.children_map.keys())
+        return list(self.children.keys())
 
     def values(self, flat: bool = False):
         """
@@ -127,7 +117,7 @@ class Node(Generic[TValue, TChild]):
         flat:
             Toggle whether to recursively flatten child primitives
         """
-        return list(self.children_map.values())
+        return list(self.children.values())
 
     def items(self, flat: bool = False):
         """
@@ -138,7 +128,7 @@ class Node(Generic[TValue, TChild]):
         flat:
             Toggle whether to recursively flatten keys and trees
         """
-        return self.children_map.items()
+        return self.children.items()
 
     def __setitem__(self, key: str, node: TChild):
         """
@@ -153,11 +143,11 @@ class Node(Generic[TValue, TChild]):
         parent_key = "/".join(split_keys[:-1])
         child_key = split_keys[-1]
         if parent_key == "":
-            self.children_map[child_key] = node
+            self.children[child_key] = node
         else:
-            self[parent_key].children_map[child_key] = node
+            self[parent_key].children[child_key] = node
 
-    def __getitem__(self, key: str | int):
+    def __getitem__(self, key: str | int | slice):
         """
         Return the value indexed by a slash-separated key
 
@@ -166,18 +156,15 @@ class Node(Generic[TValue, TChild]):
         key: str
             A slash-separated key, for example 'Box/Line0/Point2'
         """
-        return self.get_child(key)
-
-    def get_child(self, key: str | int):
-        if isinstance(key, int):
-            return self.get_child_from_int(key)
-        elif isinstance(key, str):
+        if isinstance(key, str):
             return self.get_child_from_str(key)
+        elif isinstance(key, (int, slice)):
+            return self.get_child_from_int_or_slice(key)
         else:
             raise TypeError("")
 
-    def get_child_from_int(self, key: int):
-        return self.children[key]
+    def get_child_from_int_or_slice(self, key: int | slice):
+        return list(self.children.values())[key]
 
     def get_child_from_str(self, key: str):
         split_key = key.split("/", 1)
@@ -187,12 +174,12 @@ class Node(Generic[TValue, TChild]):
             if len(child_keys) == 0:
                 return self.get_child_from_str_nonrecursive(parent_key)
             else:
-                return self.children_map[parent_key].get_child_from_str(child_keys[0])
+                return self.children[parent_key].get_child_from_str(child_keys[0])
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
     def get_child_from_str_nonrecursive(self, key: str):
-        return self.children_map[key]
+        return self.children[key]
 
     def add_child(self, key: str, child: TChild):
         """
@@ -210,7 +197,7 @@ class Node(Generic[TValue, TChild]):
             if len(child_keys) == 0:
                 self.add_child_nonrecursive(parent_key, child)
             else:
-                self.children_map[parent_key].add_child(child_keys[0], child)
+                self.children[parent_key].add_child(child_keys[0], child)
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
@@ -221,10 +208,10 @@ class Node(Generic[TValue, TChild]):
 
         Base case of recursive `add_child`
         """
-        if key in self.children_map:
+        if key in self.children:
             raise KeyError(f"{key}")
         else:
-            self.children_map[key] = child
+            self.children[key] = child
 
 
 TItem = TypeVar("TItem")
@@ -344,7 +331,7 @@ AuxData = Any
 def _make_flatten_unflatten(node_type: type[TNode]):
 
     def _flatten_node(node: TNode) -> tuple[FlatNode, AuxData]:
-        flat_node = (node.value, node.children_map)
+        flat_node = (node.value, node.children)
         aux_data = None
         return (flat_node, aux_data)
 
