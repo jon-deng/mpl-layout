@@ -171,28 +171,28 @@ class Node(Generic[TValue, TChild]):
             - `slice` keys indicate a range of children.
         """
         if isinstance(key, str):
-            return self.get_child_from_str(key)
+            return self._get_child_from_str(key)
         elif isinstance(key, (int, slice)):
-            return self.get_child_from_int_or_slice(key)
+            return self._get_child_from_int_or_slice(key)
         else:
             raise TypeError("")
 
-    def get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
+    def _get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
         return list(self.children.values())[key]
 
-    def get_child_from_str(self, key: str) -> TChild:
+    def _get_child_from_str(self, key: str) -> TChild:
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
             if len(child_keys) == 0:
-                return self.get_child_from_str_nonrecursive(parent_key)
+                return self._get_child_from_str_nonrecursive(parent_key)
             else:
-                return self.children[parent_key].get_child_from_str(child_keys[0])
+                return self.children[parent_key]._get_child_from_str(child_keys[0])
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def get_child_from_str_nonrecursive(self, key: str) -> TChild:
+    def _get_child_from_str_nonrecursive(self, key: str) -> TChild:
         return self.children[key]
 
     def add_child(self, key: str, child: TChild):
@@ -215,14 +215,14 @@ class Node(Generic[TValue, TChild]):
 
         try:
             if len(child_keys) == 0:
-                self.add_child_nonrecursive(parent_key, child)
+                self._add_child_nonrecursive(parent_key, child)
             else:
                 self.children[parent_key].add_child(child_keys[0], child)
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def add_child_nonrecursive(self, key: str, child: TChild):
+    def _add_child_nonrecursive(self, key: str, child: TChild):
         """
         Add a primitive indexed by a key
 
