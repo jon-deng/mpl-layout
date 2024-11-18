@@ -362,7 +362,6 @@ class ItemCounter(Generic[TItem]):
 
 
 ## Manual flattening/unflattening implementation
-FlatNodeStructure = tuple[type[TNode], str, TValue, int]
 
 def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
     """
@@ -397,18 +396,55 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
     # TODO: Rewrite this in a tail-call form?
     return nodes
 
+# TODO: Refactor `flatten` and `unflatten`?
+# The current implementation seems weird
+FlatNodeStructure = tuple[type[TNode], str, TValue, int]
 
-def flatten(key: str, node: TNode) -> list[FlatNodeStructure]:
+def flatten(root_key: str, root_node: TNode) -> list[FlatNodeStructure]:
+    """
+    Return a flattened list of node structures for a root node (recursively depth-first)
+
+    Parameters
+    ----------
+    root_key: str
+        A key for the node
+    root_node: TNode
+        The root node
+
+    Returns
+    -------
+    list[FlatNodeStructure]
+        A list of node structures
+
+        Each node structure is a tuple representing the node.
+    """
     node_structs = [
-        (type(_node), _key, _node.value, len(_node))
-        for _key, _node in iter_flat(key, node)
+        (type(node), key, node.value, len(node))
+        for key, node in iter_flat(root_key, root_node)
     ]
     return node_structs
-
 
 def unflatten(
     node_structs: list[FlatNodeStructure],
 ) -> tuple[TNode, list[FlatNodeStructure]]:
+    """
+    Return the root node from a flat representation
+
+    Parameters
+    ----------
+    node_structs: list[FlatNodeStructure]
+        The flat representation
+
+    Returns
+    -------
+    TNode
+        The root node
+    list[FlatNodeStructure]
+        A "leftover" flat node representation
+
+        This list should be empty if the flat node representation only contains
+        nodes that belong to the root node.
+    """
     node_type, pkey, value, num_child = node_structs[0]
     node_structs = node_structs[1:]
 
