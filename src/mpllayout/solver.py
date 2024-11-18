@@ -2,7 +2,7 @@
 Routines for solving collections of primitives and constraints
 """
 
-import typing as tp
+from typing import Any
 from numpy.typing import NDArray
 
 import warnings
@@ -15,10 +15,10 @@ from . import geometry as geo
 
 from . import layout as lay
 
-IntGraph = tp.List[tp.Tuple[int, ...]]
-StrGraph = tp.List[tp.Tuple[str, ...]]
+IntGraph = list[tuple[int, ...]]
+StrGraph = list[tuple[str, ...]]
 
-SolverInfo = tp.Mapping[str, tp.Any]
+SolverInfo = dict[str, Any]
 
 
 def solve(
@@ -26,7 +26,7 @@ def solve(
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> tp.Tuple[geo.Primitive, SolverInfo]:
+) -> tuple[geo.Primitive, SolverInfo]:
     """
     Return a set of primitives that satisfy the constraints
 
@@ -133,12 +133,12 @@ def solve(
 
 def assem_constraint_residual(
     root_prim: geo.Primitive,
-    prim_graph: tp.Mapping[str, int],
-    prim_values: tp.List[NDArray],
-    constraints: tp.List[geo.Constraint],
+    prim_graph: dict[str, int],
+    prim_values: list[NDArray],
+    constraints: list[geo.Constraint],
     constraint_graph: StrGraph,
     constraint_params
-) -> tp.List[NDArray]:
+) -> list[NDArray]:
     """
     Return a list of constraint residual vectors
 
@@ -157,7 +157,7 @@ def assem_constraint_residual(
 
     Returns
     -------
-    residuals: tp.List[NDArray]
+    residuals: list[NDArray]
         A list of residual vectors corresponding to each constraint in `constraints`
     """
     root_prim = lay.build_tree(root_prim, prim_graph, prim_values)

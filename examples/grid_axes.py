@@ -31,7 +31,7 @@ if __name__ == "__main__":
     layout.add_constraint(geo.Coincident(), ("Figure/Line0/Point0", "Origin"), ())
 
     ## Create the axes boxes
-    axes_shape = (4, 4)
+    axes_shape = (2, 1)
     num_row, num_col = axes_shape
     num_axes = int(np.prod(axes_shape))
     for n in range(num_axes):
@@ -43,8 +43,8 @@ if __name__ == "__main__":
     grid_params = {
         "col_widths": (num_col - 1) * [1],
         "row_heights": (num_row - 1) * [1],
-        "col_margins": (num_col - 1) * [1 / 16],
-        "row_margins": (num_row - 1) * [1 / 16],
+        "col_margins": (num_col - 1) * [0.5],
+        "row_margins": (num_row - 1) * [0.5],
     }
 
     layout.add_constraint(
@@ -59,8 +59,8 @@ if __name__ == "__main__":
     )
 
     # Constrain top/bottom margins
-    margin_top = 0.5
-    margin_bottom = 0.5
+    margin_top = 1.0
+    margin_bottom = 1.0
     layout.add_constraint(
         geo.MidpointYDistance(), ("Axes0/Frame/Line2", "Figure/Line2"), (margin_top,)
     )
@@ -69,8 +69,8 @@ if __name__ == "__main__":
     )
 
     # Constrain left/right margins
-    margin_left = 0.5
-    margin_right = 0.5
+    margin_left = 1.0
+    margin_right = 1.0
     layout.add_constraint(
         geo.MidpointXDistance(),
         ("Figure/Line3", "Axes0/Frame/Line3", ), (margin_left,)

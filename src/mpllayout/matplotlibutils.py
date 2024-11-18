@@ -2,7 +2,7 @@
 Utilities for creating `matplotlib` plot objects from primitives
 """
 
-import typing as tp
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -17,8 +17,8 @@ from mpllayout import geometry as geo
 def subplots(
     root_prim: geo.Primitive,
     fig_key: str = "Figure",
-    axs_keys: tp.Optional[tp.List[str]] = None,
-) -> tp.Tuple[Figure, tp.Mapping[str, Axes]]:
+    axs_keys: Optional[list[str]] = None,
+) -> tuple[Figure, dict[str, Axes]]:
     """
     Create `Figure` and `Axes` objects from geometric primitives
 
@@ -37,7 +37,7 @@ def subplots(
 
     Returns
     -------
-    fig, axs: tp.Tuple[Figure, tp.Mapping[str, Axes]]
+    fig, axs: tuple[Figure, dict[str, Axes]]
         A `Figure` instance and a mapping from axes labels to `Axes` instances
         using the `Axes` object names
     """
@@ -62,7 +62,7 @@ def update_subplots(
     root_prim: geo.Primitive,
     fig_key: str,
     fig: Figure,
-    key_to_ax: tp.Mapping[str, Axes],
+    key_to_ax: dict[str, Axes],
 ):
     # Set Figure position
     quad = root_prim[fig_key]
@@ -118,7 +118,7 @@ def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
     return position
 
 
-def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float]:
+def width_and_height_from_quad(quad: geo.Quadrilateral) -> tuple[float, float]:
     """
     Return the width and height of a quadrilateral primitive
 
@@ -128,7 +128,7 @@ def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float
 
     Returns
     -------
-    tp.Tuple[float, float]
+    tuple[float, float]
         The width and height of the quadrilateral
     """
 
@@ -144,8 +144,8 @@ def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float
 
 
 def rect_from_box(
-    quad: geo.Quadrilateral, fig_size: tp.Optional[tp.Tuple[float, float]] = (1, 1)
-) -> tp.Tuple[float, float, float, float]:
+    quad: geo.Quadrilateral, fig_size: Optional[tuple[float, float]] = (1, 1)
+) -> tuple[float, float, float, float]:
     """
     Return a `rect` tuple, `(left, bottom, width, height)`, from a `geo.Quadrilateral`
 
@@ -156,12 +156,12 @@ def rect_from_box(
     ----------
     quad: geo.Quadrilateral
         The quadrilateral
-    fig_size: tp.Optional[tp.Tuple[float, float]]
+    fig_size: Optional[tuple[float, float]]
         The width and height of the figure
 
     Returns
     -------
-    xmin, ymin, width, heigth: tp.Tuple[float, float, float, float]
+    xmin, ymin, width, heigth: tuple[float, float, float, float]
     """
     fig_w, fig_h = fig_size
 

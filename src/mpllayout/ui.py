@@ -2,7 +2,7 @@
 Utilities for a user interface/visualization of the plot layout
 """
 
-import typing as tp
+from typing import Callable
 from matplotlib.axes import Axes
 
 import matplotlib as mpl
@@ -68,7 +68,7 @@ def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
 ## Functions for plotting arbitrary geometric primitives
 def make_plot(
     prim: geo.Primitive,
-) -> tp.Callable[[Axes, tp.Tuple[geo.Primitive, ...]], None]:
+) -> Callable[[Axes, tuple[geo.Primitive, ...]], None]:
     """
     Return a function that can plot a `geo.Primitive` object
     """
@@ -95,7 +95,7 @@ def plot_prims(ax: Axes, root_prim: geo.Primitive):
 
 def figure_prims(
     root_prim: geo.PrimitiveNode,
-    fig_size: tp.Tuple[float, float] = (8, 8),
+    fig_size: tuple[float, float] = (8, 8),
     major_tick_interval: float = 1.0,
     minor_tick_interval: float = 1/8
 ):

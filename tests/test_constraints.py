@@ -645,7 +645,7 @@ class TestQuadrilateralArray(GeometryFixtures):
         return (width, height)
 
     @pytest.fixture()
-    def grid_parameters(self, grid_shape: tp.Tuple[int, int]):
+    def grid_parameters(self, grid_shape: tuple[int, int]):
         num_row, num_col = grid_shape
 
         ## Random sizes and margins
@@ -673,8 +673,8 @@ class TestQuadrilateralArray(GeometryFixtures):
     @pytest.fixture()
     def quads_grid(
         self,
-        grid_origin_quad_size: tp.Tuple[float, float],
-        grid_parameters: tp.Mapping[str, NDArray],
+        grid_origin_quad_size: tuple[float, float],
+        grid_parameters: dict[str, NDArray],
     ):
         origin = np.random.rand(2)
         origin = np.zeros(2)
@@ -693,16 +693,16 @@ class TestQuadrilateralArray(GeometryFixtures):
         )
 
     def test_RectilinearGrid(
-        self, quads_grid: tp.List[geo.Quadrilateral], grid_shape: tp.Tuple[int, int]
+        self, quads_grid: list[geo.Quadrilateral], grid_shape: tuple[int, int]
     ):
         res = geo.RectilinearGrid(grid_shape)(quads_grid, ())
         assert np.all(np.isclose(res, 0))
 
     def test_Grid(
         self,
-        quads_grid: tp.List[geo.Quadrilateral],
-        grid_shape: tp.Tuple[int, int],
-        grid_parameters: tp.Tuple[NDArray, NDArray, NDArray, NDArray],
+        quads_grid: list[geo.Quadrilateral],
+        grid_shape: tuple[int, int],
+        grid_parameters: tuple[NDArray, NDArray, NDArray, NDArray],
     ):
         root_prim = Node(None, {f'Quad{n}': quad for n, quad in enumerate(quads_grid)})
 
@@ -758,7 +758,7 @@ class TestAxesConstraints(GeometryFixtures):
     @pytest.fixture()
     def axes(
         self,
-        axes_size: tp.Tuple[float, float],
+        axes_size: tuple[float, float],
         xaxis_position,
         yaxis_position,
         xaxis_height,
@@ -829,7 +829,7 @@ class TestAxesConstraints(GeometryFixtures):
     @pytest.fixture()
     def axes_mpl(
             self,
-            axes_size: tp.Tuple[float, float],
+            axes_size: tuple[float, float],
             xaxis_position,
             yaxis_position,
         ):

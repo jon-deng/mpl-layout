@@ -3,6 +3,7 @@ Profile runtimes of key functions
 """
 
 import typing as tp
+from typing import Optional
 
 import cProfile
 import pstats
@@ -12,7 +13,7 @@ import numpy as np
 from mpllayout import layout as lay, geometry as geo, solver
 
 
-def gen_layout(axes_shape: tp.Optional[tp.Tuple[int, ...]] = (3, 3)) -> lay.Layout:
+def gen_layout(axes_shape: Optional[tuple[int, ...]] = (3, 3)) -> lay.Layout:
     layout = lay.Layout()
 
     ## Create an origin point

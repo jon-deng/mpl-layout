@@ -8,7 +8,7 @@ lists representing a system of non-linear equations:
 
         These represent the unknowns parameters of the geometric system and is
         represented as a tree.
-    `constraints: tp.List[geo.Constraint]`
+    `constraints: list[geo.Constraint]`
         A list of `geo.Constraint` instances representing the non-linear
         equations
 
@@ -22,7 +22,7 @@ The class `Layout` handles construction of these three things while functions
 `solve` and `solve_linear` use the layout to solve the system of constraints.
 """
 
-import typing as tp
+from typing import Optional, Any
 from numpy.typing import NDArray
 
 import warnings
@@ -32,8 +32,8 @@ import numpy as np
 from . import geometry as geo
 from .containers import Node, ItemCounter, iter_flat, flatten, unflatten
 
-IntGraph = tp.List[tp.Tuple[int, ...]]
-StrGraph = tp.List[tp.Tuple[str, ...]]
+IntGraph = list[tuple[int, ...]]
+StrGraph = list[tuple[str, ...]]
 
 
 class Layout:
@@ -55,11 +55,11 @@ class Layout:
 
     def __init__(
         self,
-        root_prim: tp.Optional[geo.PrimitiveNode] = None,
-        root_constraint: tp.Optional[geo.ConstraintNode] = None,
-        root_constraint_graph: tp.Optional[geo.PrimKeysNode] = None,
-        root_constraint_param: tp.Optional[geo.ParamsNode] = None,
-        constraint_key_counter: tp.Optional[ItemCounter] = None,
+        root_prim: Optional[geo.PrimitiveNode] = None,
+        root_constraint: Optional[geo.ConstraintNode] = None,
+        root_constraint_graph: Optional[geo.PrimKeysNode] = None,
+        root_constraint_param: Optional[geo.ParamsNode] = None,
+        constraint_key_counter: Optional[ItemCounter] = None,
     ):
 
         if root_prim is None:
@@ -131,8 +131,8 @@ class Layout:
     def add_constraint(
         self,
         constraint: geo.Constraint,
-        prim_keys: tp.Tuple[str, ...],
-        param: tp.Tuple[tp.Any],
+        prim_keys: tuple[str, ...],
+        param: tuple[Any],
         key: str = ""
     ):
         """
@@ -158,7 +158,7 @@ class Layout:
 
 def build_prim_graph(
     root_prim: geo.Primitive,
-) -> tp.Tuple[tp.Mapping[str, int], tp.List[geo.Primitive]]:
+) -> tuple[dict[str, int], list[geo.Primitive]]:
     """
     Return a map from flat keys to indices in a list of unique primitives
     """
@@ -171,7 +171,7 @@ def build_prim_graph(
 
 
 def build_tree(
-    root_prim: geo.Primitive, prim_graph: tp.Mapping[str, int], values: tp.List[NDArray]
+    root_prim: geo.Primitive, prim_graph: dict[str, int], values: list[NDArray]
 ) -> geo.Primitive:
     """
     Return a new tree where child node values have been updated
@@ -209,7 +209,7 @@ from matplotlib.axis import Axis, XAxis, YAxis
 
 def update_layout_constraints(
         layout: Layout,
-        axs: tp.Mapping[str, Axes]
+        axs: dict[str, Axes]
     ) -> geo.ParamsNode:
     """
     Update layout constraints which depend on matplotlib elements
@@ -246,7 +246,7 @@ def update_layout_constraints(
 def update_params(
     root_constraint: geo.ConstraintNode,
     root_constraint_param: geo.ParamsNode,
-    constraintkey_to_param: tp.Mapping[str, geo.ResParams]
+    constraintkey_to_param: dict[str, geo.ResParams]
 ) -> geo.ParamsNode:
 
     for key, param in constraintkey_to_param.items():
