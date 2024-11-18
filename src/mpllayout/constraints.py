@@ -42,20 +42,20 @@ def load_named_tuple(
 
 class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     """
-    Tree of primitive keys corresponding to a constraint tree
+    A tree of primitive keys indicating primitives for a constraint
 
-    Each node's value is a tuple of strings indicating primitives for the
-    corresponding constraint's `assem_res`.
+    The tree structure should match the tree structure of a constraint such that
+    for each constraint node, there is a corresponding primitive keys node.
     """
     pass
 
 
 class ParamsNode(Node[ResParams, "ParamsNode"]):
     """
-    Tree of parameters corresponding to a constraint tree
+    A tree of residual parameters (kwargs) for a constraint
 
-    Each node's value are parameters indicating for the corresponding constraint's
-    `assem_res`.
+    The tree structure should match the tree structure of a constraint such that
+    for each constraint node, there is a corresponding parameters node.
     """
     pass
 
