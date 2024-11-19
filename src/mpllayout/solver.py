@@ -27,24 +27,17 @@ def solve(
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
-) -> tuple[pr.Primitive, SolverInfo]:
+) -> tuple[pr.PrimitiveNode, SolverInfo]:
     """
-    Return a set of primitives that satisfy the constraints
+    Return geometric primitives that satisfy constraints
 
-    This solves a set of, potentially non-linear constraints, with an
+    This solves a set of, potentially non-linear, geoemtric constraints with an
     iterative Newton method.
 
     Parameters
     ----------
-    root_prim:
-        The primitive tree
-    constraints:
-        The constraint list
-    constraint_graph:
-        A mapping from each constraint to the primitives it applies to
-
-        For example, `constraint_graph[0] == ('Point1', 'Line2')` means the first
-        constraint applies to primitives `(root_prim['Point1'], root_prim['Line2'])`.
+    layout: lay.Layout
+        The layout of geometric primitives and constraints to solve
     abs_tol, rel_tol: float
         The absolute and relative tolerance for the iterative solution
     max_iter: int
@@ -52,10 +45,10 @@ def solve(
 
     Returns
     -------
-    pr.Primitive
+    pr.PrimitiveNode
         A primitive tree satisfying the constraints
     SolverInfo
-        Information about the solve
+        Information about the iterative solution
 
         Keys are:
             'abs_errs':
