@@ -191,7 +191,20 @@ def build_prim_graph(
     root_prim: pr.Primitive,
 ) -> tuple[dict[str, int], list[pr.Primitive]]:
     """
-    Return a map from flat keys to indices in a list of unique primitives
+    Return unique primitives from a root primitive and indicate their indices
+
+    Note that primitives in a primitive node are not necessarily unique
+    ; for example `Point`s are shared between lines in a polygon.
+
+    When solving a set of geometric constraints, the geometric constraint
+    residual should be linked to a function of unique primitives only.
+
+    Returns
+    -------
+    prim_graph: dict[str, int]
+        A mapping from each primitive key to its unique primitive index
+    prims: list[pr.Primitive]
+        A list of unique primitives
     """
     prims = list(set(prim for _, prim in iter_flat("", root_prim)))
     prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
