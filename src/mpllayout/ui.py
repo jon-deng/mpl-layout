@@ -1,5 +1,5 @@
 """
-Utilities for a user interface/visualization of the plot layout
+Utilities for visualizing primitives and constraints
 """
 
 from typing import Callable
