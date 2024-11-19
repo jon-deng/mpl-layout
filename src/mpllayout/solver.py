@@ -1,5 +1,5 @@
 """
-Routines for solving collections of primitives and constraints
+Solvers for constrained geometric primitives
 """
 
 from typing import Any
