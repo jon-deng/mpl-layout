@@ -298,7 +298,7 @@ def update_layout_constraints(
                 axes_key = axis_key.split("/", 1)[0]
                 constraintkey_to_param[key] = (axs[axes_key].yaxis,)
 
-    update_params(
+    update_root_param(
         layout.root_constraint,
         layout.root_param,
         constraintkey_to_param
@@ -306,7 +306,7 @@ def update_layout_constraints(
 
     return layout
 
-def update_params(
+def update_root_param(
     root_constraint: cr.ConstraintNode,
     root_param: cr.ParamsNode,
     constraintkey_to_param: dict[str, cr.ResParams]
