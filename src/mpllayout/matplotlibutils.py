@@ -20,27 +20,36 @@ def subplots(
     fig_key: str = "Figure",
     axs_keys: Optional[list[str]] = None,
 ) -> tuple[Figure, dict[str, Axes]]:
+    # TODO: Use special primitive classes rather than keys to determine figure and axes?
     """
-    Create `Figure` and `Axes` objects from geometric primitives
+    Create matplotlib `Figure` and `Axes` objects from geometric primitives
 
-    The `Figure` and `Axes` objects are extracted based on labels in `root_prim`.
+    The `Figure` and `Axes` objects are extracted based on labels in the primitive tree.
     A `pr.Quadrilateral` primitive named 'Figure' is used to create the `Figure` with
-    corresponding dimensions. Any `pr.Quadrilateral` primitives prefixed with 'Axes' are
-    used to create `Axes` objects in the output dictionary `axs`.
+    corresponding dimensions.
+    Any `pr.Quadrilateral` primitives named with an 'Axes' prefix are used to create
+    `Axes` objects.
 
     Parameters
     ----------
     root_prim: pr.Primitive
-        The root `Primitive` tree
+        The root primitive
+    fig_key: str
+        The figure key
 
-        `Figure` and `Axes` objects are created from primitives with labels
-        prefixed by 'Figure' or 'Axes'.
+        If supplied the quadrilateral under this key will be used to generate the
+        figure.
+    axs_keys: Optional[list[str]]
+        Axes keys
+
+        If supplied, only the provided axes keys will be used to generate `Axes`s.
 
     Returns
     -------
-    fig, axs: tuple[Figure, dict[str, Axes]]
-        A `Figure` instance and a mapping from axes labels to `Axes` instances
-        using the `Axes` object names
+    fig: Figure
+        The matplotlib `Figure` instance
+    axs: dict[str, Axes]
+        A mapping from axes keys to matplotlib `Axes` instances
     """
     # Create the `Figure` instance
     fig = plt.figure(figsize=(1, 1))
