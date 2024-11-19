@@ -3,6 +3,7 @@ Utilities for visualizing primitives and constraints
 """
 
 from typing import Callable, Optional
+from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 import matplotlib as mpl
@@ -159,13 +160,31 @@ def plot_prims(ax: Axes, root_prim: pr.Primitive):
 
 
 def figure_prims(
-    root_prim: pr.PrimitiveNode,
+    root_prim: pr.Primitive,
     fig_size: tuple[float, float] = (8, 8),
     major_tick_interval: float = 1.0,
     minor_tick_interval: float = 1/8
-):
+) -> tuple[Figure, Axes]:
     """
-    Return a figure of all primitives in a tree
+    Return a figure of a primitive
+
+    Parameters
+    ----------
+    root_prim: pr.Primitive
+        The primitive to plot
+    fig_size: tuple[float, float]
+        The figure size
+    major_tick_interval, minor_tick_interval: float, float
+        Major and minor tick intervals for grid lines
+
+        By default these are 1 and 1/8 which is nice for inch dimensions.
+
+    Returns
+    -------
+    fig: Figure
+        The figure
+    ax: Axes
+        The axes
     """
 
     fig, ax = plt.subplots(1, 1, figsize=fig_size)
