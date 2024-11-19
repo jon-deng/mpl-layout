@@ -125,8 +125,25 @@ def update_subplots(
 
     return fig, axs
 
+# TODO: Refactor signature (should depend on axes and axis string (x or y))?
+def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral) -> str:
+    """
+    Return the axis position relative to a frame
 
-def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral):
+    Parameters
+    ----------
+    axes_frame: pr.Quadrilateral
+        The axes frame
+    axis: pr.Quadrilateral
+        The axes axis
+
+        This can be any x or y axis
+
+    Returns
+    -------
+    position: str
+        One of ('bottom', 'top', 'left', 'right') indicating the axis position
+    """
     coincident_line = cr.CoincidentLines()
     params = {"reverse": True}
     bottom_res = coincident_line((axes_frame["Line0"], axis["Line2"]), params)
