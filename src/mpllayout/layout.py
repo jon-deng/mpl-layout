@@ -1,25 +1,8 @@
 """
-Classes for handling collections of primitives and constraints
+Layout class and associated utilities
 
-The strategy to solve a collection of constraints is to use three labelled
-lists representing a system of non-linear equations:
-    `primitives: `
-        A collection of `pr.Primitive` instances
-
-        These represent the unknowns parameters of the geometric system and is
-        represented as a tree.
-    `constraints: list[pr.Constraint]`
-        A list of `pr.Constraint` instances representing the non-linear
-        equations
-
-        Each `pr.Constraint.assem_res' represents the non-linear equation(s)
-        that must be satisfied for the constraint.
-    `constraint_graph: StrGraph`
-        A graph linking each constraint to the primitives in `primitives`
-        (through string labels) the constraint applies to
-
-The class `Layout` handles construction of these three things while functions
-`solve` and `solve_linear` use the layout to solve the system of constraints.
+A `Layout` is the class used to represent an arrangement (layout) of figure
+elements.
 """
 
 from typing import Optional, Any
