@@ -218,21 +218,21 @@ def build_tree(
     root_prim: pr.Primitive, prim_graph: dict[str, int], values: list[NDArray]
 ) -> pr.Primitive:
     """
-    Return a new tree where child node values have been updated
+    Return a new primitive with values updated from unique values
 
     Parameters
     ----------
-    root_prim:
-        The old tree
-    prim_graph:
-        A mapping from keys in `root_prim` to corresponding new values in `values`
-    values:
-        A list of new parameter values to build a new tree with
+    root_prim: pr.Primitive
+        The old primitive
+    prim_graph: dict[str, int]
+        A mapping from each primitive key to a unique primitive value in `values`
+    values: list[NDArray]
+        A list of primitive values for unique primitives in `root_prim`
 
     Returns
     -------
-    Node
-        The new tree with values from `values`
+    pr.Primitive
+        The new primitive with updated values
     """
     old_prim_structs = flatten("", root_prim)
 
