@@ -2,7 +2,7 @@
 Utilities for visualizing primitives and constraints
 """
 
-from typing import Callable
+from typing import Callable, Optional
 from matplotlib.axes import Axes
 
 import matplotlib as mpl
@@ -15,26 +15,59 @@ from . import constraints as cr
 ## Functions for plotting geometric primitives
 
 
-def plot_point(ax: Axes, point: pr.Point, label=None, **kwargs):
+def plot_point(ax: Axes, point: pr.Point, label: Optional[str]=None, **kwargs):
     """
-    Plot a `Point`
+    Plot a point
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    point: pr.Point
+        The point to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
     x, y = point.value
     ax.plot([x], [y], marker=".", **kwargs)
 
 
-def plot_line_segment(ax: Axes, line_segment: pr.Line, label=None, **kwargs):
+def plot_line(ax: Axes, line: pr.Line, label: Optional[str]=None, **kwargs):
     """
-    Plot a `LineSegment`
+    Plot a line
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    line: pr.Line
+        The line to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
-    xs = np.array([point.value[0] for point in line_segment.values()])
-    ys = np.array([point.value[1] for point in line_segment.values()])
+    xs = np.array([point.value[0] for point in line.values()])
+    ys = np.array([point.value[1] for point in line.values()])
     ax.plot(xs, ys, **kwargs)
 
 
-def plot_polygon(ax: Axes, polygon: pr.Polygon, label=None, **kwargs):
+def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwargs):
     """
     Plot a `Polygon`
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    polygon: pr.Polygon
+        The polygon to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
     points = [polygon[f"Line0"]["Point0"]] + [
         polygon[f"Line{ii}"]["Point1"] for ii in range(len(polygon))
@@ -57,9 +90,20 @@ def plot_polygon(ax: Axes, polygon: pr.Polygon, label=None, **kwargs):
         )
 
 
-def plot_generic_prim(ax: Axes, prim: pr.Primitive, label=None, **kwargs):
+def plot_generic_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs):
     """
-    Plot any child primitives of a generic primitive
+    Plot a generic primitive by recursively plotting any child primitives
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    prim: pr.Primitive
+        The primitive to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
     for key, child_prim in prim.items():
         plot = make_plot(child_prim)
@@ -77,7 +121,7 @@ def make_plot(
     if isinstance(prim, pr.Point):
         return plot_point
     elif isinstance(prim, pr.Line):
-        return plot_line_segment
+        return plot_line
     elif isinstance(prim, pr.Polygon):
         return plot_polygon
     else:
