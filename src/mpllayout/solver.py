@@ -21,7 +21,7 @@ StrGraph = list[tuple[str, ...]]
 
 SolverInfo = dict[str, Any]
 
-
+# TODO: Add different solver possibilities? (optimization, newton, etc.)
 def solve(
     layout: lay.Layout,
     abs_tol: float = 1e-10,
