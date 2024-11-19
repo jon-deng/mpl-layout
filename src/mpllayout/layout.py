@@ -87,46 +87,59 @@ class Layout:
         self._root_constraint_prim_keys = root_prim_keys
         self._root_constraint_param = root_param
 
-        self._constraint_key_counter = constraint_counter
+        self._constraint_counter = constraint_counter
 
     @property
-    def root_prim(self):
+    def root_prim(self) -> pr.PrimitiveNode:
         return self._root_prim
 
     @property
-    def root_constraint(self):
+    def root_constraint(self) -> cr.ConstraintNode:
         return self._root_constraint
 
     @property
-    def root_prim_keys(self):
+    def root_prim_keys(self) -> cr.PrimKeysNode:
         return self._root_constraint_prim_keys
 
     @property
-    def root_param(self) -> Node[str, Node]:
+    def root_param(self) -> cr.ParamsNode:
         return self._root_constraint_param
 
-    def flat_constraints(self):
+    def flat_constraints(
+        self
+    ) -> tuple[list[cr.Constraint], list[cr.PrimKeys], list[cr.ResParams]]:
+        """
+        Return flat constraints, primitive argument keys and parameters
+
+        Returns
+        -------
+        constraints: list[cr.Constraint]
+            A flat list of constraints from the root constraint
+        prim_keys: list[cr.PrimKeys]
+            A list of primitive keys for each constraint
+        params: list[cr.ResParams]
+            A list of residual parameters for each constraint
+        """
         # The `[1:]` removes the 'root' constraint which is just a container
         constraints = [
             node for _, node in iter_flat('', self.root_constraint)
         ][1:]
-        constraints_argkeys = [
+        prim_keys = [
             node.value for _, node in iter_flat('', self.root_prim_keys)
         ][1:]
-        constraints_param = [
+        params = [
             node.value for _, node in iter_flat('', self.root_param)
         ][1:]
 
         constraints = [c.assem_res_atleast_1d for c in constraints]
 
-
-        return constraints, constraints_argkeys, constraints_param
+        return constraints, prim_keys, params
 
     def add_prim(self, prim: pr.Primitive, key: str):
         """
         Add a primitive to the layout
 
-        The primitive will be added to `self.root_prim` under the given `key`.
+        The primitive will be added to `self.root_prim` using the given `key`.
 
         Parameters
         ----------
@@ -140,8 +153,8 @@ class Layout:
     def add_constraint(
         self,
         constraint: cr.Constraint,
-        prim_keys: tuple[str, ...],
-        param: tuple[Any],
+        prim_keys: cr.PrimKeys,
+        param: cr.ResParams,
         key: str = ""
     ):
         """
@@ -149,18 +162,25 @@ class Layout:
 
         Parameters
         ----------
-        constraint:
-            The constraint to apply
-        prim_labels:
-            A tuple of strings referencing primitives (`self.root_prim`)
+        constraint: cr.Constraint
+            The constraint to add
+        prim_keys: cr.PrimKeys
+            A tuple of primitive keys the constraint applies to
+
+            The primitive keys refer to primitives in `self.root_prim`.
+        param: cr.ResParams
+            Parameters for the constraint
+        key: str
+            An optional key to identify the constraint
+
+            If not supplied, a key will be automatically generated using
+            `_constraint_counter`.
         """
         nodes = (
-            self.root_constraint,
-            self.root_prim_keys,
-            self.root_param
+            self.root_constraint, self.root_prim_keys, self.root_param
         )
         if key == "":
-            key = self._constraint_key_counter.add_item_to_nodes(constraint, *nodes)
+            key = self._constraint_counter.add_item_to_nodes(constraint, *nodes)
         self.root_constraint.add_child(key, constraint)
         self.root_prim_keys.add_child(key, constraint.root_prim_keys(prim_keys))
         self.root_param.add_child(key, constraint.root_params(param))
