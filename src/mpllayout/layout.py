@@ -185,6 +185,8 @@ class Layout:
         self.root_prim_keys.add_child(key, constraint.root_prim_keys(prim_keys))
         self.root_param.add_child(key, constraint.root_params(param))
 
+# TODO: Potentially move these to better places?
+# TODO: Document/rename these based on what they do (have to figure that out again)
 def build_prim_graph(
     root_prim: pr.Primitive,
 ) -> tuple[dict[str, int], list[pr.Primitive]]:
