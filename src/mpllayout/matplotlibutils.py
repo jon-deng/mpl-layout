@@ -14,42 +14,38 @@ from matplotlib.axes import Axes
 from . import primitives as pr
 from . import constraints as cr
 
-
+# TODO: Use special primitive classes rather than keys to determine figure and axes?
+# If you do, this should be done for both `subplots` and `update_subplots`
 def subplots(
     root_prim: pr.Primitive,
     fig_key: str = "Figure",
     axs_keys: Optional[list[str]] = None,
 ) -> tuple[Figure, dict[str, Axes]]:
-    # TODO: Use special primitive classes rather than keys to determine figure and axes?
     """
     Create matplotlib `Figure` and `Axes` objects from geometric primitives
 
-    The `Figure` and `Axes` objects are extracted based on labels in the primitive tree.
-    A `pr.Quadrilateral` primitive named 'Figure' is used to create the `Figure` with
-    corresponding dimensions.
-    Any `pr.Quadrilateral` primitives named with an 'Axes' prefix are used to create
-    `Axes` objects.
+    The `Figure` and `Axes` objects are extracted based on labels in the primitive tree
+    and have sizes and positions from their corresponding primitives.
 
     Parameters
     ----------
     root_prim: pr.Primitive
         The root primitive
     fig_key: str
-        The figure key
+        The quadrilateral key corresponding to the figure
 
-        If supplied the quadrilateral under this key will be used to generate the
-        figure.
+        The key is "Figure" by default.
     axs_keys: Optional[list[str]]
         Axes keys
 
-        If supplied, only the provided axes keys will be used to generate `Axes`s.
+        If supplied, only these axes keys will be used to generate `Axes` instances.
 
     Returns
     -------
     fig: Figure
-        The matplotlib `Figure` instance
+        The matplotlib `Figure`
     axs: dict[str, Axes]
-        A mapping from axes keys to matplotlib `Axes` instances
+        The matplotlib `Axes` instances
     """
     # Create the `Figure` instance
     fig = plt.figure(figsize=(1, 1))
@@ -69,18 +65,39 @@ def subplots(
 
 
 def update_subplots(
-    root_prim: pr.Primitive,
-    fig_key: str,
-    fig: Figure,
-    key_to_ax: dict[str, Axes],
+    root_prim: pr.Primitive, fig_key: str, fig: Figure, axs: dict[str, Axes],
 ):
+    """
+    Update matplotlib `Figure` and `Axes` object positions from primitives
+
+    The `Figure` and `Axes` objects are extracted based on labels in the primitive tree
+    and have sizes and positions updated from their corresponding primitives.
+
+    Parameters
+    ----------
+    root_prim: pr.Primitive
+        The root primitive
+    fig_key: str
+        The quadrilateral key in `root_prim` corresponding to the figure
+    fig: Figure
+        The `Figure` to update
+    axs: dict[str, Axes]
+        The `Axes` objects to update
+
+    Returns
+    -------
+    fig: Figure
+        The updated matplotlib `Figure`
+    axs: dict[str, Axes]
+        The updated matplotlib `Axes` instances
+    """
     # Set Figure position
     quad = root_prim[fig_key]
     fig_size = np.array(width_and_height_from_quad(quad))
     fig.set_size_inches(fig_size)
 
     # Set Axes properties/position
-    for key, ax in key_to_ax.items():
+    for key, ax in axs.items():
         # Set Axes dimensions
         quad = root_prim[f"{key}/Frame"]
         ax.set_position(rect_from_box(quad, fig_size))
@@ -106,7 +123,7 @@ def update_subplots(
                 axis_tick_position = find_axis_position(quad, axis_quad)
                 axis.set_ticks_position(axis_tick_position)
 
-    return fig, key_to_ax
+    return fig, axs
 
 
 def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral):
