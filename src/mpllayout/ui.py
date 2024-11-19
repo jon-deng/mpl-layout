@@ -116,6 +116,19 @@ def make_plot(
 ) -> Callable[[Axes, tuple[pr.Primitive, ...]], None]:
     """
     Return a function that can plot a `pr.Primitive` object
+
+    Parameters
+    ----------
+    prim: pr.Primitive
+        The primitive to plot
+
+    Returns
+    -------
+    Callable[[Axes, tuple[pr.Primitive, ...]], None]
+        A function that can plot the primitive
+
+        This function is one of the above `plot_...` function
+        (see `plot_point`, `plot_line`, etc.).
     """
 
     if isinstance(prim, pr.Point):
@@ -130,7 +143,14 @@ def make_plot(
 
 def plot_prims(ax: Axes, root_prim: pr.Primitive):
     """
-    Plot all the child primitives in a `pr.Primitive` tree
+    Plot all child primitives in a root primitive
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    root_prim: pr.Primitive
+        The primitive to plot
     """
 
     for label, prim in root_prim.items():
