@@ -1,5 +1,5 @@
 """
-Utilities for creating `matplotlib` plot objects from primitives
+Utilities for creating `matplotlib` elements from geometric primitives
 """
 
 from typing import Optional
