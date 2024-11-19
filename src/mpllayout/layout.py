@@ -251,15 +251,34 @@ from matplotlib.axes import Axes
 from matplotlib.axis import Axis, XAxis, YAxis
 
 
+# TODO: Return an actual new `Layout` object here
+# don't just implicity modify the layout?
 def update_layout_constraints(
-        layout: Layout,
-        axs: dict[str, Axes]
-    ) -> cr.ParamsNode:
+    layout: Layout,
+    axs: dict[str, Axes]
+) -> Layout:
     """
-    Update layout constraints which depend on matplotlib elements
+    Update layout constraints that depend on `matplotlib` elements
 
-    For example x and y axis dimensions depend on the size of tick labels
-    from generated figures.
+    Some constraints have parameters that depend on `matplotlib`.
+    This function shoud identify these constraints in a `Layout` and replace
+    their parameters with the correct `matplotlib` element.
+    Currently this is only implemented for `XAxisHeight` and `YAxisWidth`.
+
+    Parameters
+    ----------
+    layout: Layout
+        The layout
+    axs: dict[str, Axes]
+        The `matplotlib` axes objects
+
+        The key for every `matplotlib.Axes` should match a corresponding
+        `pr.Axes` in the layout.
+
+    Returns
+    -------
+    Layout
+        The layout with updated constraint parameters
     """
     constraintkey_to_param = {}
     for key, constraint in iter_flat('', layout.root_constraint):
