@@ -164,7 +164,7 @@ def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral) -> 
 
 def width_and_height_from_quad(quad: pr.Quadrilateral) -> tuple[float, float]:
     """
-    Return the width and height of a quadrilateral primitive
+    Return the width and height of a quadrilateral
 
     Parameters
     ----------
@@ -173,7 +173,7 @@ def width_and_height_from_quad(quad: pr.Quadrilateral) -> tuple[float, float]:
     Returns
     -------
     tuple[float, float]
-        The width and height of the quadrilateral
+        The width and height
     """
 
     point_bottomleft = quad["Line0/Point0"]
@@ -191,10 +191,10 @@ def rect_from_box(
     quad: pr.Quadrilateral, fig_size: Optional[tuple[float, float]] = (1, 1)
 ) -> tuple[float, float, float, float]:
     """
-    Return a `rect` tuple, `(left, bottom, width, height)`, from a `pr.Quadrilateral`
+    Return a `rect' tuple, `(left, bottom, width, height)`, from a quadrilateral
 
-    This tuple of quad information can be used to create a `Bbox` or `Axes`
-    object from `matplotlib`.
+    This tuple of quadrilateral information can be used to create a `Bbox` or `Axes`
+    object in `matplotlib`.
 
     Parameters
     ----------
@@ -202,6 +202,9 @@ def rect_from_box(
         The quadrilateral
     fig_size: Optional[tuple[float, float]]
         The width and height of the figure
+
+        This should be supplied so that the rect tuple has units relative to the figure.
+        Some matplotlib `Axes` constructors accept the rect tuple in figure units by default.
 
     Returns
     -------
