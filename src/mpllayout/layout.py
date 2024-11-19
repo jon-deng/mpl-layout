@@ -311,7 +311,21 @@ def update_root_param(
     root_param: cr.ParamsNode,
     constraintkey_to_param: dict[str, cr.ResParams]
 ) -> cr.ParamsNode:
+    """
+    Update the root constraint parameters node
 
+    Parameters
+    ----------
+    root_constraint: cr.ConstraintNode
+        The root constraint
+    root_param: cr.ParamsNode
+        The corresponding root parameters node
+    constraintkey_to_param: dict[str, cr.ResParams]
+        A mapping of constraint keys to replacement constraint parameters
+
+        Each constraint key should indicate a node in `root_constraint` and
+        `root_param`.
+    """
     for key, param in constraintkey_to_param.items():
         constraint = root_constraint[key]
         root_param[key] = constraint.root_params(param)
