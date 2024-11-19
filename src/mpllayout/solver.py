@@ -130,29 +130,33 @@ def assem_constraint_residual(
     prim_graph: dict[str, int],
     prim_values: list[NDArray],
     constraints: list[cr.Constraint],
-    constraint_graph: StrGraph,
-    constraint_params
+    constraint_graph: list[cr.PrimKeys],
+    constraint_params: list[cr.ResParams]
 ) -> list[NDArray]:
     """
     Return a list of constraint residual vectors
 
     Parameters
     ----------
-    root_prim:
+    root_prim: pr.Primitive
         The root primitive tree
-    prim_graph:
-        A mapping from primitives keys to indices in `prim_values`
-    prim_values:
+    prim_graph: dict[str, int]
+        A mapping from each primitive key to a value index in `prim_values`
+    prim_values: list[NDArray]
         A list of new primitive vectors
-    constraints:
+    constraints: list[cr.Constraint]
         A list of constraints
-    constraint_graph:
-        A list of key tuples indicating primitive arguments for each constraint
+    constraint_graph: list[cr.PrimKeys]
+        A list of keys indicating primitives in `root_prim` for each constraint
+    constraint_params: list[cr.ResParams]
+        A list of parameters for each constraint
 
     Returns
     -------
     residuals: list[NDArray]
-        A list of residual vectors corresponding to each constraint in `constraints`
+        A list of constraint residual vectors
+
+        Each residual vector corresponds to a constraint in `constraints`
     """
     root_prim = lay.build_tree(root_prim, prim_graph, prim_values)
     residuals = [
