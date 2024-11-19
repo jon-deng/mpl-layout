@@ -22,47 +22,72 @@ StrGraph = list[tuple[str, ...]]
 
 class Layout:
     """
-    A constrained layout of primitives
+    A collection of geometric primitives and constraints
 
-    The class holds a collection of primitives, constraints on those primitives, and the
-    graph between constraints and primitives they apply to.
+    A `Layout` stores a collection of geometric primitives and the constraints
+    on those primitives to represent an arrangement of figure elements.
 
     Parameters
     ----------
-    root_prim:
-        A `Node` container of `pr.Primitive`s
-    constraints:
-        A list of constraints
-    constraint_graph:
-        A list of keys indicating which primitives each constraint applies to
+    root_prim: Optional[pr.PrimitiveNode]
+        A root primitive to store all geometric primitives
+    root_constraint: Optional[cr.ConstraintNode]
+        A root constraint to store all geometric constraints
+    root_prim_keys: Optional[cr.PrimKeysNode]
+        A root primitive arguments tree for `root_constraint`
+
+        Each value in `root_prim_keys` is a tuple of primitive keys
+        for the corresponding constraint.
+        The tuple of primitive keys indicate primitives from `root_prim`.
+    root_param: Optional[cr.ParamsNode]
+        A root parameter tree for `root_constraint`
+
+        Each value in `root_param` is a constraint residual parameter
+        for the corresponding constraint in `root_constraint`.
+    constraint_counter: Optional[ItemCounter]
+        An item counter used to create automatic keys for constraints
+
+        This does not have to be supplied.
+        Supplying it will change any automatically generated constraint keys.
+
+    Attributes
+    ----------
+    root_prim: pr.PrimitiveNode
+        See `Parameters`
+    root_constraint: cr.ConstraintNode
+        See `Parameters`
+    root_prim_keys: cr.PrimKeysNode
+        See `Parameters`
+    root_param: cr.ParamsNode
+        See `Parameters`
     """
 
     def __init__(
         self,
         root_prim: Optional[pr.PrimitiveNode] = None,
         root_constraint: Optional[cr.ConstraintNode] = None,
-        root_constraint_graph: Optional[cr.PrimKeysNode] = None,
-        root_constraint_param: Optional[cr.ParamsNode] = None,
-        constraint_key_counter: Optional[ItemCounter] = None,
+        root_prim_keys: Optional[cr.PrimKeysNode] = None,
+        root_param: Optional[cr.ParamsNode] = None,
+        constraint_counter: Optional[ItemCounter] = None,
     ):
 
         if root_prim is None:
             root_prim = pr.PrimitiveNode(np.array([]), {})
         if root_constraint is None:
             root_constraint = cr.ConstraintNode(None, {})
-        if root_constraint_graph is None:
-            root_constraint_graph = cr.PrimKeysNode(None, {})
-        if root_constraint_param is None:
-            root_constraint_param = cr.ParamsNode(None, {})
-        if constraint_key_counter is None:
-            constraint_key_counter = ItemCounter()
+        if root_prim_keys is None:
+            root_prim_keys = cr.PrimKeysNode(None, {})
+        if root_param is None:
+            root_param = cr.ParamsNode(None, {})
+        if constraint_counter is None:
+            constraint_counter = ItemCounter()
 
         self._root_prim = root_prim
         self._root_constraint = root_constraint
-        self._root_constraint_graph = root_constraint_graph
-        self._root_constraint_param = root_constraint_param
+        self._root_constraint_prim_keys = root_prim_keys
+        self._root_constraint_param = root_param
 
-        self._constraint_key_counter = constraint_key_counter
+        self._constraint_key_counter = constraint_counter
 
     @property
     def root_prim(self):
@@ -73,11 +98,11 @@ class Layout:
         return self._root_constraint
 
     @property
-    def root_constraint_graph(self):
-        return self._root_constraint_graph
+    def root_prim_keys(self):
+        return self._root_constraint_prim_keys
 
     @property
-    def root_constraint_param(self) -> Node[str, Node]:
+    def root_param(self) -> Node[str, Node]:
         return self._root_constraint_param
 
     def flat_constraints(self):
@@ -86,10 +111,10 @@ class Layout:
             node for _, node in iter_flat('', self.root_constraint)
         ][1:]
         constraints_argkeys = [
-            node.value for _, node in iter_flat('', self.root_constraint_graph)
+            node.value for _, node in iter_flat('', self.root_prim_keys)
         ][1:]
         constraints_param = [
-            node.value for _, node in iter_flat('', self.root_constraint_param)
+            node.value for _, node in iter_flat('', self.root_param)
         ][1:]
 
         constraints = [c.assem_res_atleast_1d for c in constraints]
@@ -131,14 +156,14 @@ class Layout:
         """
         nodes = (
             self.root_constraint,
-            self.root_constraint_graph,
-            self.root_constraint_param
+            self.root_prim_keys,
+            self.root_param
         )
         if key == "":
             key = self._constraint_key_counter.add_item_to_nodes(constraint, *nodes)
         self.root_constraint.add_child(key, constraint)
-        self.root_constraint_graph.add_child(key, constraint.root_prim_keys(prim_keys))
-        self.root_constraint_param.add_child(key, constraint.root_params(param))
+        self.root_prim_keys.add_child(key, constraint.root_prim_keys(prim_keys))
+        self.root_param.add_child(key, constraint.root_params(param))
 
 def build_prim_graph(
     root_prim: pr.Primitive,
@@ -206,8 +231,8 @@ def update_layout_constraints(
         # `key[1:]` removes the initial "/" from the key
         key = key[1:]
         if key != "":
-            prim_keys = layout.root_constraint_graph[key]
-            constraint_param = layout.root_constraint_param[key]
+            prim_keys = layout.root_prim_keys[key]
+            constraint_param = layout.root_param[key]
 
             if isinstance(constraint, cr.XAxisHeight):
                 axis_key, = prim_keys.value
@@ -221,7 +246,7 @@ def update_layout_constraints(
 
     update_params(
         layout.root_constraint,
-        layout.root_constraint_param,
+        layout.root_param,
         constraintkey_to_param
     )
 
@@ -229,12 +254,12 @@ def update_layout_constraints(
 
 def update_params(
     root_constraint: cr.ConstraintNode,
-    root_constraint_param: cr.ParamsNode,
+    root_param: cr.ParamsNode,
     constraintkey_to_param: dict[str, cr.ResParams]
 ) -> cr.ParamsNode:
 
     for key, param in constraintkey_to_param.items():
         constraint = root_constraint[key]
-        root_constraint_param[key] = constraint.root_params(param)
+        root_param[key] = constraint.root_params(param)
 
-    return root_constraint_param
+    return root_param
