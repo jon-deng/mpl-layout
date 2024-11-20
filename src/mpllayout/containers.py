@@ -381,20 +381,18 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
     Iterable[tuple[str, TNode]]
         An iterable over all nodes in the root node
     """
-    num_child = len(root_node)
-
-    if num_child == 0:
-        nodes = [(root_key, root_node)]
-    else:
-        # TODO: mypy says there's something wrong with the typing here?
-        cnodes = [
-            iter_flat("/".join((root_key, ckey)), cnode) for ckey, cnode in root_node.items()
-        ]
-        cnodes = itertools.chain(cnodes)
-
-        nodes = itertools.chain([(root_key, root_node)], *cnodes)
+    # TODO: mypy says there's something wrong with the typing here?
     # TODO: Rewrite this in a tail-call form?
-    return nodes
+
+    # The flattened node consists of the root node tuple...
+    flat_root_node = [(root_key, root_node)]
+
+    # then recursively appends all flattened child nodes
+    flat_child_nodes = [
+        iter_flat(f"{root_key}/{ckey}", cnode)
+        for ckey, cnode in root_node.items()
+    ]
+    return itertools.chain(flat_root_node, *flat_child_nodes)
 
 # TODO: Refactor `flatten` and `unflatten`?
 # The current implementation seems weird
