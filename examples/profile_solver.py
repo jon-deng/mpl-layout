@@ -13,6 +13,7 @@ import numpy as np
 from mpllayout import layout as lay
 from mpllayout import primitives as pr
 from mpllayout import constraints as co
+from mpllayout import containers as cn
 from mpllayout import solver
 
 
@@ -93,15 +94,16 @@ def gen_layout(axes_shape: Optional[tuple[int, ...]] = (3, 3)) -> lay.Layout:
 if __name__ == "__main__":
     layout = gen_layout((12, 12))
 
+    flat_prim = cn.flatten('', layout.root_prim)
     prim_graph, prims = lay.build_prim_graph(layout.root_prim)
     prim_values = [prim.value for prim in prims]
 
     constraints, constraint_graph, constraint_params = layout.flat_constraints()
 
     solver.assem_constraint_residual(
-        layout.root_prim, prim_graph, prim_values, constraints, constraint_graph, constraint_params
+        flat_prim, prim_graph, prim_values, constraints, constraint_graph, constraint_params
     )
-    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, constraints, constraint_graph, constraint_params)"
+    stmt = "solver.assem_constraint_residual(flat_prim, prim_graph, prim_values, constraints, constraint_graph, constraint_params)"
     cProfile.run(stmt, "profile_wo_jax.prof")
     stats = pstats.Stats("profile_wo_jax.prof")
     stats.sort_stats("cumtime").print_stats(20)
@@ -110,14 +112,14 @@ if __name__ == "__main__":
 
     constraints_jit = [jax.jit(c) for c in constraints]
     solver.assem_constraint_residual(
-        layout.root_prim,
+        flat_prim,
         prim_graph,
         prim_values,
         constraints_jit,
         constraint_graph,
         constraint_params
     )
-    stmt = "solver.assem_constraint_residual(layout.root_prim, prim_graph, prim_values, constraints_jit, constraint_graph, constraint_params)"
+    stmt = "solver.assem_constraint_residual(flat_prim, prim_graph, prim_values, constraints_jit, constraint_graph, constraint_params)"
     cProfile.run(stmt, "profile_w_jax.prof")
     stats = pstats.Stats("profile_w_jax.prof")
     stats.sort_stats("cumtime").print_stats(20)
