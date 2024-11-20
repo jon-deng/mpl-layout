@@ -396,7 +396,7 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
 
 # TODO: Refactor `flatten` and `unflatten`?
 # The current implementation seems weird
-FlatNodeStructure = tuple[type[Node], str, TValue, int]
+FlatNodeStructure = tuple[str, type[Node], TValue, list[str]]
 
 def flatten(root_key: str, root_node: TNode) -> list[FlatNodeStructure]:
     """
@@ -417,7 +417,7 @@ def flatten(root_key: str, root_node: TNode) -> list[FlatNodeStructure]:
         Each node structure is a tuple representing the node.
     """
     node_structs = [
-        (type(node), key, node.value, len(node))
+        (key, type(node), node.value, node.keys())
         for key, node in iter_flat(root_key, root_node)
     ]
     return node_structs
@@ -443,27 +443,17 @@ def unflatten(
         This list should be empty if the flat node representation only contains
         nodes that belong to the root node.
     """
-    node_type, pkey, value, num_child = node_structs[0]
+    node_key, node_type, value, child_keys = node_structs[0]
+
+    children = []
     node_structs = node_structs[1:]
+    for _key in child_keys:
+        child, node_structs = unflatten(node_structs)
+        children.append(child)
 
-    if num_child == 0:
-        node = node_type.from_tree(value, {})
-    else:
-        ckeys = []
-        children = []
-        for _ in range(num_child):
-            child_struct = node_structs[0]
-
-            ckey = child_struct[1][len(pkey) + 1 :]
-            child, node_structs = unflatten(node_structs)
-
-            ckeys.append(ckey)
-            children.append(child)
-
-        node = node_type.from_tree(
-            value, {key: child for key, child in zip(ckeys, children)}
-        )
-
+    node = node_type.from_tree(
+        value, {key: child for key, child in zip(child_keys, children)}
+    )
     return node, node_structs
 
 

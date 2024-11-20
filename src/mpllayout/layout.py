@@ -234,13 +234,13 @@ def build_tree(
     pr.Primitive
         The new primitive with updated values
     """
-    # `key[1:]` remove the initial forward slash from the flat keys
-    flat_keys = (flat_struct[1] for flat_struct in flat_prim)
-    new_prim_values = (values[prim_graph[key]] for key in flat_keys)
+    prim_keys = (flat_struct[0] for flat_struct in flat_prim)
+    new_prim_values = (values[prim_graph[key]] for key in prim_keys)
 
     new_prim_structs = [
-        (*old_struct[:2], new_value, *old_struct[3:])
-        for old_struct, new_value in zip(flat_prim, new_prim_values)
+        (prim_key, PrimType, new_value, child_keys)
+        for (prim_key, PrimType, _old_value, child_keys), new_value
+        in zip(flat_prim, new_prim_values)
     ]
     return unflatten(new_prim_structs)[0]
 
