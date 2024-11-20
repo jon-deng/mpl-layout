@@ -396,7 +396,7 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
 
 # TODO: Refactor `flatten` and `unflatten`?
 # The current implementation seems weird
-FlatNodeStructure = tuple[type[TNode], str, TValue, int]
+FlatNodeStructure = tuple[type[Node], str, TValue, int]
 
 def flatten(root_key: str, root_node: TNode) -> list[FlatNodeStructure]:
     """
