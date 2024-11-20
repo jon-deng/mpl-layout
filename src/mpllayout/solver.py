@@ -13,7 +13,7 @@ import numpy as np
 
 from . import primitives as pr
 from . import constraints as cr
-
+from . import containers as cn
 from . import layout as lay
 
 IntGraph = list[tuple[int, ...]]
@@ -68,8 +68,8 @@ def solve(
     # For primitive with index `n`, for example,
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
-    root_prim = layout.root_prim
-    prim_graph, prims = lay.build_prim_graph(root_prim)
+    flat_prim = cn.flatten('', layout.root_prim)
+    prim_graph, prims = lay.build_prim_graph(layout.root_prim)
     prim_idx_bounds = np.cumsum([0] + [prim.value.size for prim in prims])
     global_param_n = np.concatenate([prim.value for prim in prims])
 
@@ -82,7 +82,7 @@ def solve(
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
         residuals = assem_constraint_residual(
-            root_prim, prim_graph, new_prim_params, constraints, constraint_graph, constraint_params
+            flat_prim, prim_graph, new_prim_params, constraints, constraint_graph, constraint_params
         )
         return jnp.concatenate(residuals)
 
@@ -120,13 +120,13 @@ def solve(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    root_prim_n = lay.build_tree(root_prim, prim_graph, prim_params_n)
+    root_prim_n = lay.build_tree(flat_prim, prim_graph, prim_params_n)
 
     return root_prim_n, nonlinear_solve_info
 
 
 def assem_constraint_residual(
-    root_prim: pr.Primitive,
+    flat_prim: list[cn.FlatNodeStructure],
     prim_graph: dict[str, int],
     prim_values: list[NDArray],
     constraints: list[cr.Constraint],
@@ -138,8 +138,8 @@ def assem_constraint_residual(
 
     Parameters
     ----------
-    root_prim: pr.Primitive
-        The root primitive tree
+    flat_prim: list[FlatNodeStructure]
+        The flat primitive tree (see `flatten`)
     prim_graph: dict[str, int]
         A mapping from each primitive key to a value index in `prim_values`
     prim_values: list[NDArray]
@@ -158,7 +158,7 @@ def assem_constraint_residual(
 
         Each residual vector corresponds to a constraint in `constraints`
     """
-    root_prim = lay.build_tree(root_prim, prim_graph, prim_values)
+    root_prim = lay.build_tree(flat_prim, prim_graph, prim_values)
     residuals = [
         constraint(tuple(root_prim[key] for key in prim_keys), param)
         for constraint, prim_keys, param in zip(constraints, constraint_graph, constraint_params)

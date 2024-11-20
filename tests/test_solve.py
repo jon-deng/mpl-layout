@@ -123,7 +123,8 @@ class TestPrimitiveTree:
         prim_graph, prims = lay.build_prim_graph(layout.root_prim)
         prim_params = [prim.value for prim in prims]
 
-        prim_tree = layout.root_prim
+        root_prim = layout.root_prim
+        flat_prim = cn.flatten('', root_prim)
         # prim_graph = prim_tree.prim_graph()
         flat_constraints = layout.flat_constraints()
 
@@ -131,7 +132,7 @@ class TestPrimitiveTree:
         t0 = time.time()
         for i in range(50):
             solver.assem_constraint_residual(
-                prim_tree, prim_graph, prim_params, *flat_constraints
+                flat_prim, prim_graph, prim_params, *flat_constraints
             )
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
@@ -143,13 +144,13 @@ class TestPrimitiveTree:
         constraints_jit = [jax.jit(constraint) for constraint in constraints]
         flat_constraints_jit = (constraints_jit,) + flat_constraints[1:]
         solver.assem_constraint_residual(
-            prim_tree, prim_graph, prim_params, *flat_constraints_jit
+            flat_prim, prim_graph, prim_params, *flat_constraints_jit
         )
 
         t0 = time.time()
         for i in range(50):
             solver.assem_constraint_residual(
-                prim_tree, prim_graph, prim_params, *flat_constraints_jit
+                flat_prim, prim_graph, prim_params, *flat_constraints_jit
             )
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
@@ -159,7 +160,7 @@ class TestPrimitiveTree:
         @jax.jit
         def assem_constraint_residual(prim_params):
             return solver.assem_constraint_residual(
-                prim_tree, prim_graph, prim_params, *flat_constraints
+                flat_prim, prim_graph, prim_params, *flat_constraints
             )
 
         assem_constraint_residual(prim_params)

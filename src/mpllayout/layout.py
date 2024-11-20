@@ -14,7 +14,7 @@ import numpy as np
 
 from . import primitives as pr
 from . import constraints as cr
-from .containers import Node, ItemCounter, iter_flat, flatten, unflatten
+from .containers import Node, ItemCounter, iter_flat, flatten, unflatten, FlatNodeStructure
 
 IntGraph = list[tuple[int, ...]]
 StrGraph = list[tuple[str, ...]]
@@ -215,15 +215,15 @@ def build_prim_graph(
 
 
 def build_tree(
-    root_prim: pr.Primitive, prim_graph: dict[str, int], values: list[NDArray]
+    flat_prim: list[FlatNodeStructure], prim_graph: dict[str, int], values: list[NDArray]
 ) -> pr.Primitive:
     """
     Return a new primitive with values updated from unique values
 
     Parameters
     ----------
-    root_prim: pr.Primitive
-        The old primitive
+    flat_prim: list[FlatNodeStructure]
+        The flat primitive tree (see `flatten`)
     prim_graph: dict[str, int]
         A mapping from each primitive key to a unique primitive value in `values`
     values: list[NDArray]
@@ -234,14 +234,13 @@ def build_tree(
     pr.Primitive
         The new primitive with updated values
     """
-    old_prim_structs = flatten("", root_prim)
-
     # `key[1:]` remove the initial forward slash from the flat keys
-    new_prim_values = [values[prim_graph[key]] for key, _ in iter_flat("", root_prim)]
+    flat_keys = (flat_struct[1] for flat_struct in flat_prim)
+    new_prim_values = (values[prim_graph[key]] for key in flat_keys)
 
     new_prim_structs = [
         (*old_struct[:2], new_value, *old_struct[3:])
-        for old_struct, new_value in zip(old_prim_structs, new_prim_values)
+        for old_struct, new_value in zip(flat_prim, new_prim_values)
     ]
     return unflatten(new_prim_structs)[0]
 
