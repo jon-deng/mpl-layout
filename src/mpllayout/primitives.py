@@ -453,6 +453,7 @@ class Axes(ParameterizedPrimitive):
 ## Register `Primitive` classes as `jax.pytree`
 _PrimitiveClasses = [
     Primitive,
+    PrimitiveNode,
     Point,
     Line,
     Polygon,
