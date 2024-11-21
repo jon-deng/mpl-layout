@@ -89,6 +89,8 @@ class Node(Generic[TValue, TChild]):
 
     ## Flattened interface
 
+    # TODO: Add flat interface methods?
+
     ## String
 
     def __repr__(self) -> str:
@@ -101,7 +103,10 @@ class Node(Generic[TValue, TChild]):
 
     ## Dict-like interface
 
+    # TODO: Add __iter__ so iteration returns keys not `Node`s
+
     def __contains__(self, key: str) -> bool:
+        # TODO: Don't have split all slashes
         split_keys = key.split("/")
         parent_key = split_keys[0]
         child_key = "/".join(split_keys[1:])
