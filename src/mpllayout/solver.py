@@ -81,8 +81,9 @@ def solve(
             global_param[idx_start:idx_end]
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
+        root_prim = lay.build_prim_from_unique_values(flat_prim, prim_graph, new_prim_params)
         residuals = assem_constraint_residual(
-            flat_prim, prim_graph, new_prim_params, constraints, constraint_graph, constraint_params
+            root_prim, constraints, constraint_graph, constraint_params
         )
         return jnp.concatenate(residuals)
 
@@ -126,9 +127,7 @@ def solve(
 
 
 def assem_constraint_residual(
-    flat_prim: list[cn.FlatNodeStructure],
-    prim_graph: dict[str, int],
-    prim_values: list[NDArray],
+    root_prim: pr.Primitive,
     constraints: list[cr.Constraint],
     constraint_graph: list[cr.PrimKeys],
     constraint_params: list[cr.ResParams]
@@ -138,12 +137,8 @@ def assem_constraint_residual(
 
     Parameters
     ----------
-    flat_prim: list[FlatNodeStructure]
-        The flat primitive tree (see `flatten`)
-    prim_graph: dict[str, int]
-        A mapping from each primitive key to a value index in `prim_values`
-    prim_values: list[NDArray]
-        A list of new primitive vectors
+    root_prim: pr.Primitive
+        The primitive which constraints act on
     constraints: list[cr.Constraint]
         A list of constraints
     constraint_graph: list[cr.PrimKeys]
@@ -158,7 +153,6 @@ def assem_constraint_residual(
 
         Each residual vector corresponds to a constraint in `constraints`
     """
-    root_prim = lay.build_prim_from_unique_values(flat_prim, prim_graph, prim_values)
     residuals = [
         constraint(tuple(root_prim[key] for key in prim_keys), param)
         for constraint, prim_keys, param in zip(constraints, constraint_graph, constraint_params)
