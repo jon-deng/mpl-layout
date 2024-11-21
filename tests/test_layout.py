@@ -33,12 +33,12 @@ class TestPrimitiveTree:
         prim_node.add_child("LineA", pr.Line([], (point_a, point_b)))
         prim_node.add_child("MySpecialBox", pr.Quadrilateral())
 
-        prim_graph, prims = lat.build_prim_graph(prim_node)
+        prim_graph, prim_values = lat.filter_unique_values_from_prim(prim_node)
 
-        params = [prim.value for prim in prims]
+        params = prim_values
 
         new_params = [np.random.rand(*param.shape) for param in params]
-        new_prim_node = lat.build_tree(cn.flatten('', prim_node), prim_graph, new_params)
+        new_prim_node = lat.build_prim_from_unique_values(cn.flatten('', prim_node), prim_graph, new_params)
         # breakpoint()
 
         # rng = np.random.default_rng()

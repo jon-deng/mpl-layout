@@ -69,9 +69,9 @@ def solve(
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
     flat_prim = cn.flatten('', layout.root_prim)
-    prim_graph, prims = lay.build_prim_graph(layout.root_prim)
-    prim_idx_bounds = np.cumsum([0] + [prim.value.size for prim in prims])
-    global_param_n = np.concatenate([prim.value for prim in prims])
+    prim_graph, prim_values = lay.filter_unique_values_from_prim(layout.root_prim)
+    prim_idx_bounds = np.cumsum([0] + [value.size for value in prim_values])
+    global_param_n = np.concatenate(prim_values)
 
     constraints, constraint_graph, constraint_params = layout.flat_constraints()
 
@@ -120,7 +120,7 @@ def solve(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    root_prim_n = lay.build_tree(flat_prim, prim_graph, prim_params_n)
+    root_prim_n = lay.build_prim_from_unique_values(flat_prim, prim_graph, prim_params_n)
 
     return root_prim_n, nonlinear_solve_info
 
@@ -158,7 +158,7 @@ def assem_constraint_residual(
 
         Each residual vector corresponds to a constraint in `constraints`
     """
-    root_prim = lay.build_tree(flat_prim, prim_graph, prim_values)
+    root_prim = lay.build_prim_from_unique_values(flat_prim, prim_graph, prim_values)
     residuals = [
         constraint(tuple(root_prim[key] for key in prim_keys), param)
         for constraint, prim_keys, param in zip(constraints, constraint_graph, constraint_params)

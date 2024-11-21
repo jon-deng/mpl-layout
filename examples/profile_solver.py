@@ -95,8 +95,7 @@ if __name__ == "__main__":
     layout = gen_layout((12, 12))
 
     flat_prim = cn.flatten('', layout.root_prim)
-    prim_graph, prims = lay.build_prim_graph(layout.root_prim)
-    prim_values = [prim.value for prim in prims]
+    prim_graph, prim_values = lay.filter_unique_values_from_prim(layout.root_prim)
 
     constraints, constraint_graph, constraint_params = layout.flat_constraints()
 

@@ -186,8 +186,7 @@ class Layout:
         self.root_param.add_child(key, constraint.root_params(param))
 
 # TODO: Potentially move these to better places?
-# TODO: Document/rename these based on what they do (have to figure that out again)
-def build_prim_graph(
+def filter_unique_values_from_prim(
     root_prim: pr.Primitive,
 ) -> tuple[dict[str, int], list[pr.Primitive]]:
     """
@@ -201,21 +200,32 @@ def build_prim_graph(
 
     Returns
     -------
-    prim_graph: dict[str, int]
+    prim_to_idx: dict[str, int]
         A mapping from each primitive key to its unique primitive index
     prims: list[pr.Primitive]
         A list of unique primitives
     """
-    prims = list(set(prim for _, prim in iter_flat("", root_prim)))
-    prim_to_idx = {prim: ii for ii, prim in enumerate(prims)}
+    value_id_to_idx = {}
+    values = []
+    prim_to_idx = {}
 
-    prim_graph = {key: prim_to_idx[prim] for key, prim in iter_flat("", root_prim)}
+    for key, prim in iter_flat("", root_prim):
+        value_id = id(prim.value)
 
-    return prim_graph, prims
+        if value_id not in value_id_to_idx:
+            values.append(prim.value)
+            value_idx = len(values) - 1
+            value_id_to_idx[value_id] = value_idx
+        else:
+            value_idx = value_id_to_idx[value_id]
+
+        prim_to_idx[key] = value_idx
+
+    return prim_to_idx, values
 
 
-def build_tree(
-    flat_prim: list[FlatNodeStructure], prim_graph: dict[str, int], values: list[NDArray]
+def build_prim_from_unique_values(
+    flat_prim: list[FlatNodeStructure], prim_to_idx: dict[str, int], values: list[NDArray]
 ) -> pr.Primitive:
     """
     Return a new primitive with values updated from unique values
@@ -224,7 +234,7 @@ def build_tree(
     ----------
     flat_prim: list[FlatNodeStructure]
         The flat primitive tree (see `flatten`)
-    prim_graph: dict[str, int]
+    prim_to_idx: dict[str, int]
         A mapping from each primitive key to a unique primitive value in `values`
     values: list[NDArray]
         A list of primitive values for unique primitives in `root_prim`
@@ -235,7 +245,7 @@ def build_tree(
         The new primitive with updated values
     """
     prim_keys = (flat_struct[0] for flat_struct in flat_prim)
-    new_prim_values = (values[prim_graph[key]] for key in prim_keys)
+    new_prim_values = (values[prim_to_idx[key]] for key in prim_keys)
 
     new_prim_structs = [
         (prim_key, PrimType, new_value, child_keys)
