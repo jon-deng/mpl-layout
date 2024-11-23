@@ -103,7 +103,8 @@ class Node(Generic[TValue, TChild]):
 
     ## Dict-like interface
 
-    # TODO: Add __iter__ so iteration returns keys not `Node`s
+    def __iter__(self):
+        return self.children.__iter__()
 
     def __contains__(self, key: str) -> bool:
         # TODO: Don't have split all slashes
