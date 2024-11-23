@@ -1,8 +1,9 @@
 """
-Utilities for a user interface/visualization of the plot layout
+Utilities for visualizing primitives and constraints
 """
 
-import typing as tp
+from typing import Callable, Optional
+from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 import matplotlib as mpl
@@ -10,25 +11,37 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import Colormap
 import numpy as np
 
-from . import geometry as geo
 from .containers import iter_flat
+from . import primitives as pr
+from . import constraints as cr
 
 ## Functions for plotting geometric primitives
 
 
-def plot_point(ax: Axes, point: geo.Point, label=None, **kwargs):
+def plot_point(ax: Axes, point: pr.Point, label: Optional[str]=None, **kwargs):
     """
-    Plot a `Point`
+    Plot a point
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    point: pr.Point
+        The point to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
     x, y = point.value
     line, = ax.plot([x], [y], marker=".", **kwargs)
     ax.annotate(label, (x, y), ha='center', **kwargs)
 
-def rotation_from_line(line: geo.Line) -> float:
+def rotation_from_line(line: pr.Line) -> float:
     """
     Return the rotation of a line vector
     """
-    line_vec = geo.line_vector(line)
+    line_vec = cr.line_vector(line)
     unit_vec = line_vec / np.linalg.norm(line_vec)
 
     # Since `unit_vec` has unit length, the x-component is the cosine
@@ -38,23 +51,44 @@ def rotation_from_line(line: geo.Line) -> float:
 
     return theta
 
-def plot_line(ax: Axes, line: geo.Line, label=None, **kwargs):
+def plot_line(ax: Axes, line: pr.Line, label: Optional[str]=None, **kwargs):
     """
-    Plot a `LineSegment`
+    Plot a line
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    line: pr.Line
+        The line to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
-    xs = np.array([point.value[0] for point in line.children])
-    ys = np.array([point.value[1] for point in line.children])
+    xs = np.array([point.value[0] for point in line.values()])
+    ys = np.array([point.value[1] for point in line.values()])
     ax.plot(xs, ys, **kwargs)
 
     xmid = 1/2*xs.sum()
     ymid = 1/2*ys.sum()
     theta = rotation_from_line(line)
-    # ax.annotate(label, (xmid, ymid), ha='center', va='center', rotation=theta, **kwargs)
     ax.annotate(label, (xmid, ymid), ha='center', va='baseline', rotation=theta, **kwargs)
 
-def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
+def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwargs):
     """
     Plot a `Polygon`
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    polygon: pr.Polygon
+        The polygon to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
     origin = polygon[f"Line0"]["Point0"].value
     # points = [polygon[f"Line0"]["Point0"]] + [
@@ -77,12 +111,23 @@ def plot_polygon(ax: Axes, polygon: geo.Polygon, label=None, **kwargs):
             **kwargs
         )
 
-def plot_generic_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
+def plot_generic_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs):
     pass
 
-def plot_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
+def plot_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs):
     """
-    Plot all child primitives of a generic primitive
+    Recursively plot all child primitives of a generic primitive
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    prim: pr.Primitive
+        The primitive to plot
+    label: Optional[str]
+        A label
+    **kwargs
+        Additional keyword arguments for plotting
     """
     prim_height = prim.node_height()
     for child_key, child_prim in iter_flat(label, prim):
@@ -109,25 +154,44 @@ def plot_prim(ax: Axes, prim: geo.Primitive, label=None, **kwargs):
 
 ## Functions for plotting arbitrary geometric primitives
 def make_plot(
-    prim: geo.Primitive,
-) -> tp.Callable[[Axes, tp.Tuple[geo.Primitive, ...]], None]:
+    prim: pr.Primitive,
+) -> Callable[[Axes, tuple[pr.Primitive, ...]], None]:
     """
-    Return a function that can plot a `geo.Primitive` object
-    """
+    Return a function that can plot a `pr.Primitive` object
 
-    if isinstance(prim, geo.Point):
+    Parameters
+    ----------
+    prim: pr.Primitive
+        The primitive to plot
+
+    Returns
+    -------
+    Callable[[Axes, tuple[pr.Primitive, ...]], None]
+        A function that can plot the primitive
+
+        This function is one of the above `plot_...` function
+        (see `plot_point`, `plot_line`, etc.).
+    """
+    if isinstance(prim, pr.Point):
         return plot_point
-    elif isinstance(prim, geo.Line):
+    elif isinstance(prim, pr.Line):
         return plot_line
-    elif isinstance(prim, geo.Polygon):
+    elif isinstance(prim, pr.Polygon):
         return plot_polygon
     else:
         return plot_generic_prim
 
 
-def plot_prims(ax: Axes, root_prim: geo.Primitive, cmap: Colormap=mpl.colormaps['viridis']):
+def plot_prims(ax: Axes, root_prim: pr.Primitive, cmap: Colormap=mpl.colormaps['viridis']):
     """
-    Plot all the child primitives in a `geo.Primitive` tree
+    Plot all child primitives in a root primitive
+
+    Parameters
+    ----------
+    ax: Axes
+        The axes to plot in
+    root_prim: pr.Primitive
+        The primitive to plot
     """
     num_prims = len(root_prim)
     for ii, (label, prim) in enumerate(root_prim.items()):
@@ -136,13 +200,31 @@ def plot_prims(ax: Axes, root_prim: geo.Primitive, cmap: Colormap=mpl.colormaps[
 
 
 def figure_prims(
-    root_prim: geo.PrimitiveNode,
-    fig_size: tp.Tuple[float, float] = (8, 8),
+    root_prim: pr.Primitive,
+    fig_size: tuple[float, float] = (8, 8),
     major_tick_interval: float = 1.0,
     minor_tick_interval: float = 1/8
-):
+) -> tuple[Figure, Axes]:
     """
-    Return a figure of all primitives in a tree
+    Return a figure of a primitive
+
+    Parameters
+    ----------
+    root_prim: pr.Primitive
+        The primitive to plot
+    fig_size: tuple[float, float]
+        The figure size
+    major_tick_interval, minor_tick_interval: float, float
+        Major and minor tick intervals for grid lines
+
+        By default these are 1 and 1/8 which is nice for inch dimensions.
+
+    Returns
+    -------
+    fig: Figure
+        The figure
+    ax: Axes
+        The axes
     """
 
     fig, ax = plt.subplots(1, 1, figsize=fig_size)

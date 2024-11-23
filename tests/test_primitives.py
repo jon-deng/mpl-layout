@@ -11,30 +11,30 @@ from pprint import pprint
 
 import numpy as np
 
-from mpllayout import geometry as geo
+from mpllayout import primitives as pr
 
 
 class TestPrimitives:
 
     def test_Quadrilateral(self):
-        quad = geo.Quadrilateral()
+        quad = pr.Quadrilateral()
 
     def test_Line(self):
-        line = geo.Line()
+        line = pr.Line()
 
     def test_Point(self):
-        point = geo.Point()
+        point = pr.Point()
 
     def test_Polygon(self):
-        poly = geo.Polygon()
+        poly = pr.Polygon()
 
     def test_Primitive_jax_pytree(self):
         # breakpoint()
         from jax import tree_util
 
-        point = geo.Point()
-        line = geo.Line()
-        quad = geo.Quadrilateral()
+        point = pr.Point()
+        line = pr.Line()
+        quad = pr.Quadrilateral()
 
         for prim in (point, line, quad):
             print(f"\nTesting primitive type {type(prim).__name__}")

@@ -5,8 +5,7 @@ This module defines a tree class `Node` and related utilities.
 This class is used by itself as well as to define geometric primitives and constraints.
 """
 
-from typing import TypeVar, Generic, Any
-from collections.abc import Callable
+from typing import TypeVar, Generic, Any, Iterable, Callable
 
 import itertools
 
@@ -22,49 +21,67 @@ class Node(Generic[TValue, TChild]):
 
     Parameters
     ----------
-    value: ValueType
+    value: TValue
         A value associated with the node
-    children: tuple[Node, ...]
-        Child nodes
-    labels: tuple[str, ...]
-        Child node labels
+    children: dict[str, TChild]
+        A dictionary of child nodes
+
+    Attributes
+    ----------
+    value: TValue
+        The value stored in the node
+    children: dict[str, TChild]
+        A dictionary of child nodes
     """
 
     def __init__(self, value: TValue, children: dict[str, TChild]):
         assert isinstance(children, dict)
         self._value = value
-        self._key_to_child = children
+        self._children = children
 
     @classmethod
     def from_tree(cls, value: TValue, children: dict[str, TChild]):
+        """
+        Return any `Node` subclass from its value and children
+
+        This method is needed because some `Node` subclasses have different `__init__`
+        signatures.
+        `from_tree` can be used to recreate any `Node` subclass using just a known value
+        and children.
+        This is particularly important for flattening and unflattening a tree.
+        """
         node = super().__new__(cls)
         Node.__init__(node, value, children)
         return node
 
     @property
-    def children(self):
+    def value(self) -> TValue:
         """
-        Return any children
-        """
-        return list(self.children_map.values())
-
-    @property
-    def children_map(self):
-        """
-        Return any children
-        """
-        return self._key_to_child
-
-    @property
-    def value(self):
-        """
-        Return the value
+        Return the node value
         """
         return self._value
+
+    @property
+    def children(self) -> dict[str, TChild]:
+        """
+        Return all child nodes
+        """
+        return self._children
 
     ## Tree methods
 
     def node_height(self) -> int:
+        """
+        Return the height of a node
+
+        Returns
+        -------
+        int
+            The node height
+
+            The node height is the number of edges from the current node to the
+            "furthest" child node.
+        """
         if len(self) == 0:
             return 0
         else:
@@ -72,11 +89,13 @@ class Node(Generic[TValue, TChild]):
 
     ## Flattened interface
 
+    # TODO: Add flat interface methods?
+
     ## String
 
     def __repr__(self) -> str:
         keys_repr = ", ".join(self.keys())
-        children_repr = ", ".join([node.__repr__() for node in self.children])
+        children_repr = ", ".join([node.__repr__() for _, node in self.children.items()])
         return f"{type(self).__name__}({self.value}, ({children_repr}), ({keys_repr}))"
 
     def __str__(self) -> str:
@@ -84,186 +103,264 @@ class Node(Generic[TValue, TChild]):
 
     ## Dict-like interface
 
+    def __iter__(self):
+        return self.children.__iter__()
+
     def __contains__(self, key: str) -> bool:
+        # TODO: Don't have split all slashes
         split_keys = key.split("/")
         parent_key = split_keys[0]
         child_key = "/".join(split_keys[1:])
 
         if child_key == "":
-            return parent_key in self.children_map
+            return parent_key in self.children
         else:
             return child_key in self[parent_key]
 
     def __len__(self) -> int:
         return len(self.children)
 
-    def keys(self):
+    def keys(self) -> list[str]:
         """
         Return child keys
-
-        Parameters
-        ----------
-        flat:
-            Toggle whether to recursively flatten keys
-
-            Child keys are separated using '/'
         """
-        return list(self.children_map.keys())
+        return list(self.children.keys())
 
-    def values(self, flat: bool = False):
+    def values(self) -> list[TChild]:
         """
-        Return child primitives
+        Return child nodes
+        """
+        return list(self.children.values())
 
-        Parameters
-        ----------
-        flat:
-            Toggle whether to recursively flatten child primitives
+    def items(self):
         """
-        return list(self.children_map.values())
-
-    def items(self, flat: bool = False):
+        Return an iterator of (child key, child node) pairs
         """
-        Return paired child keys and associated trees
-
-        Parameters
-        ----------
-        flat:
-            Toggle whether to recursively flatten keys and trees
-        """
-        return self.children_map.items()
+        return self.children.items()
 
     def __setitem__(self, key: str, node: TChild):
         """
-        Set the node indexed by a slash-separated key
+        Set the child node at the given key
+
+        Raises an error if the key doesn't exist.
 
         Parameters
         ----------
         key: str
-            A slash-separated key, for example 'Box/Line0/Point2'
+            A child node key
+
+            see `__getitem__`
+        node: TChild
+            The node to set
         """
+        # This splits `key = 'a/b/c/d'`
+        # into `parent_key = 'a/b/c'` and `child_key = 'd'`
         split_keys = key.split("/")
         parent_key = "/".join(split_keys[:-1])
         child_key = split_keys[-1]
-        if parent_key == "":
-            self.children_map[child_key] = node
-        else:
-            self[parent_key].children_map[child_key] = node
 
-    def __getitem__(self, key: str | int):
+        if key not in self:
+            raise KeyError(key)
+        else:
+            if parent_key == "":
+                parent = self
+            else:
+                parent = self[parent_key]
+            parent.children[child_key] = node
+
+    def __getitem__(self, key: str | int | slice) -> TChild | list[TChild]:
         """
         Return the value indexed by a slash-separated key
 
         Parameters
         ----------
-        key: str
-            A slash-separated key, for example 'Box/Line0/Point2'
-        """
-        return self.get_child(key)
+        key: str | int | slice
+            A child node key
 
-    def get_child(self, key: str | int):
-        if isinstance(key, int):
-            return self.get_child_from_int(key)
-        elif isinstance(key, str):
-            return self.get_child_from_str(key)
+            The interpretation depends on the key type:
+            - `str` keys indicate a child key and can be slash separated to denote
+                child keys of child keys,
+                for example, 'childa/grandchildb/greatgrandchildc'.
+            - `int` keys indicate a child by integer index.
+            - `slice` keys indicate a range of children.
+        """
+        if isinstance(key, str):
+            return self._get_child_from_str(key)
+        elif isinstance(key, (int, slice)):
+            return self._get_child_from_int_or_slice(key)
         else:
             raise TypeError("")
 
-    def get_child_from_int(self, key: int):
-        return self.children[key]
+    def _get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
+        return list(self.children.values())[key]
 
-    def get_child_from_str(self, key: str):
+    def _get_child_from_str(self, key: str) -> TChild:
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
             if len(child_keys) == 0:
-                return self.get_child_from_str_nonrecursive(parent_key)
+                return self._get_child_from_str_nonrecursive(parent_key)
             else:
-                return self.children_map[parent_key].get_child_from_str(child_keys[0])
+                return self.children[parent_key]._get_child_from_str(child_keys[0])
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def get_child_from_str_nonrecursive(self, key: str):
-        return self.children_map[key]
+    def _get_child_from_str_nonrecursive(self, key: str) -> TChild:
+        return self.children[key]
 
     def add_child(self, key: str, child: TChild):
         """
-        Add a primitive indexed by a slash-separated key
+        Add a child node at the given key
+
+        Raises an error if the key already exists.
 
         Parameters
         ----------
         key: str
-            A slash-separated key, for example 'Box/Line0/Point2'
+            A child node key
+
+            see `__getitem__`
+        node: TChild
+            The node to set
         """
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
             if len(child_keys) == 0:
-                self.add_child_nonrecursive(parent_key, child)
+                self._add_child_nonrecursive(parent_key, child)
             else:
-                self.children_map[parent_key].add_child(child_keys[0], child)
+                self.children[parent_key].add_child(child_keys[0], child)
 
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def add_child_nonrecursive(self, key: str, child: TChild):
+    def _add_child_nonrecursive(self, key: str, child: TChild):
         """
         Add a primitive indexed by a key
 
         Base case of recursive `add_child`
         """
-        if key in self.children_map:
+        if key in self.children:
             raise KeyError(f"{key}")
         else:
-            self.children_map[key] = child
+            self.children[key] = child
 
 
 TItem = TypeVar("TItem")
 
-
 class ItemCounter(Generic[TItem]):
     """
-    Count items by a prefix
+    Count the number of added items by category (a string)
+
+    This is used to generate unique string keys for objects
+    (see `Layout.add_constraint`).
+
+    Parameters
+    ----------
+    categorize: Callable[[TItem], str]
+        A function that returns the category (string) of an item
+
+    Attributes
+    ----------
+    category_counts: dict[str, int]
+        The number of items added to each category
     """
 
     @staticmethod
-    def __classname(item: TItem) -> str:
+    def categorize_by_classname(item: TItem) -> str:
         return type(item).__name__
 
-    def __init__(self, gen_prefix: Callable[[TItem], str] = __classname):
-        self._prefix_to_count = {}
-        self._gen_prefix = gen_prefix
+    def __init__(self, categorize: Callable[[TItem], str] = categorize_by_classname):
+        self._category_counts = {}
+        self._categorize = categorize
 
     @property
-    def prefix_to_count(self):
-        return self._prefix_to_count
+    def category_counts(self) -> dict[str, int]:
+        return self._category_counts
 
     def __contains__(self, key):
         return key in self._p
 
-    def gen_prefix(self, item: TItem) -> str:
-        return self._gen_prefix(item)
+    def categorize(self, item: TItem) -> str:
+        """
+        Return the category string of an item
+        """
+        return self._categorize(item)
 
     def add_item(self, item: TItem) -> str:
-        prefix = self.gen_prefix(item)
-        if prefix in self.prefix_to_count:
-            self.prefix_to_count[prefix] += 1
+        """
+        Add an item
+
+        Parameters
+        ----------
+        item: TItem
+            The item to add
+
+        Returns
+        -------
+        str
+            A string identifying the added item's category and count
+        """
+        category = self.categorize(item)
+        if category in self.category_counts:
+            self.category_counts[category] += 1
         else:
-            self.prefix_to_count[prefix] = 1
+            self.category_counts[category] = 1
 
-        postfix = self.prefix_to_count[prefix] - 1
-        return f"{prefix}{postfix}"
+        count = self.category_counts[category] - 1
+        return f"{category}{count}"
 
-    def add_item_until_valid(self, item: TItem, valid: Callable[[str], bool]):
+    def add_item_until_valid(self, item: TItem, valid: Callable[[str], bool]) -> str:
+        """
+        Add an item until the return item key is valid
 
+        This can be used to keep adding items until a unique key is generated for some
+        existing collection.
+        For example, if a dictionary of items already exists, this function can be used
+        to generate new item keys until one that doesn't already exist in the dictionary
+        is found.
+
+        Parameters
+        ----------
+        item: TItem
+            The item to add
+        valid: Callable[[str], bool]
+            The condition the generated item key must satisfy
+
+        Returns
+        -------
+        str
+            A string identifying the added item's category and count
+        """
         key = self.add_item(item)
         while not valid(key):
             key = self.add_item(item)
 
         return key
 
-    def add_item_to_nodes(self, item: TItem, *nodes: tuple[Node, ...]):
+    def add_item_to_nodes(self, item: TItem, *nodes: tuple[Node, ...]) -> str:
+        """
+        Add an item until the item key is unique within a set of trees
+
+        This is used generate a unique key for an item for a set of existing trees
+        (`Node`).
+
+        Parameters
+        ----------
+        item: TItem
+            The item to add
+        *nodes: tuple[Node, ...]
+            The set of trees
+
+            The returned item key should exist in these trees.
+
+        Returns
+        -------
+        str
+            A string identifying the added item's category and count
+        """
         def valid(key):
             key_notin_nodes = (key not in node for node in nodes)
             return all(key_notin_nodes)
@@ -271,59 +368,98 @@ class ItemCounter(Generic[TItem]):
 
 
 ## Manual flattening/unflattening implementation
-FlatNodeStructure = tuple[type[TNode], str, TValue, int]
 
-def iter_flat(key: str, node: TNode):
+def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
     """
-    Return a flat iterator over all nodes
+    Return an iterable over all nodes in the root node (recursively depth-first)
+
+    Parameters
+    ----------
+    root_key: str
+        A key for the node
+
+        All child node keys will be appended to this key with a '/' separator.
+    root_node: TNode
+        The root node
+
+    Returns
+    -------
+    Iterable[tuple[str, TNode]]
+        An iterable over all nodes in the root node
     """
-    num_child = len(node)
+    # TODO: mypy says there's something wrong with the typing here?
+    # TODO: Rewrite this in a tail-call form?
 
-    if num_child == 0:
-        nodes = [(key, node)]
-    else:
-        # TODO: mypy says there's something wrong with the typing here?
-        cnodes = [
-            iter_flat("/".join((key, ckey)), cnode) for ckey, cnode in node.items()
-        ]
-        cnodes = itertools.chain(cnodes)
+    # The flattened node consists of the root node tuple...
+    flat_root_node = [(root_key, root_node)]
 
-        nodes = itertools.chain([(key, node)], *cnodes)
-    return nodes
+    # then recursively appends all flattened child nodes
+    flat_child_nodes = [
+        iter_flat(f"{root_key}/{ckey}", cnode)
+        for ckey, cnode in root_node.items()
+    ]
+    return itertools.chain(flat_root_node, *flat_child_nodes)
 
+# TODO: Refactor `flatten` and `unflatten`?
+# The current implementation seems weird
+FlatNodeStructure = tuple[str, type[Node], TValue, list[str]]
 
-def flatten(key: str, node: TNode) -> list[FlatNodeStructure]:
+def flatten(root_key: str, root_node: TNode) -> list[FlatNodeStructure]:
+    """
+    Return a flattened list of node structures for a root node (recursively depth-first)
+
+    Parameters
+    ----------
+    root_key: str
+        A key for the node
+    root_node: TNode
+        The root node
+
+    Returns
+    -------
+    list[FlatNodeStructure]
+        A list of node structures
+
+        Each node structure is a tuple representing the node.
+    """
     node_structs = [
-        (type(_node), _key, _node.value, len(_node))
-        for _key, _node in iter_flat(key, node)
+        (key, type(node), node.value, node.keys())
+        for key, node in iter_flat(root_key, root_node)
     ]
     return node_structs
-
 
 def unflatten(
     node_structs: list[FlatNodeStructure],
 ) -> tuple[TNode, list[FlatNodeStructure]]:
-    node_type, pkey, value, num_child = node_structs[0]
+    """
+    Return the root node from a flat representation
+
+    Parameters
+    ----------
+    node_structs: list[FlatNodeStructure]
+        The flat representation
+
+    Returns
+    -------
+    TNode
+        The root node
+    list[FlatNodeStructure]
+        A "leftover" flat node representation
+
+        This list should be empty if the flat node representation only contains
+        nodes that belong to the root node.
+    """
+    node_key, node_type, value, child_keys = node_structs[0]
+
+    children = []
     node_structs = node_structs[1:]
+    for _key in child_keys:
+        child, node_structs = unflatten(node_structs)
+        children.append(child)
 
-    if num_child == 0:
-        node = node_type.from_tree(value, {})
-    else:
-        ckeys = []
-        children = []
-        for _ in range(num_child):
-            child_struct = node_structs[0]
-
-            ckey = child_struct[1][len(pkey) + 1 :]
-            child, node_structs = unflatten(node_structs)
-
-            ckeys.append(ckey)
-            children.append(child)
-
-        node = node_type.from_tree(
-            value, {key: child for key, child in zip(ckeys, children)}
-        )
-
+    node = node_type.from_tree(
+        value, {key: child for key, child in zip(child_keys, children)}
+    )
     return node, node_structs
 
 
@@ -336,7 +472,7 @@ AuxData = Any
 def _make_flatten_unflatten(node_type: type[TNode]):
 
     def _flatten_node(node: TNode) -> tuple[FlatNode, AuxData]:
-        flat_node = (node.value, node.children_map)
+        flat_node = (node.value, node.children)
         aux_data = None
         return (flat_node, aux_data)
 

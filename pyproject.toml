@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "matplotlib-layout"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="Jonathan Deng", email="jonathan.j.deng@gmail.com" },
 ]

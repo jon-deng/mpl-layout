@@ -28,13 +28,15 @@ It consists of:
 ## Installation
 
 You can install the package from PyPI using
-```
+
+```bash
 pip install matplotlib-layout
 ```
 
 Alternateively, clone the repository into a local drive.
 Navigate to the project directory and run
-```
+
+```bash
 pip install .
 ```
 
@@ -42,11 +44,13 @@ The package requires `numpy`, `matplotlib`, and `jax`.
 
 ## How to use
 
-Usage of the package is very simple if you are familiar with geometric constraints from CAD programs like AutoCAD, SolidWorks, etc.
 The tutorial notebook in `examples/tutorial.ipynb` demonstrates the basic usage of the package and explains some of the commonly used geometric constraints.
 Other examples are also given in the `examples` folder.
-
 The notebook at `examples/ten_simple_rules_demo.ipynb` contains an interactive demo to recreate figures from ["Ten Simple Rules For Better Figures"](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003833) (Rougier, Droettboom and Bourne 2014).
+
+A summary of how to use the package is shown in the figure below.
+The process resembles creating and constraining geometry in computer-aided design programs like AutoCAD, SolidWorks, etc.
+![Project logo](doc/Summary.svg)
 
 ## Contributing
 

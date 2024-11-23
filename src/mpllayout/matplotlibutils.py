@@ -1,8 +1,8 @@
 """
-Utilities for creating `matplotlib` plot objects from primitives
+Utilities for creating `matplotlib` elements from geometric primitives
 """
 
-import typing as tp
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -11,35 +11,41 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
-from mpllayout import geometry as geo
+from . import primitives as pr
+from . import constraints as cr
 
-
+# TODO: Use special primitive classes rather than keys to determine figure and axes?
+# If you do, this should be done for both `subplots` and `update_subplots`
 def subplots(
-    root_prim: geo.Primitive,
+    root_prim: pr.Primitive,
     fig_key: str = "Figure",
-    axs_keys: tp.Optional[tp.List[str]] = None,
-) -> tp.Tuple[Figure, tp.Mapping[str, Axes]]:
+    axs_keys: Optional[list[str]] = None,
+) -> tuple[Figure, dict[str, Axes]]:
     """
-    Create `Figure` and `Axes` objects from geometric primitives
+    Create matplotlib `Figure` and `Axes` objects from geometric primitives
 
-    The `Figure` and `Axes` objects are extracted based on labels in `root_prim`.
-    A `geo.Quadrilateral` primitive named 'Figure' is used to create the `Figure` with
-    corresponding dimensions. Any `geo.Quadrilateral` primitives prefixed with 'Axes' are
-    used to create `Axes` objects in the output dictionary `axs`.
+    The `Figure` and `Axes` objects are extracted based on labels in the primitive tree
+    and have sizes and positions from their corresponding primitives.
 
     Parameters
     ----------
-    root_prim: geo.Primitive
-        The root `Primitive` tree
+    root_prim: pr.Primitive
+        The root primitive
+    fig_key: str
+        The quadrilateral key corresponding to the figure
 
-        `Figure` and `Axes` objects are created from primitives with labels
-        prefixed by 'Figure' or 'Axes'.
+        The key is "Figure" by default.
+    axs_keys: Optional[list[str]]
+        Axes keys
+
+        If supplied, only these axes keys will be used to generate `Axes` instances.
 
     Returns
     -------
-    fig, axs: tp.Tuple[Figure, tp.Mapping[str, Axes]]
-        A `Figure` instance and a mapping from axes labels to `Axes` instances
-        using the `Axes` object names
+    fig: Figure
+        The matplotlib `Figure`
+    axs: dict[str, Axes]
+        The matplotlib `Axes` instances
     """
     # Create the `Figure` instance
     fig = plt.figure(figsize=(1, 1))
@@ -59,18 +65,39 @@ def subplots(
 
 
 def update_subplots(
-    root_prim: geo.Primitive,
-    fig_key: str,
-    fig: Figure,
-    key_to_ax: tp.Mapping[str, Axes],
+    root_prim: pr.Primitive, fig_key: str, fig: Figure, axs: dict[str, Axes],
 ):
+    """
+    Update matplotlib `Figure` and `Axes` object positions from primitives
+
+    The `Figure` and `Axes` objects are extracted based on labels in the primitive tree
+    and have sizes and positions updated from their corresponding primitives.
+
+    Parameters
+    ----------
+    root_prim: pr.Primitive
+        The root primitive
+    fig_key: str
+        The quadrilateral key in `root_prim` corresponding to the figure
+    fig: Figure
+        The `Figure` to update
+    axs: dict[str, Axes]
+        The `Axes` objects to update
+
+    Returns
+    -------
+    fig: Figure
+        The updated matplotlib `Figure`
+    axs: dict[str, Axes]
+        The updated matplotlib `Axes` instances
+    """
     # Set Figure position
     quad = root_prim[fig_key]
     fig_size = np.array(width_and_height_from_quad(quad))
     fig.set_size_inches(fig_size)
 
     # Set Axes properties/position
-    for key, ax in key_to_ax.items():
+    for key, ax in axs.items():
         # Set Axes dimensions
         quad = root_prim[f"{key}/Frame"]
         ax.set_position(rect_from_box(quad, fig_size))
@@ -83,7 +110,7 @@ def update_subplots(
             # Set the axis label position
             axis_label = f"{axis_prefix}AxisLabel"
             if axis_label in root_prim[key]:
-                axis_label_point: geo.Point = root_prim[f"{key}/{axis_label}"]
+                axis_label_point: pr.Point = root_prim[f"{key}/{axis_label}"]
                 label_coords = axis_label_point.value
                 axis.set_label_coords(
                     *(label_coords / fig_size), transform=fig.transFigure
@@ -96,11 +123,28 @@ def update_subplots(
                 axis_tick_position = find_axis_position(quad, axis_quad)
                 axis.set_ticks_position(axis_tick_position)
 
-    return fig, key_to_ax
+    return fig, axs
 
+# TODO: Refactor signature (should depend on axes and axis string (x or y))?
+def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral) -> str:
+    """
+    Return the axis position relative to a frame
 
-def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
-    coincident_line = geo.CoincidentLines()
+    Parameters
+    ----------
+    axes_frame: pr.Quadrilateral
+        The axes frame
+    axis: pr.Quadrilateral
+        The axes axis
+
+        This can be any x or y axis
+
+    Returns
+    -------
+    position: str
+        One of ('bottom', 'top', 'left', 'right') indicating the axis position
+    """
+    coincident_line = cr.CoincidentLines()
     params = {"reverse": True}
     bottom_res = coincident_line((axes_frame["Line0"], axis["Line2"]), params)
     top_res = coincident_line((axes_frame["Line2"], axis["Line0"]), params)
@@ -118,18 +162,18 @@ def find_axis_position(axes_frame: geo.Quadrilateral, axis: geo.Quadrilateral):
     return position
 
 
-def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float]:
+def width_and_height_from_quad(quad: pr.Quadrilateral) -> tuple[float, float]:
     """
-    Return the width and height of a quadrilateral primitive
+    Return the width and height of a quadrilateral
 
     Parameters
     ----------
-    quad: geo.Quadrilateral
+    quad: pr.Quadrilateral
 
     Returns
     -------
-    tp.Tuple[float, float]
-        The width and height of the quadrilateral
+    tuple[float, float]
+        The width and height
     """
 
     point_bottomleft = quad["Line0/Point0"]
@@ -144,24 +188,27 @@ def width_and_height_from_quad(quad: geo.Quadrilateral) -> tp.Tuple[float, float
 
 
 def rect_from_box(
-    quad: geo.Quadrilateral, fig_size: tp.Optional[tp.Tuple[float, float]] = (1, 1)
-) -> tp.Tuple[float, float, float, float]:
+    quad: pr.Quadrilateral, fig_size: Optional[tuple[float, float]] = (1, 1)
+) -> tuple[float, float, float, float]:
     """
-    Return a `rect` tuple, `(left, bottom, width, height)`, from a `geo.Quadrilateral`
+    Return a `rect' tuple, `(left, bottom, width, height)`, from a quadrilateral
 
-    This tuple of quad information can be used to create a `Bbox` or `Axes`
-    object from `matplotlib`.
+    This tuple of quadrilateral information can be used to create a `Bbox` or `Axes`
+    object in `matplotlib`.
 
     Parameters
     ----------
-    quad: geo.Quadrilateral
+    quad: pr.Quadrilateral
         The quadrilateral
-    fig_size: tp.Optional[tp.Tuple[float, float]]
+    fig_size: Optional[tuple[float, float]]
         The width and height of the figure
+
+        This should be supplied so that the rect tuple has units relative to the figure.
+        Some matplotlib `Axes` constructors accept the rect tuple in figure units by default.
 
     Returns
     -------
-    xmin, ymin, width, heigth: tp.Tuple[float, float, float, float]
+    xmin, ymin, width, heigth: tuple[float, float, float, float]
     """
     fig_w, fig_h = fig_size
 
