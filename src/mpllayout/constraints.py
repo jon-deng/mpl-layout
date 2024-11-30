@@ -59,6 +59,8 @@ class ParamsNode(Node[ResParams, "ParamsNode"]):
     """
     pass
 
+# TODO: Add constraint class that accepts a unit
+# This would handle the case of setting a length relative to another one
 
 class Constraint(Node[ChildPrimKeys, "Constraint"]):
     """
