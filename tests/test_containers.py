@@ -11,7 +11,7 @@ from mpllayout import containers as cn
 
 class TestNode:
 
-    # TODO: Make the node more general for a height, etc.
+    # TODO: Add randomly generated `Node`?
     @pytest.fixture()
     def node(self):
         childd = cn.Node.from_tree(99, {})
