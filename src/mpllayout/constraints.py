@@ -131,7 +131,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         This is usually for type checking/validation of inputs
     """
 
-    # TODO: Implement type checking for aux_data??
+    # TODO: Implement `assem_res` type checking using `aux_data`
     def __init__(
         self,
         child_prim_keys: ChildPrimKeys,
@@ -139,7 +139,6 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         child_constraints: list["Constraint"],
         aux_data: Optional[dict[str, Any]] = None
     ):
-        # TODO: Store `aux_data` in the tree structure somehow?
         children = {
             key: child for key, child in zip(child_keys, child_constraints)
         }
