@@ -1183,8 +1183,7 @@ class CollinearArray(ArrayConstraint):
 
 ## Point and Line constraints
 
-# TODO:
-# class BoundPointsByLine(DynamicConstraint)
+# TODO: class BoundPointsByLine(DynamicConstraint)
 # A class that ensures all points have orthogonal distance to a line > offset
 # The orthogonal direction should be rotated 90 degrees from the line direction
 # (or some other convention)
