@@ -54,6 +54,8 @@ class Node(Generic[TValue, TChild]):
         Node.__init__(node, value, children)
         return node
 
+
+    ## Tree methods
     @property
     def value(self) -> TValue:
         """
@@ -67,8 +69,6 @@ class Node(Generic[TValue, TChild]):
         Return all child nodes
         """
         return self._children
-
-    ## Tree methods
 
     def node_height(self) -> int:
         """
@@ -87,11 +87,63 @@ class Node(Generic[TValue, TChild]):
         else:
             return 1 + max(child.node_height() for _, child in self.items())
 
-    ## Flattened interface
+    def _get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
+        return list(self.children.values())[key]
 
-    # TODO: Add flat interface methods?
+    def _get_child_from_str(self, key: str) -> TChild:
+        split_key = key.split("/", 1)
+        parent_key, child_keys = split_key[0], split_key[1:]
 
-    ## String
+        try:
+            if len(child_keys) == 0:
+                return self._get_child_from_str_nonrecursive(parent_key)
+            else:
+                return self.children[parent_key]._get_child_from_str(child_keys[0])
+        except KeyError as err:
+            raise KeyError(f"{key}") from err
+
+    def _get_child_from_str_nonrecursive(self, key: str) -> TChild:
+        return self.children[key]
+
+    def add_child(self, key: str, child: TChild):
+        """
+        Add a child node at the given key
+
+        Raises an error if the key already exists.
+
+        Parameters
+        ----------
+        key: str
+            A child node key
+
+            see `__getitem__`
+        node: TChild
+            The node to set
+        """
+        split_key = key.split("/", 1)
+        parent_key, child_keys = split_key[0], split_key[1:]
+
+        try:
+            if len(child_keys) == 0:
+                self._add_child_nonrecursive(parent_key, child)
+            else:
+                self.children[parent_key].add_child(child_keys[0], child)
+
+        except KeyError as err:
+            raise KeyError(f"{key}") from err
+
+    def _add_child_nonrecursive(self, key: str, child: TChild):
+        """
+        Add a primitive indexed by a key
+
+        Base case of recursive `add_child`
+        """
+        if key in self.children:
+            raise KeyError(f"{key}")
+        else:
+            self.children[key] = child
+
+    ## String methods
 
     def __repr__(self) -> str:
         keys_repr = ", ".join(self.keys())
@@ -101,7 +153,7 @@ class Node(Generic[TValue, TChild]):
     def __str__(self) -> str:
         return self.__repr__()
 
-    ## Dict-like interface
+    ## Dict methods
 
     def __iter__(self):
         return self.children.__iter__()
@@ -190,62 +242,6 @@ class Node(Generic[TValue, TChild]):
             return self._get_child_from_int_or_slice(key)
         else:
             raise TypeError("")
-
-    def _get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
-        return list(self.children.values())[key]
-
-    def _get_child_from_str(self, key: str) -> TChild:
-        split_key = key.split("/", 1)
-        parent_key, child_keys = split_key[0], split_key[1:]
-
-        try:
-            if len(child_keys) == 0:
-                return self._get_child_from_str_nonrecursive(parent_key)
-            else:
-                return self.children[parent_key]._get_child_from_str(child_keys[0])
-        except KeyError as err:
-            raise KeyError(f"{key}") from err
-
-    def _get_child_from_str_nonrecursive(self, key: str) -> TChild:
-        return self.children[key]
-
-    def add_child(self, key: str, child: TChild):
-        """
-        Add a child node at the given key
-
-        Raises an error if the key already exists.
-
-        Parameters
-        ----------
-        key: str
-            A child node key
-
-            see `__getitem__`
-        node: TChild
-            The node to set
-        """
-        split_key = key.split("/", 1)
-        parent_key, child_keys = split_key[0], split_key[1:]
-
-        try:
-            if len(child_keys) == 0:
-                self._add_child_nonrecursive(parent_key, child)
-            else:
-                self.children[parent_key].add_child(child_keys[0], child)
-
-        except KeyError as err:
-            raise KeyError(f"{key}") from err
-
-    def _add_child_nonrecursive(self, key: str, child: TChild):
-        """
-        Add a primitive indexed by a key
-
-        Base case of recursive `add_child`
-        """
-        if key in self.children:
-            raise KeyError(f"{key}")
-        else:
-            self.children[key] = child
 
 
 TItem = TypeVar("TItem")
