@@ -8,13 +8,12 @@ elements.
 from typing import Optional, Any
 from numpy.typing import NDArray
 
-import warnings
-
+from matplotlib.axes import Axes
 import numpy as np
 
 from . import primitives as pr
 from . import constraints as cr
-from .containers import Node, ItemCounter, iter_flat, flatten, unflatten, FlatNodeStructure
+from .containers import ItemCounter, iter_flat
 
 IntGraph = list[tuple[int, ...]]
 StrGraph = list[tuple[str, ...]]
@@ -184,81 +183,6 @@ class Layout:
         self.root_constraint.add_child(key, constraint)
         self.root_prim_keys.add_child(key, constraint.root_prim_keys(prim_keys))
         self.root_param.add_child(key, constraint.root_params(param))
-
-# TODO: Potentially move these to better places?
-def filter_unique_values_from_prim(
-    root_prim: pr.Primitive,
-) -> tuple[dict[str, int], list[pr.Primitive]]:
-    """
-    Return unique primitives from a root primitive and indicate their indices
-
-    Note that primitives in a primitive node are not necessarily unique
-    ; for example `Point`s are shared between lines in a polygon.
-
-    When solving a set of geometric constraints, the geometric constraint
-    residual should be linked to a function of unique primitives only.
-
-    Returns
-    -------
-    prim_to_idx: dict[str, int]
-        A mapping from each primitive key to its unique primitive index
-    prims: list[pr.Primitive]
-        A list of unique primitives
-    """
-    value_id_to_idx = {}
-    values = []
-    prim_to_idx = {}
-
-    for key, prim in iter_flat("", root_prim):
-        value_id = id(prim.value)
-
-        if value_id not in value_id_to_idx:
-            values.append(prim.value)
-            value_idx = len(values) - 1
-            value_id_to_idx[value_id] = value_idx
-        else:
-            value_idx = value_id_to_idx[value_id]
-
-        prim_to_idx[key] = value_idx
-
-    return prim_to_idx, values
-
-
-def build_prim_from_unique_values(
-    flat_prim: list[FlatNodeStructure], prim_to_idx: dict[str, int], values: list[NDArray]
-) -> pr.Primitive:
-    """
-    Return a new primitive with values updated from unique values
-
-    Parameters
-    ----------
-    flat_prim: list[FlatNodeStructure]
-        The flat primitive tree (see `flatten`)
-    prim_to_idx: dict[str, int]
-        A mapping from each primitive key to a unique primitive value in `values`
-    values: list[NDArray]
-        A list of primitive values for unique primitives in `root_prim`
-
-    Returns
-    -------
-    pr.Primitive
-        The new primitive with updated values
-    """
-    prim_keys = (flat_struct[0] for flat_struct in flat_prim)
-    new_prim_values = (values[prim_to_idx[key]] for key in prim_keys)
-
-    new_prim_structs = [
-        (prim_key, PrimType, new_value, child_keys)
-        for (prim_key, PrimType, _old_value, child_keys), new_value
-        in zip(flat_prim, new_prim_values)
-    ]
-    return unflatten(new_prim_structs)[0]
-
-
-import matplotlib as mpl
-from matplotlib.axes import Axes
-from matplotlib.axis import Axis, XAxis, YAxis
-
 
 # TODO: Return an actual new `Layout` object here
 # don't just implicity modify the layout?

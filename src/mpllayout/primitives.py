@@ -8,7 +8,8 @@ from numpy.typing import NDArray
 import numpy as np
 import jax
 
-from .containers import Node, _make_flatten_unflatten
+# from .containers import Node, _make_flatten_unflatten, iter_flat, unflatten, FlatNodeStructure
+import mpllayout.containers as cn
 
 
 ## Generic primitive class/interface
@@ -18,7 +19,7 @@ from .containers import Node, _make_flatten_unflatten
 ChildPrimitive = TypeVar("ChildPrimitive", bound="Primitive")
 
 
-class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
+class Primitive(cn.Node[NDArray[np.float64], ChildPrimitive]):
     """
     The base geometric primitive class
 
@@ -55,11 +56,11 @@ class Primitive(Node[NDArray[np.float64], ChildPrimitive]):
         super().__init__(value, children)
 
 
-class PrimitiveNode(Node[NDArray[np.float64], Primitive]):
+class PrimitiveNode(cn.Node[NDArray[np.float64], Primitive]):
     """
     A container to store an arbitrary number of child primitives
 
-    You can use the `Node` methods to add child primitives to this container.
+    You can use the `cn.Node` methods to add child primitives to this container.
     """
     # TODO: Define `Primitive` methods for this?
     # NOTE: `PrimitiveNode` has a mutable number of child primitives while
@@ -461,7 +462,79 @@ _PrimitiveClasses = [
     Axes,
 ]
 for _PrimitiveClass in _PrimitiveClasses:
-    _flatten_primitive, _unflatten_primitive = _make_flatten_unflatten(_PrimitiveClass)
+    _flatten_primitive, _unflatten_primitive = cn._make_flatten_unflatten(_PrimitiveClass)
     jax.tree_util.register_pytree_node(
         _PrimitiveClass, _flatten_primitive, _unflatten_primitive
     )
+
+
+## Primitive value vector methods
+# These are used to get the primitive parameter vector from a primitive
+# and to update primitives with new parameters
+
+def filter_unique_values_from_prim(
+    root_prim: Primitive,
+) -> tuple[dict[str, int], list[Primitive]]:
+    """
+    Return unique primitives from a root primitive and indicate their indices
+
+    Note that primitives in a primitive node are not necessarily unique
+    ; for example `Point`s are shared between lines in a polygon.
+
+    When solving a set of geometric constraints, the geometric constraint
+    residual should be linked to a function of unique primitives only.
+
+    Returns
+    -------
+    prim_to_idx: dict[str, int]
+        A mapping from each primitive key to its unique primitive index
+    prims: list[Primitive]
+        A list of unique primitives
+    """
+    value_id_to_idx = {}
+    values = []
+    prim_to_idx = {}
+
+    for key, prim in cn.iter_flat("", root_prim):
+        value_id = id(prim.value)
+
+        if value_id not in value_id_to_idx:
+            values.append(prim.value)
+            value_idx = len(values) - 1
+            value_id_to_idx[value_id] = value_idx
+        else:
+            value_idx = value_id_to_idx[value_id]
+
+        prim_to_idx[key] = value_idx
+
+    return prim_to_idx, values
+
+def build_prim_from_unique_values(
+    flat_prim: list[cn.FlatNodeStructure], prim_to_idx: dict[str, int], values: list[NDArray]
+) -> Primitive:
+    """
+    Return a new primitive with values updated from unique values
+
+    Parameters
+    ----------
+    flat_prim: list[FlatNodeStructure]
+        The flat primitive tree (see `flatten`)
+    prim_to_idx: dict[str, int]
+        A mapping from each primitive key to a unique primitive value in `values`
+    values: list[NDArray]
+        A list of primitive values for unique primitives in `root_prim`
+
+    Returns
+    -------
+    Primitive
+        The new primitive with updated values
+    """
+    prim_keys = (flat_struct[0] for flat_struct in flat_prim)
+    new_prim_values = (values[prim_to_idx[key]] for key in prim_keys)
+
+    new_prim_structs = [
+        (prim_key, PrimType, new_value, child_keys)
+        for (prim_key, PrimType, _old_value, child_keys), new_value
+        in zip(flat_prim, new_prim_values)
+    ]
+    return cn.unflatten(new_prim_structs)[0]

@@ -69,7 +69,7 @@ def solve(
     # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
     # the parameter vectors are stored.
     flat_prim = cn.flatten('', layout.root_prim)
-    prim_graph, prim_values = lay.filter_unique_values_from_prim(layout.root_prim)
+    prim_graph, prim_values = pr.filter_unique_values_from_prim(layout.root_prim)
     prim_idx_bounds = np.cumsum([0] + [value.size for value in prim_values])
     global_param_n = np.concatenate(prim_values)
 
@@ -81,7 +81,7 @@ def solve(
             global_param[idx_start:idx_end]
             for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
         ]
-        root_prim = lay.build_prim_from_unique_values(flat_prim, prim_graph, new_prim_params)
+        root_prim = pr.build_prim_from_unique_values(flat_prim, prim_graph, new_prim_params)
         residuals = assem_constraint_residual(
             root_prim, constraints, constraint_graph, constraint_params
         )
@@ -121,7 +121,7 @@ def solve(
         np.array(global_param_n[idx_start:idx_end])
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
-    root_prim_n = lay.build_prim_from_unique_values(flat_prim, prim_graph, prim_params_n)
+    root_prim_n = pr.build_prim_from_unique_values(flat_prim, prim_graph, prim_params_n)
 
     return root_prim_n, nonlinear_solve_info
 
