@@ -125,7 +125,6 @@ def update_subplots(
 
     return fig, axs
 
-# TODO: Refactor signature (should depend on axes and axis string (x or y))?
 def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral) -> str:
     """
     Return the axis position relative to a frame
