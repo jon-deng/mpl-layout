@@ -157,8 +157,7 @@ class Node(Generic[TValue, TChild]):
         return self.children.__iter__()
 
     def __contains__(self, key: str) -> bool:
-        # TODO: Don't have split all slashes
-        split_keys = key.split("/")
+        split_keys = key.split("/", 1)
         parent_key = split_keys[0]
         child_key = "/".join(split_keys[1:])
 
@@ -394,8 +393,7 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
     ]
     return itertools.chain(flat_root_node, *flat_child_nodes)
 
-# TODO: Refactor `flatten` and `unflatten`?
-# The current implementation seems weird
+
 FlatNodeStructure = tuple[str, type[Node], TValue, list[str]]
 
 def flatten(root_key: str, root_node: TNode) -> list[FlatNodeStructure]:
