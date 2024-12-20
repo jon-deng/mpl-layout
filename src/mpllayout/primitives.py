@@ -63,15 +63,15 @@ class PrimitiveNode(cn.Node[NDArray[np.float64], Primitive]):
     You can use the `cn.Node` methods to add child primitives to this container.
     """
     # TODO: Define `Primitive` methods for this?
+    # TODO: Make classes differ between immutable/mutable Nodes?
     # NOTE: `PrimitiveNode` has a mutable number of child primitives while
     # other geometric primitives are immutable (points, lines, etc.)
-    # TODO: Make classes to differ between immutable/mutable Nodes?
     pass
 
 
-# TODO: Implement input validation for `StaticPrimitive` and `ParameterizedPrimitive`
+# TODO: Add type checking for `StaticPrimitive` and `ParameterizedPrimitive`
 # Both the classes have requirements on the types of `value` and `prims` but
-# these aren't validated at all now
+# these aren't validated
 class StaticPrimitive(Primitive):
     """
     A "static" geometric primitive
