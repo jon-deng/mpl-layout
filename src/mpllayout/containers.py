@@ -56,6 +56,7 @@ class Node(Generic[TValue, TChild]):
 
 
     ## Tree methods
+
     @property
     def value(self) -> TValue:
         """
@@ -87,22 +88,19 @@ class Node(Generic[TValue, TChild]):
         else:
             return 1 + max(child.node_height() for _, child in self.items())
 
-    def _get_child_from_int_or_slice(self, key: int | slice) -> TChild | list[TChild]:
-        return list(self.children.values())[key]
-
-    def _get_child_from_str(self, key: str) -> TChild:
+    def get_child(self, key: str) -> TChild:
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
         try:
             if len(child_keys) == 0:
-                return self._get_child_from_str_nonrecursive(parent_key)
+                return self._get_child_nonrecursive(parent_key)
             else:
-                return self.children[parent_key]._get_child_from_str(child_keys[0])
+                return self.children[parent_key].get_child(child_keys[0])
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def _get_child_from_str_nonrecursive(self, key: str) -> TChild:
+    def _get_child_nonrecursive(self, key: str) -> TChild:
         return self.children[key]
 
     def add_child(self, key: str, child: TChild):
@@ -237,9 +235,9 @@ class Node(Generic[TValue, TChild]):
             - `slice` keys indicate a range of children.
         """
         if isinstance(key, str):
-            return self._get_child_from_str(key)
+            return self.get_child(key)
         elif isinstance(key, (int, slice)):
-            return self._get_child_from_int_or_slice(key)
+            return list(self.children.values())[key]
         else:
             raise TypeError("")
 
