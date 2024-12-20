@@ -1806,6 +1806,9 @@ class YAxisWidth(StaticConstraint):
 
 # Argument type: tuple[Axes]
 
+# TODO: Handle more specialized x/y axes combos? (i.e. twin x/y axes)
+# The below axis constraints are made for single x and y axises
+
 class PositionXAxis(ParameterizedConstraint):
     """
     Constrain the x-axis to the top or bottom of an axes
@@ -1818,7 +1821,7 @@ class PositionXAxis(ParameterizedConstraint):
 
     @classmethod
     def init_children(cls, bottom: bool, top: bool):
-        # TODO: Handle more specialized x/y axes combos?
+
         child_keys = ('CoincidentLines',)
         child_constraints = (CoincidentLines(),)
         if bottom:
@@ -1861,7 +1864,7 @@ class PositionYAxis(ParameterizedConstraint):
 
     @classmethod
     def init_children(cls, left: bool=True, right: bool=False):
-        # TODO: Handle more specialized x/y axes combos?
+
         child_keys = ('CoincidentLines',)
         child_constraints = (CoincidentLines(),)
         if left:
@@ -1906,7 +1909,7 @@ class PositionXAxisLabel(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        # TODO: Handle more specialized x/y axes combos?
+
         child_keys = ('RelativePointOnLineDistance',)
         child_constraints = (RelativePointOnLineDistance(),)
         child_prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
@@ -1940,7 +1943,6 @@ class PositionYAxisLabel(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        # TODO: Handle more specialized x/y axes combos?
         child_keys = ('RelativePointOnLineDistance',)
         child_constraints = (RelativePointOnLineDistance(),)
         child_prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
