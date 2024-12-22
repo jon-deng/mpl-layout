@@ -424,7 +424,8 @@ class Coordinate(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Point]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Point]):
         """
         Return the location error for a point
         """
@@ -531,7 +532,8 @@ class XLength(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
         return DirectedLength.assem(prims, np.array([1, 0]))
 
 
@@ -552,7 +554,8 @@ class YLength(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
         return DirectedLength.assem(prims, np.array([0, 1]))
 
 
@@ -573,7 +576,8 @@ class VerticalError(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
         return jnp.dot(LineVector.assem(prims), np.array([1, 0]))
 
 
@@ -594,7 +598,8 @@ class HorizontalError(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
         return jnp.dot(LineVector.assem(prims), np.array([0, 1]))
 
 
@@ -636,7 +641,8 @@ class BoxError(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Quadrilateral]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral]):
         return np.array(())
 
 
@@ -659,7 +665,8 @@ class AspectRatio(StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",))
         }
 
-    def assem(self, prims: tuple[pr.Quadrilateral], ar:float=1):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral], ar:float=1):
         quad, = prims
         width = Length.assem((quad['Line0'],))
         height = Length.assem((quad['Line1'],))
