@@ -6,7 +6,7 @@ For example, this could be the coordinates of a point, the angle between two
 lines, or the length of a single line.
 """
 
-from typing import Optional, Any
+from typing import Callable, Optional, Any
 from numpy.typing import NDArray
 
 from collections import namedtuple
@@ -138,11 +138,13 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
     # TODO: Implement `assem` type checking using `aux_data`
     def __init__(
         self,
-        child_prim_keys: ChildPrimKeys,
         child_keys: list[str],
         child_constructions: list["Construction"],
+        child_prim_keys: list[PrimKeys],
+        child_kwargs: Callable[[ResParams], list[ResParams]],
         aux_data: Optional[dict[str, Any]] = None
     ):
+        self.split_children_params = child_kwargs
         children = {
             key: child for key, child in zip(child_keys, child_constructions)
         }
@@ -349,11 +351,13 @@ class StaticConstruction(Construction):
     @classmethod
     def init_children(
         cls
-    ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
-        return (), ((), ())
-
-    def split_children_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self)
+    ) -> tuple[
+        list[str],
+        list[Construction],
+        list[PrimKeys],
+        Callable[[ResParams], list[ResParams]]
+    ]:
+        return [], [], [], lambda x: ()
 
     @classmethod
     def init_aux_data(
@@ -362,9 +366,7 @@ class StaticConstruction(Construction):
         raise NotImplementedError()
 
     def __init__(self):
-        child_prim_keys, (child_keys, child_constructions) = self.init_children()
-        aux_data = self.init_aux_data()
-        super().__init__(child_prim_keys, child_keys, child_constructions, aux_data)
+        super().__init__(*self.init_children(), self.init_aux_data())
 
 
 class ParameterizedConstruction(Construction):
@@ -392,11 +394,13 @@ class ParameterizedConstruction(Construction):
     @classmethod
     def init_children(
         cls, **kwargs
-    ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
-        return (), ((), ())
-
-    def split_children_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self)
+    ) -> tuple[
+        list[str],
+        list[Construction],
+        list[PrimKeys],
+        Callable[[ResParams], list[ResParams]]
+    ]:
+        return [], [], [], lambda x: ()
 
     @classmethod
     def init_aux_data(
@@ -405,9 +409,7 @@ class ParameterizedConstruction(Construction):
         raise NotImplementedError()
 
     def __init__(self, **kwargs):
-        child_prim_keys, (child_keys, child_constructions) = self.init_children(**kwargs)
-        aux_data = self.init_aux_data(**kwargs)
-        super().__init__(child_prim_keys, child_keys, child_constructions, aux_data)
+        super().__init__(*self.init_children(**kwargs), self.init_aux_data(**kwargs))
 
 ## Line constructions
 
