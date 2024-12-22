@@ -18,16 +18,12 @@ import jax.numpy as jnp
 from . import primitives as pr
 from .containers import Node, iter_flat
 
-Primitive = pr.Primitive
+Params = dict[str, Any]
 
-
-ResParams = dict[str, Any]
-
-ResPrims = tuple[Primitive, ...]
-ResPrimTypes = tuple[type[Primitive], ...]
-
+Prims = tuple[pr.Primitive, ...]
 PrimKeys = tuple[str, ...]
-ChildPrimKeys = tuple[PrimKeys, ...]
+PrimTypes = tuple[type[pr.Primitive], ...]
+
 
 def load_named_tuple(
         NamedTuple: namedtuple,
@@ -54,7 +50,7 @@ class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     pass
 
 
-class ParamsNode(Node[ResParams, "ParamsNode"]):
+class ParamsNode(Node[Params, "ParamsNode"]):
     """
     A tree of residual parameters (kwargs) for a construction
 
@@ -66,7 +62,7 @@ class ParamsNode(Node[ResParams, "ParamsNode"]):
 # TODO: Add construction class that accepts a unit
 # This would handle the case of setting a length relative to another one
 
-class Construction(Node[ChildPrimKeys, "Construction"]):
+class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     """
     The base geometric construction class
 
@@ -141,7 +137,7 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
         child_keys: list[str],
         child_constructions: list["Construction"],
         child_prim_keys: list[PrimKeys],
-        child_kwargs: Callable[[ResParams], list[ResParams]],
+        child_kwargs: Callable[[Params], list[Params]],
         aux_data: Optional[dict[str, Any]] = None
     ):
         self.split_children_params = child_kwargs
@@ -152,13 +148,13 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
 
     # TODO: Make this something that's passed through __init__?
     # That would make it harder to forget defining this?
-    def split_children_params(self, params: ResParams) -> tuple[ResParams, ...]:
+    def split_children_params(self, params: Params) -> tuple[Params, ...]:
         """
         Return children construction parameters from parent construction parameters
         """
         raise NotImplementedError()
 
-    def root_params(self, params: ResParams) -> ParamsNode:
+    def root_params(self, params: Params) -> ParamsNode:
         """
         Return a tree of residual kwargs for the construction and all children
 
@@ -237,7 +233,7 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
         }
         return PrimKeysNode(prim_keys, children)
 
-    def root_prim(self, prim_keys: PrimKeys, prims: ResPrims) -> pr.PrimitiveNode:
+    def root_prim(self, prim_keys: PrimKeys, prims: Prims) -> pr.PrimitiveNode:
         """
         Return a root primitive containing primitives for the construction
 
@@ -267,7 +263,7 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
 
     def __call__(
             self,
-            prims: ResPrims,
+            prims: Prims,
             params: tuple[Any, ...] | dict[str, Any]
         ):
         prim_keys = tuple(f'arg{n}' for n, _ in enumerate(prims))
@@ -295,12 +291,12 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
         return jnp.concatenate(residuals)
 
     def assem_atleast_1d(
-            self, prims: ResPrims, params: ResParams
+            self, prims: Prims, params: Params
         ) -> NDArray:
         return jnp.atleast_1d(self.assem(prims, **params._asdict()))
 
     def assem(
-            self, prims: ResPrims, **kwargs
+            self, prims: Prims, **kwargs
         ) -> NDArray:
         """
         Return a residual vector representing the construction satisfaction
@@ -323,7 +319,7 @@ class Construction(Node[ChildPrimKeys, "Construction"]):
         raise NotImplementedError()
 
 
-class ConstructionNode(Node[ChildPrimKeys, Construction]):
+class ConstructionNode(Node[tuple[PrimKeys, ...], Construction]):
     """
     Container tree for constructions
     """
@@ -355,7 +351,7 @@ class StaticConstruction(Construction):
         list[str],
         list[Construction],
         list[PrimKeys],
-        Callable[[ResParams], list[ResParams]]
+        Callable[[Params], list[Params]]
     ]:
         return [], [], [], lambda x: ()
 
@@ -398,7 +394,7 @@ class ParameterizedConstruction(Construction):
         list[str],
         list[Construction],
         list[PrimKeys],
-        Callable[[ResParams], list[ResParams]]
+        Callable[[Params], list[Params]]
     ]:
         return [], [], [], lambda x: ()
 
