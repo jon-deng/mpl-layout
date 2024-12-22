@@ -432,6 +432,90 @@ class Coordinate(StaticConstruction):
         point, = prims
         return point.value
 
+# Argument type: tuple[Point, Point]
+
+class DirectedDistance(StaticConstruction):
+    """
+    Return the distance between two points along a direction
+
+    Parameters
+    ----------
+    prims: tuple[pr.Point, pr.Point]
+        The two points
+
+        Distance is measured from the first to the second point
+    direction: NDArray
+        The direction
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",))
+        }
+
+    @classmethod
+    def assem(
+        cls,
+        prims: tuple[pr.Point, pr.Point],
+        direction: NDArray
+    ):
+        point0, point1 = prims
+        return jnp.dot(point1.value - point0.value, direction)
+
+
+class XDistance(StaticConstruction):
+    """
+    Return the x-distance between two points
+
+    Parameters
+    ----------
+    prims: tuple[pr.Point, pr.Point]
+        The two points
+
+        Distance is measured from the first to the second point
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(
+        self, prims: tuple[pr.Point, pr.Point]
+    ):
+        return DirectedDistance.assem(prims, np.array([1, 0]))
+
+
+class YDistance(StaticConstruction):
+    """
+    Return the y-distance between two points
+
+    Parameters
+    ----------
+    prims: tuple[pr.Point, pr.Point]
+        The two points
+
+        Distance is measured from the first to the second point
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Point),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
+
+    @classmethod
+    def assem(
+        self, prims: tuple[pr.Point, pr.Point]
+    ):
+        return DirectedDistance.assem(prims, np.array([0, 1]))
+
 ## Line constructions
 
 # Argument type: tuple[Line,]
