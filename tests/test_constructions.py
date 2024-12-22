@@ -159,7 +159,7 @@ class TestLine(GeometryFixtures):
         return self.make_line(origin, direction * length)
 
     def test_Length(self, linea, length):
-        res = co.Length()((linea,), ()) - length
+        res = co.Length()((linea,)) - length
         assert np.all(np.isclose(res, 0))
 
     def test_DirectedLength(self, length, direction):
@@ -168,5 +168,5 @@ class TestLine(GeometryFixtures):
         line = self.make_line((0, 0), line_vec)
 
         dlength = np.dot(line_vec, direction)
-        res = co.DirectedLength()((line,), (direction,)) - dlength
+        res = co.DirectedLength()((line,), direction) - dlength
         assert np.all(np.isclose(res, 0))

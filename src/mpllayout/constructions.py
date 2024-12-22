@@ -18,7 +18,7 @@ import jax.numpy as jnp
 from . import primitives as pr
 from .containers import Node, iter_flat
 
-Params = dict[str, Any]
+Params = tuple[Any, ...]
 
 Prims = tuple[pr.Primitive, ...]
 PrimKeys = tuple[str, ...]
@@ -67,11 +67,11 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     A geometric construction is a function returning a vector from geometric
     primitives.
     The condition is implemented through a function
-        `assem(self, prims, **kwargs)`
+        `assem(self, prims, *args)`
     where
     - `prims` are the geometric primitives to construction
-    - and `**kwargs` are additional arguments for the residual.
-    The construction is satisified when `assem(self, prims, **kwargs) == 0`.
+    - and `*args` are additional arguments for the residual.
+    The construction is satisified when `assem(self, prims, *args) == 0`.
     To implement `assem`, `jax` functions should be used to return a
     residual vector from the parameter vectors of input primitives.
 
@@ -97,7 +97,7 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
 
         This is stored as the "value" of the tree structure and encodes how to
         create primitives for each child construction from the parent construction's
-        `prims` (in `assem(self, prims, **kwargs)`).
+        `prims` (in `assem(self, prims, *args)`).
         For each child construction, a tuple of primitive keys indicates a
         subset of parent primitives to form child construction primitive
         arguments.
@@ -105,7 +105,7 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         To illustrate this, consider a parent construction with residual
 
         ```python
-        Parent.assem(self, prims, **kwargs)
+        Parent.assem(self, prims, *args)
         ```
 
         and the n'th child construction with primitive key tuple
@@ -260,12 +260,12 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     def __call__(
             self,
             prims: Prims,
-            params: tuple[Any, ...] | dict[str, Any]
+            *args
         ):
         prim_keys = tuple(f'arg{n}' for n, _ in enumerate(prims))
         root_prim = self.root_prim(prim_keys, prims)
         root_prim_keys = self.root_prim_keys(prim_keys)
-        root_params = self.root_params(params)
+        root_params = self.root_params(args)
         return self.assem_from_tree(root_prim, root_prim_keys, root_params)
 
     def assem_from_tree(
@@ -289,10 +289,10 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     def assem_atleast_1d(
             self, prims: Prims, params: Params
         ) -> NDArray:
-        return jnp.atleast_1d(self.assem(prims, **params._asdict()))
+        return jnp.atleast_1d(self.assem(prims, *params))
 
     def assem(
-            self, prims: Prims, **kwargs
+            self, prims: Prims, *args
         ) -> NDArray:
         """
         Return a residual vector representing the construction satisfaction
@@ -301,7 +301,7 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         ----------
         prims: ResPrims
             A tuple of primitives the construction applies to
-        **kwargs:
+        *args:
             A set of parameters for the residual
 
             These are things like length, distance, angle, etc.
@@ -480,7 +480,7 @@ class DirectedLength(StaticConstruction):
     def assem(
         cls,
         prims: tuple[pr.Line],
-        direction: NDArray=np.array([1, 0])
+        direction: NDArray
     ):
         (line,) = prims
         return jnp.dot(LineVector.assem((line,)), direction)
