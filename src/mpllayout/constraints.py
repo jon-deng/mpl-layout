@@ -13,6 +13,7 @@ import jax.numpy as jnp
 
 from . import primitives as pr
 from .containers import Node, iter_flat
+from . import constructions as co
 
 Primitive = pr.Primitive
 
@@ -421,33 +422,25 @@ class ArrayConstraint(ParameterizedConstraint):
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
 
+def generate_constraint(
+    ConstructionType: type[co.Construction],
+    constraint_name: str
+):
+
+    class DerivedConstraint(ConstructionType):
+
+        def assem(self, prims, *args):
+            *params, value = args
+            return ConstructionType.assem(prims, *params) - value
+
+    DerivedConstraint.__name__ = constraint_name
+
+    return DerivedConstraint
+
+
 # Argument type: tuple[Point,]
 
-class Fix(StaticConstraint):
-    """
-    Constrain coordinates of a point
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point]
-        The point
-    location: NDArray
-        The coordinates
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ["location"])
-        }
-
-    def assem(self, prims: tuple[pr.Point], location: NDArray):
-        """
-        Return the location error for a point
-        """
-        (point,) = prims
-        return point.value - location
+Fix = generate_constraint(co.Coordinate, 'Fix')
 
 # Argument type: tuple[Point, Point]
 
