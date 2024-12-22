@@ -189,7 +189,7 @@ class TestPointPoint(GeometryFixtures):
         self, pointa: pr.Point, pointb: pr.Point, distance: float, direction: NDArray
     ):
         constraint = co.DirectedDistance()
-        res = constraint((pointa, pointb), (distance, direction))
+        res = constraint((pointa, pointb), direction, distance)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -199,7 +199,7 @@ class TestPointPoint(GeometryFixtures):
     def test_XDistance(
         self, pointa: pr.Point, pointb: pr.Point, xdistance: float
     ):
-        res = co.XDistance()((pointa, pointb), (xdistance,))
+        res = co.XDistance()((pointa, pointb), xdistance)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -209,7 +209,7 @@ class TestPointPoint(GeometryFixtures):
     def test_YDistance(
         self, pointa: pr.Point, pointb: pr.Point, ydistance: float
     ):
-        res = co.YDistance()((pointa, pointb), (ydistance,))
+        res = co.YDistance()((pointa, pointb), ydistance)
         assert np.all(np.isclose(res, 0))
 
 
@@ -863,7 +863,7 @@ class TestAxesConstraints(GeometryFixtures):
         return co.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
 
     def test_XAxisHeight(self, axes, axes_mpl):
-        res = co.XAxisHeight()((axes['XAxis'],), (axes_mpl.xaxis,))
+        res = co.XAxisHeight()((axes['XAxis'],), axes_mpl.xaxis)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
@@ -871,6 +871,6 @@ class TestAxesConstraints(GeometryFixtures):
         return co.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
 
     def test_YAxisWidth(self, axes, axes_mpl):
-        res = co.YAxisWidth()((axes['YAxis'],), (axes_mpl.yaxis,))
+        res = co.YAxisWidth()((axes['YAxis'],), axes_mpl.yaxis)
         assert np.all(np.isclose(res, 0))
 
