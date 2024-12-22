@@ -130,7 +130,7 @@ class Layout:
             node.value for _, node in iter_flat('', self.root_param)
         ][1:]
 
-        constraints = [c.assem_res_atleast_1d for c in constraints]
+        constraints = [c.assem_atleast_1d for c in constraints]
 
         return constraints, prim_keys, params
 
