@@ -459,9 +459,34 @@ class Length(StaticConstruction):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
-        """
-        Return the length error of a line
-        """
         (line,) = prims
         return jnp.sum(LineVector.assem((line,))**2)**(1/2)
 
+
+class DirectedLength(StaticConstruction):
+    """
+    Return the length of a line along a vector
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The line
+    direction: NDArray
+        The direction
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction"))
+        }
+
+    @classmethod
+    def assem(
+        cls,
+        prims: tuple[pr.Line],
+        direction: NDArray=np.array([1, 0])
+    ):
+        (line,) = prims
+        return jnp.dot(LineVector.assem((line,)), direction)
