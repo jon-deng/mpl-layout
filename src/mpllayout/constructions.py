@@ -135,16 +135,16 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         child_keys: list[str],
         child_constructions: list["Construction"],
         child_prim_keys: list[PrimKeys],
-        child_kwargs: Callable[[Params], list[Params]],
+        child_params: Callable[[Params], list[Params]],
         aux_data: Optional[dict[str, Any]] = None
     ):
-        self.split_children_params = child_kwargs
+        self.propogate_child_params = child_params
         children = {
             key: child for key, child in zip(child_keys, child_constructions)
         }
         super().__init__((child_prim_keys, aux_data), children)
 
-    def split_children_params(self, params: Params) -> tuple[Params, ...]:
+    def propogate_child_params(self, params: Params) -> tuple[Params, ...]:
         """
         Return children construction parameters from parent construction parameters
         """
@@ -168,7 +168,7 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         """
         params = load_named_tuple(self.RES_PARAMS_TYPE, params)
 
-        child_parameters = self.split_children_params(params)
+        child_parameters = self.propogate_child_params(params)
         children = {
             key: child.root_params(child_params)
             for (key, child), child_params in zip(self.items(), child_parameters)
