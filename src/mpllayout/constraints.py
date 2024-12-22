@@ -146,7 +146,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
 
     # TODO: Make this something that's passed through __init__?
     # That would make it harder to forget defining this?
-    def split_children_params(self, params: ResParams) -> tuple[ResParams, ...]:
+    def propogate_child_params(self, params: ResParams) -> tuple[ResParams, ...]:
         """
         Return children constraint parameters from parent constraint parameters
         """
@@ -170,7 +170,7 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
         """
         params = load_named_tuple(self.RES_PARAMS_TYPE, params)
 
-        child_parameters = self.split_children_params(params)
+        child_parameters = self.propogate_child_params(params)
         children = {
             key: child.root_params(child_params)
             for (key, child), child_params in zip(self.items(), child_parameters)
@@ -348,7 +348,7 @@ class StaticConstraint(Constraint):
     ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
         return (), ((), ())
 
-    def split_children_params(self, params: ResParams) -> ResParams:
+    def propogate_child_params(self, params: ResParams) -> ResParams:
         return tuple({} for _ in self)
 
     @classmethod
@@ -391,7 +391,7 @@ class ParameterizedConstraint(Constraint):
     ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
         return (), ((), ())
 
-    def split_children_params(self, params: ResParams) -> ResParams:
+    def propogate_child_params(self, params: ResParams) -> ResParams:
         return tuple({} for _ in self)
 
     @classmethod
@@ -511,7 +511,7 @@ class XDistance(StaticConstraint):
         child_prim_keys = (("arg0", "arg1"),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"distance": params.distance, "direction": np.array([1, 0])},)
 
     @classmethod
@@ -548,7 +548,7 @@ class YDistance(StaticConstraint):
         child_prim_keys = (("arg0", "arg1"),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"distance": params.distance, "direction": np.array([0, 1])},)
 
     @classmethod
@@ -729,7 +729,7 @@ class XLength(StaticConstraint):
         child_prim_keys = (("arg0",),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"length": params.length, "direction": np.array([1, 0])},)
 
     @classmethod
@@ -765,7 +765,7 @@ class YLength(StaticConstraint):
         child_prim_keys = (("arg0",),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"length": params.length, "direction": np.array([0, 1])},)
 
     @classmethod
@@ -1058,7 +1058,7 @@ class RelativeLengthArray(ArrayConstraint):
         child_prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, parameters):
+    def propogate_child_params(self, parameters):
         return tuple(
             {'length': length} for length in parameters.lengths
         )
@@ -1098,7 +1098,7 @@ class MidpointXDistanceArray(ArrayConstraint):
         child_constraints = num_child * (MidpointXDistance(),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return tuple({"distance": distance} for distance in params.distances)
 
     @classmethod
@@ -1136,7 +1136,7 @@ class MidpointYDistanceArray(ArrayConstraint):
         child_constraints = num_child * (MidpointYDistance(),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return tuple({"distance": distance} for distance in params.distances)
 
     @classmethod
@@ -1391,7 +1391,7 @@ class AspectRatio(StaticConstraint):
         child_prim_keys = (("arg0/Line0", "arg0/Line1"),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, parameters):
+    def propogate_child_params(self, parameters):
         return ({'length': parameters.ar},)
 
     @classmethod
@@ -1437,7 +1437,7 @@ class OuterMargin(ParameterizedConstraint):
             raise ValueError()
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"distance": params.margin},)
 
     @classmethod
@@ -1484,7 +1484,7 @@ class InnerMargin(ParameterizedConstraint):
             raise ValueError()
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"distance": params.margin},)
 
     @classmethod
@@ -1646,7 +1646,7 @@ class Grid(ArrayConstraint):
 
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         values = (
             (),
             (params.col_widths,),
@@ -1744,7 +1744,7 @@ class XAxisHeight(StaticConstraint):
         child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, parameters):
+    def propogate_child_params(self, parameters):
         xaxis: XAxis | None = parameters.axis
         if xaxis is None:
             return ({"distance": 0},)
@@ -1785,7 +1785,7 @@ class YAxisWidth(StaticConstraint):
         child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, parameters):
+    def propogate_child_params(self, parameters):
         yaxis: YAxis | None = parameters.axis
         if yaxis is None:
             return ({"distance": 0},)
@@ -1833,7 +1833,7 @@ class PositionXAxis(ParameterizedConstraint):
         return child_prim_keys, (child_keys, child_constraints)
 
     @classmethod
-    def split_children_params(cls, params):
+    def propogate_child_params(cls, params):
         return ({"reverse": True},)
 
     @classmethod
@@ -1876,7 +1876,7 @@ class PositionYAxis(ParameterizedConstraint):
         return child_prim_keys, (child_keys, child_constraints)
 
     @classmethod
-    def split_children_params(cls, params):
+    def propogate_child_params(cls, params):
         return ({"reverse": True},)
 
     @classmethod
@@ -1913,7 +1913,7 @@ class PositionXAxisLabel(StaticConstraint):
         child_prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"distance": params.distance, "reverse": False},)
 
     @classmethod
@@ -1946,7 +1946,7 @@ class PositionYAxisLabel(StaticConstraint):
         child_prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
         return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
+    def propogate_child_params(self, params):
         return ({"distance": params.distance, "reverse": False},)
 
     @classmethod
