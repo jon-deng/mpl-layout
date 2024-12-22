@@ -484,6 +484,48 @@ class DirectedLength(StaticConstruction):
         return jnp.dot(LineVector.assem((line,)), direction)
 
 
+class XLength(StaticConstruction):
+    """
+    Constrain the length of a line projected along the x direction
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The line
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def assem(self, prims: tuple[pr.Line]):
+        return DirectedLength.assem(prims, np.array([1, 0]))
+
+
+class YLength(StaticConstruction):
+    """
+    Constrain the length of a line projected along the y direction
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The line
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def assem(self, prims: tuple[pr.Line]):
+        return DirectedLength.assem(prims, np.array([0, 1]))
+
+
 class VerticalError(StaticConstruction):
     """
     Return the vertical error of a line

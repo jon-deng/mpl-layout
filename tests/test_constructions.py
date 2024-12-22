@@ -171,16 +171,51 @@ class TestLine(GeometryFixtures):
         res = co.DirectedLength()((line,), direction) - dlength
         assert np.all(np.isclose(res, 0))
 
-    def test_HorizontalError(self, length):
-        line_dir = np.array((2*(np.random.randint(0, 2)-1), 0))
-        line = self.make_line(np.random.rand(2), line_dir*length)
+    @pytest.fixture(
+        params=[
+            ('x', np.array([1, 0])),
+            ('y', np.array([0, 1]))
+        ]
+    )
+    def axis_name_dir(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def axis_name(self, axis_name_dir):
+        return axis_name_dir[0]
+
+    @pytest.fixture()
+    def axis_dir(self, axis_name_dir):
+        return axis_name_dir[1]
+
+    @pytest.fixture()
+    def XYLength(self, axis_name):
+        if axis_name == 'x':
+            return co.XLength
+        else:
+            return co.YLength
+
+    def test_XYLength(self, XYLength, axis_dir, length):
+        line_dir = np.random.rand(2)
+        line_vec = length*line_dir
+        line = self.make_line((0, 0), line_vec)
+
+        dlength = np.dot(line_vec, axis_dir)
+
+        res = XYLength()((line,)) - dlength
+
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def HVError(self, axis_name):
+        if axis_name == 'x':
+            return co.HorizontalError
+        else:
+            return co.VerticalError
+
+    def test_HVError(self, HVError, axis_dir, length):
+        line = self.make_line(np.random.rand(2), axis_dir*length)
 
         res = co.HorizontalError()((line,))
         assert np.all(np.isclose(res, 0))
 
-    def test_VerticalError(self, length):
-        line_dir = np.array((0, 2*(np.random.randint(0, 2)-1)))
-        line = self.make_line(np.random.rand(2), line_dir*length)
-
-        res = co.VerticalError()((line,))
-        assert np.all(np.isclose(res, 0))
