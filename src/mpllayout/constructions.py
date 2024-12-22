@@ -574,7 +574,7 @@ class HorizontalError(StaticConstruction):
 
 class BoxError(StaticConstruction):
     """
-    Constrain a quadrilateral to be rectangular
+    Return the boxiness error of a quadrilateral
 
     Parameters
     ----------
@@ -608,3 +608,30 @@ class BoxError(StaticConstruction):
 
     def assem(self, prims: tuple[pr.Quadrilateral]):
         return np.array(())
+
+
+class AspectRatio(StaticConstruction):
+    """
+    Return the aspect ratio of a quadrilateral
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral]
+        The quad
+    ar: float
+        The aspect ratio
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",))
+        }
+
+    def assem(self, prims: tuple[pr.Quadrilateral], ar:float=1):
+        quad, = prims
+        width = Length.assem((quad['Line0'],))
+        height = Length.assem((quad['Line1'],))
+        return  width/height
+
