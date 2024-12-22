@@ -170,3 +170,17 @@ class TestLine(GeometryFixtures):
         dlength = np.dot(line_vec, direction)
         res = co.DirectedLength()((line,), direction) - dlength
         assert np.all(np.isclose(res, 0))
+
+    def test_HorizontalError(self, length):
+        line_dir = np.array((2*(np.random.randint(0, 2)-1), 0))
+        line = self.make_line(np.random.rand(2), line_dir*length)
+
+        res = co.HorizontalError()((line,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_VerticalError(self, length):
+        line_dir = np.array((0, 2*(np.random.randint(0, 2)-1)))
+        line = self.make_line(np.random.rand(2), line_dir*length)
+
+        res = co.VerticalError()((line,))
+        assert np.all(np.isclose(res, 0))

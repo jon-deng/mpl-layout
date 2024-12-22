@@ -445,7 +445,7 @@ class Length(StaticConstruction):
     @classmethod
     def init_aux_data(cls):
         return {
-            'RES_PARAMS_TYPE': (),
+            'RES_ARG_TYPES': (pr.Line,),
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
@@ -482,3 +482,46 @@ class DirectedLength(StaticConstruction):
     ):
         (line,) = prims
         return jnp.dot(LineVector.assem((line,)), direction)
+
+
+class VerticalError(StaticConstruction):
+    """
+    Return the vertical error of a line
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The lines
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def assem(self, prims: tuple[pr.Line]):
+        return jnp.dot(LineVector.assem(prims), np.array([1, 0]))
+
+
+class HorizontalError(StaticConstruction):
+    """
+    Return the horizontal error of a line
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The lines
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def assem(self, prims: tuple[pr.Line]):
+        return jnp.dot(LineVector.assem(prims), np.array([1, 0]))
+
