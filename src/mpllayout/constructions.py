@@ -166,12 +166,10 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         root_params: ParamsNode
             A tree of keyword arguments for the construction and all children
         """
-        params = load_named_tuple(self.RES_PARAMS_TYPE, params)
-
-        child_parameters = self.propogate_child_params(params)
+        children_params = self.propogate_child_params(params)
         children = {
             key: child.root_params(child_params)
-            for (key, child), child_params in zip(self.items(), child_parameters)
+            for (key, child), child_params in zip(self.items(), children_params)
         }
         root_params = ParamsNode(params, children)
         return root_params
