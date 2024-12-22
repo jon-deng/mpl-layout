@@ -59,8 +59,6 @@ class ParamsNode(Node[Params, "ParamsNode"]):
     """
     pass
 
-# TODO: Add construction class that accepts a unit
-# This would handle the case of setting a length relative to another one
 
 class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     """
@@ -146,8 +144,6 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         }
         super().__init__((child_prim_keys, aux_data), children)
 
-    # TODO: Make this something that's passed through __init__?
-    # That would make it harder to forget defining this?
     def split_children_params(self, params: Params) -> tuple[Params, ...]:
         """
         Return children construction parameters from parent construction parameters
