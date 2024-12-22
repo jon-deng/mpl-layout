@@ -565,5 +565,5 @@ class HorizontalError(StaticConstruction):
         }
 
     def assem(self, prims: tuple[pr.Line]):
-        return jnp.dot(LineVector.assem(prims), np.array([1, 0]))
+        return jnp.dot(LineVector.assem(prims), np.array([0, 1]))
 

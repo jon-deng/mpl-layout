@@ -214,8 +214,9 @@ class TestLine(GeometryFixtures):
             return co.VerticalError
 
     def test_HVError(self, HVError, axis_dir, length):
-        line = self.make_line(np.random.rand(2), axis_dir*length)
+        sign = 2*np.random.randint(0, 2)-1
+        line = self.make_line(np.random.rand(2), sign*axis_dir*length)
 
-        res = co.HorizontalError()((line,))
+        res = HVError()((line,))
         assert np.all(np.isclose(res, 0))
 
