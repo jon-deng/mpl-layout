@@ -220,3 +220,32 @@ class TestLine(GeometryFixtures):
         res = HVError()((line,))
         assert np.all(np.isclose(res, 0))
 
+
+class TestQuadrilateral(GeometryFixtures):
+    """
+    Test constructions with signature `[Quadrilateral]`
+    """
+
+    # @pytest.fixture()
+    # def quada(self):
+    #     return self.make_quad(np.random.rand(2), np.random.rand(2, 2))
+
+    # @pytest.fixture()
+    # def aspect_ratio(self, quada):
+    #     width = np.linalg.norm(co.line_vector(quada['Line0']))
+    #     height = np.linalg.norm(co.line_vector(quada['Line1']))
+    #     return width/height
+
+    # def test_AspectRatio(self, quada: pr.Quadrilateral, aspect_ratio: float):
+    #     res = co.AspectRatio()((quada,), (aspect_ratio,))
+    #     assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def quad_box(self):
+        translation = np.random.rand(2)
+        deformation = np.diag(np.random.rand(2))
+        return self.make_quad(translation, deformation)
+
+    def test_BoxError(self, quad_box: pr.Quadrilateral):
+        res = co.BoxError()((quad_box,))
+        assert np.all(np.isclose(res, 0))

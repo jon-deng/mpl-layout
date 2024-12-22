@@ -567,3 +567,44 @@ class HorizontalError(StaticConstruction):
     def assem(self, prims: tuple[pr.Line]):
         return jnp.dot(LineVector.assem(prims), np.array([0, 1]))
 
+
+## Quad constructions
+
+# Argument type: tuple[Quadrilateral]
+
+class BoxError(StaticConstruction):
+    """
+    Constrain a quadrilateral to be rectangular
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral]
+        The quad
+    """
+
+    @classmethod
+    def init_children(cls):
+        child_keys = ("HBottom", "VLeft", "HTop", "VRight")
+        child_constraints = (
+            HorizontalError(),
+            VerticalError(),
+            HorizontalError(),
+            VerticalError()
+        )
+        child_prim_keys = (
+            ("arg0/Line0",), ("arg0/Line1",), ("arg0/Line2",), ("arg0/Line3",)
+        )
+        def propogate_child_params(params):
+            return 4*((),)
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def assem(self, prims: tuple[pr.Quadrilateral]):
+        return np.array(())
