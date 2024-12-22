@@ -409,3 +409,59 @@ class ParameterizedConstruction(Construction):
         aux_data = self.init_aux_data(**kwargs)
         super().__init__(child_prim_keys, child_keys, child_constructions, aux_data)
 
+## Line constructions
+
+# Argument type: tuple[Line,]
+
+class LineVector(StaticConstruction):
+    """
+    Return the line vector
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The line
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        """
+        Return the length error of a line
+        """
+        line, = prims
+        pointa, pointb = line.values()
+        return pointb.value - pointa.value
+
+
+class Length(StaticConstruction):
+    """
+    Return the length of a line
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The line
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_PARAMS_TYPE': (),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        """
+        Return the length error of a line
+        """
+        (line,) = prims
+        return jnp.sum(LineVector.assem((line,))**2)**(1/2)
+
