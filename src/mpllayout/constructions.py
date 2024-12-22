@@ -401,6 +401,36 @@ class ParameterizedConstruction(Construction):
     def __init__(self, **kwargs):
         super().__init__(*self.init_children(**kwargs), self.init_aux_data(**kwargs))
 
+## Point constructions
+# NOTE: These are actual constraint classes that can be called so class docstrings
+# document there `assem_res` function.
+
+# Argument type: tuple[Point,]
+
+class Coordinate(StaticConstruction):
+    """
+    Return point coordinates
+
+    Parameters
+    ----------
+    prims: tuple[pr.Point]
+        The point
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def assem(self, prims: tuple[pr.Point]):
+        """
+        Return the location error for a point
+        """
+        point, = prims
+        return point.value
+
 ## Line constructions
 
 # Argument type: tuple[Line,]

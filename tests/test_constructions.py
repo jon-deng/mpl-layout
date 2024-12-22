@@ -138,6 +138,22 @@ class GeometryFixtures:
         )
         return quads
 
+
+class TestPoint(GeometryFixtures):
+    """
+    Test constructions with signature `[Point]`
+    """
+
+    @pytest.fixture()
+    def coordinate(self):
+        return np.random.rand(2)
+
+    def test_Coordinate(self, coordinate):
+        point = self.make_point(coordinate)
+        res = co.Coordinate()((point,)) - coordinate
+        assert np.all(np.isclose(res, 0))
+
+
 class TestLine(GeometryFixtures):
     """
     Test constraints with signature `[Line]`
