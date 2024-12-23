@@ -883,45 +883,6 @@ class PointToLineDistance(StaticConstruction):
 
 # Argument type: tuple[Quadrilateral]
 
-class BoxError(StaticConstruction):
-    """
-    Return the boxiness error of a quadrilateral
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral]
-        The quad
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("HBottom", "VLeft", "HTop", "VRight")
-        child_constraints = (
-            HorizontalError(),
-            VerticalError(),
-            HorizontalError(),
-            VerticalError()
-        )
-        child_prim_keys = (
-            ("arg0/Line0",), ("arg0/Line1",), ("arg0/Line2",), ("arg0/Line3",)
-        )
-        def propogate_child_params(params):
-            return 4*((),)
-
-        return child_keys, child_constraints, child_prim_keys, propogate_child_params
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral]):
-        return np.array(())
-
-
 class AspectRatio(StaticConstruction):
     """
     Return the aspect ratio of a quadrilateral
