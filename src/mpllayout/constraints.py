@@ -329,50 +329,7 @@ ChildKeys = tuple[str, ...]
 ChildConstraints = tuple[Constraint, ...]
 
 
-class ParameterizedConstraint(Constraint):
-    """
-    Constraint with parameterized primitive argument types and child constraints
-
-    To specify a `ParameterizedConstraint`:
-    - define `init_aux_data`,
-    - and optionally define, `init_children` and `split_children_params`.
-
-    If `init_children` is undefined the constraint will have no child
-    constraints by default.
-
-    If `split_children_params` is undefined, all child constraints will be passed
-    empty parameters, and therefore use default values.
-
-    Parameters
-    ----------
-    **kwargs
-        Parameter controlling the constraint definition
-
-        Subclasses should define what these keyword arguments are.
-    """
-
-    @classmethod
-    def init_children(
-        cls, **kwargs
-    ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
-        return (), ((), ())
-
-    def propogate_child_params(self, params: ResParams) -> ResParams:
-        return tuple(() for _ in self)
-
-    @classmethod
-    def init_aux_data(
-        cls, **kwargs
-    ) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    def __init__(self, **kwargs):
-        child_prim_keys, (child_keys, child_constraints) = self.init_children(**kwargs)
-        aux_data = self.init_aux_data(**kwargs)
-        super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
-
-
-class ArrayConstraint(ParameterizedConstraint):
+class ArrayConstraint(con.ParameterizedConstruction):
     """
     Constraint representing an array of child constraints
     """
@@ -681,12 +638,13 @@ class RelativeLengthArray(ArrayConstraint):
         child_keys = tuple(f"RelativeLength{n}" for n in range(size))
         child_constraints = (size) * (RelativeLength(),)
         child_prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
-        return child_prim_keys, (child_keys, child_constraints)
 
-    def propogate_child_params(self, parameters):
-        return tuple(
-            (length,) for length in parameters.lengths
-        )
+        def propogate_child_params(parameters):
+            lengths, = parameters
+            return tuple(
+                (length,) for length in lengths
+            )
+        return child_keys, child_constraints, child_prim_keys,propogate_child_params
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
@@ -696,7 +654,8 @@ class RelativeLengthArray(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("lengths",))
         }
 
-    def assem(self, prims: tuple[pr.Line, ...], lengths: NDArray):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, ...], lengths: NDArray):
         return np.array([])
 
 
@@ -721,10 +680,10 @@ class MidpointXDistanceArray(ArrayConstraint):
         child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         child_keys = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
         child_constraints = num_child * (MidpointXDistance(),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def propogate_child_params(self, params):
-        return tuple((distance,) for distance in params.distances)
+        def propogate_child_params(params):
+            distances, = params
+            return tuple((distance,) for distance in distances)
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
@@ -734,7 +693,8 @@ class MidpointXDistanceArray(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
         }
 
-    def assem(self, prims: tuple[pr.Line, ...], distances: NDArray):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, ...], distances: NDArray):
         return np.array(())
 
 
@@ -759,10 +719,10 @@ class MidpointYDistanceArray(ArrayConstraint):
         child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
         child_keys = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
         child_constraints = num_child * (MidpointYDistance(),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def propogate_child_params(self, params):
-        return tuple((distance,) for distance in params.distances)
+        def propogate_child_params(params):
+            distances, = params
+            return tuple((distance,) for distance in distances)
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
@@ -772,7 +732,8 @@ class MidpointYDistanceArray(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
         }
 
-    def assem(self, prims: tuple[pr.Line, ...], distances: NDArray):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, ...], distances: NDArray):
         return np.array(())
 
 
@@ -793,7 +754,9 @@ class CollinearArray(ArrayConstraint):
         child_prim_keys = tuple(("arg0", f"arg{n}") for n in range(1, size))
         child_keys = tuple(f"Collinear[0][{n}]" for n in range(1, size))
         child_constraints = size * (Collinear(),)
-        return child_prim_keys, (child_keys, child_constraints)
+        def propogate_child_constraints(params):
+            return size*[()]
+        return child_keys, child_constraints, child_prim_keys, propogate_child_constraints
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
@@ -803,7 +766,8 @@ class CollinearArray(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line, ...]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, ...]):
         return np.array([])
 
 ## Point and Line constraints
@@ -968,7 +932,9 @@ class RectilinearGrid(ArrayConstraint):
             + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
             + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
         )
-        return child_prim_keys, (child_keys, child_constraints)
+        def propogate_child_params(params):
+            return len(child_keys)*[()]
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
@@ -978,7 +944,8 @@ class RectilinearGrid(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Quadrilateral, ...]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, ...]):
         return np.array(())
 
 
@@ -1055,11 +1022,12 @@ class Grid(ArrayConstraint):
             tuple(row_margin_line_labels),
         )
 
-        return child_prim_keys, (child_keys, child_constraints)
+        def propogate_child_params(params):
+            # col_widths, row_heights, col_margins, row_margins = param3s
+            return [()] + [(value,) for value in params]
 
-    def propogate_child_params(self, params):
-        # col_widths, row_heights, col_margins, row_margins = param3s
-        return [()] + [(value,) for value in params]
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
+
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
@@ -1072,8 +1040,9 @@ class Grid(ArrayConstraint):
             )
         }
 
+    @classmethod
     def assem(
-        self,
+        cls,
         prims: tuple[pr.Quadrilateral, ...],
         col_widths: NDArray,
         row_heights: NDArray,
@@ -1215,7 +1184,7 @@ class YAxisWidth(con.StaticConstruction):
 # TODO: Handle more specialized x/y axes combos? (i.e. twin x/y axes)
 # The below axis constraints are made for single x and y axises
 
-class PositionXAxis(ParameterizedConstraint):
+class PositionXAxis(con.ParameterizedConstruction):
     """
     Constrain the x-axis to the top or bottom of an axes
 
@@ -1224,6 +1193,9 @@ class PositionXAxis(ParameterizedConstraint):
     prims: tuple[pr.Axes]
         The axes
     """
+
+    def __init__(self, bottom: bool=True, top: bool=False):
+        return super().__init__(bottom=bottom, top=top)
 
     @classmethod
     def init_children(cls, bottom: bool, top: bool):
@@ -1238,11 +1210,11 @@ class PositionXAxis(ParameterizedConstraint):
             raise ValueError(
                 "Currently, 'bottom' and 'top' can't both be true"
             )
-        return child_prim_keys, (child_keys, child_constraints)
 
-    @classmethod
-    def propogate_child_params(cls, params):
-        return [(True,)]
+        def propogate_child_params(params):
+            return [(True,)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls, bottom: bool, top: bool):
@@ -1251,14 +1223,12 @@ class PositionXAxis(ParameterizedConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def __init__(self, bottom: bool=True, top: bool=False):
-        return super().__init__(bottom=bottom, top=top)
-
-    def assem(self, prims: tuple[pr.Axes]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Axes]):
         return np.array([])
 
 
-class PositionYAxis(ParameterizedConstraint):
+class PositionYAxis(con.ParameterizedConstruction):
     """
     Constrain the y-axis to the left or right of an axes
 
@@ -1267,6 +1237,9 @@ class PositionYAxis(ParameterizedConstraint):
     prims: tuple[pr.Axes]
         The axes
     """
+
+    def __init__(self, left: bool=True, right: bool=False):
+        return super().__init__(left=left, right=right)
 
     @classmethod
     def init_children(cls, left: bool=True, right: bool=False):
@@ -1281,11 +1254,11 @@ class PositionYAxis(ParameterizedConstraint):
             raise ValueError(
                 "Currently, 'left' and 'right' can't both be true"
             )
-        return child_prim_keys, (child_keys, child_constraints)
 
-    @classmethod
-    def propogate_child_params(cls, params):
-        return [(True,)]
+        def propogate_child_params(params):
+            return [(True,)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls, left: bool=True, right: bool=False):
@@ -1294,10 +1267,8 @@ class PositionYAxis(ParameterizedConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def __init__(self, left: bool=True, right: bool=False):
-        return super().__init__(left=left, right=right)
-
-    def assem(self, prims: tuple[pr.Axes]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Axes]):
         return np.array([])
 
 
