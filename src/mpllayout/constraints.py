@@ -567,74 +567,9 @@ class RelativeLength(co.StaticConstruction):
         vec_b = co.LineVector.assem((line1,))
         return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
+MidpointXDistance = generate_constraint(co.MidpointXDistance, 'MidpointXDistance')
 
-class MidpointXDistance(StaticConstraint):
-    """
-    Constrain the x-distance between two line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-
-        The distance is measured from the first to the second line
-    distance: float
-        The distance
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem(self, prims: tuple[pr.Line, pr.Line], distance: float):
-        """
-        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
-        """
-        line0, line1 = prims
-
-        midpoint0 = 1/2*(line0["Point0"].value + line0["Point1"].value)
-        midpoint1 = 1/2*(line1["Point0"].value + line1["Point1"].value)
-
-        mid_distance = jnp.dot(midpoint1 - midpoint0, np.array([1, 0]))
-        return mid_distance - distance
-
-
-class MidpointYDistance(StaticConstraint):
-    """
-    Constrain the y-distance between two line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-
-        The distance is measured from the first to the second line
-    distance: float
-        The distance
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem(self, prims: tuple[pr.Line, pr.Line], distance: float):
-        """
-        Return the y-distance error from the midpoint of line `prims[0]` to `prims[1]`
-        """
-        line0, line1 = prims
-
-        midpoint0 = 1/2*(line0["Point0"].value + line0["Point1"].value)
-        midpoint1 = 1/2*(line1["Point0"].value + line1["Point1"].value)
-
-        mid_distance = jnp.dot(midpoint1 - midpoint0, np.array([0, 1]))
-        return mid_distance - distance
-
+MidpointYDistance = generate_constraint(co.MidpointYDistance, 'MidpointYDistance')
 
 class Orthogonal(StaticConstraint):
     """

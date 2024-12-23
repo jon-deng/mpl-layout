@@ -643,6 +643,103 @@ class YLength(StaticConstruction):
         return DirectedLength.assem(prims, np.array([0, 1]))
 
 
+class Midpoint(StaticConstruction):
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        line, = prims
+        return 1/2*(line["Point0"].value + line["Point1"].value)
+
+# Argument type: tuple[Line, Line]
+
+class MidpointDirectedDistance(StaticConstruction):
+    """
+    Return the directed distance between two line midpoints
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line, pr.Line]
+        The lines
+
+        The distance is measured from the first to the second line
+    direction: NDArray
+        The direction
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",))
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line], direction: NDArray):
+        """
+        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
+        """
+        line0, line1 = prims
+        return jnp.dot(Midpoint.assem((line1,)) - Midpoint.assem((line0,)), direction)
+
+
+class MidpointXDistance(StaticConstruction):
+    """
+    Return the x-distance between two line midpoints
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line, pr.Line]
+        The lines
+
+        The distance is measured from the first to the second line
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
+        return MidpointDirectedDistance.assem(prims, np.array([1, 0]))
+
+
+class MidpointYDistance(StaticConstruction):
+    """
+    Constrain the y-distance between two line midpoints
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line, pr.Line]
+        The lines
+
+        The distance is measured from the first to the second line
+    distance: float
+        The distance
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
+        """
+        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
+        """
+        return MidpointDirectedDistance.assem(prims, np.array([0, 1]))
+
 ## Quad constructions
 
 # Argument type: tuple[Quadrilateral]
