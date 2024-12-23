@@ -764,10 +764,6 @@ class Grid(ArrayConstraint):
     ):
         return np.array([])
 
-# TODO: Incorporate this into primitives?
-def line_vector(line: pr.Line):
-    return line[1].value - line[0].value
-
 
 ## Axes constraints
 

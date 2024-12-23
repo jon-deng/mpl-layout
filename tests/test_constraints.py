@@ -15,6 +15,7 @@ from matplotlib.ticker import MultipleLocator
 
 from mpllayout import primitives as pr
 from mpllayout import constraints as co
+from mpllayout import constructions as con
 from mpllayout import ui
 from mpllayout.containers import Node
 
@@ -312,7 +313,7 @@ class TestLineLine(GeometryFixtures):
     @pytest.fixture()
     def line_coincident(self, linea, reverse):
         if reverse:
-            return self.make_line(linea['Point1'].value, -1*co.line_vector(linea))
+            return self.make_line(linea['Point1'].value, -1*con.LineVector.assem((linea,)))
         else:
             return linea
 
@@ -327,8 +328,8 @@ class TestLineLine(GeometryFixtures):
 
     @pytest.fixture()
     def relative_length(self, linea, lineb):
-        lengtha = np.linalg.norm(co.line_vector(linea))
-        lengthb = np.linalg.norm(co.line_vector(lineb))
+        lengtha = np.linalg.norm(con.LineVector.assem((linea,)))
+        lengthb = np.linalg.norm(con.LineVector.assem((lineb,)))
         return lengtha/lengthb
 
     def test_RelativeLength(self, linea, lineb, relative_length):
@@ -350,7 +351,7 @@ class TestLineLine(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     def test_Collinear(self, linea):
-        line_vec = co.line_vector(linea)
+        line_vec = con.LineVector.assem((linea,))
 
         lineb = self.make_relative_line(
             linea, np.random.rand()*line_vec, np.diag(np.ones(2))
@@ -399,7 +400,7 @@ class TestLineArray(GeometryFixtures):
 
     @pytest.fixture()
     def lines_collinear(self, linea, num_lines):
-        line_vec = co.line_vector(linea)
+        line_vec = con.LineVector.assem((linea,))
         dists = np.random.rand(num_lines-1)
         return tuple(
             self.make_relative_line(linea, dist*line_vec, np.diag(np.ones(2)))
@@ -496,7 +497,7 @@ class TestPointLine(GeometryFixtures):
         origin = line['Point0'].value
         point_vec = point.value - origin
 
-        line_vec = co.line_vector(line)
+        line_vec = con.LineVector.assem((line,))
         line_unit_vec = line_vec / np.linalg.norm(line_vec)
         return np.dot(point_vec, line_unit_vec)
 
@@ -542,8 +543,8 @@ class TestQuadrilateral(GeometryFixtures):
 
     @pytest.fixture()
     def aspect_ratio(self, quada):
-        width = np.linalg.norm(co.line_vector(quada['Line0']))
-        height = np.linalg.norm(co.line_vector(quada['Line1']))
+        width = np.linalg.norm(con.LineVector.assem((quada['Line0'],)))
+        height = np.linalg.norm(con.LineVector.assem((quada['Line1'],)))
         return width/height
 
     def test_AspectRatio(self, quada: pr.Quadrilateral, aspect_ratio: float):
@@ -791,8 +792,7 @@ class TestAxesConstraints(GeometryFixtures):
 
         def point_from_arclength(line: pr.Line, s: float):
             origin = line['Point0'].value
-            line_vector = co.line_vector(line)
-            return origin + s*line_vector
+            return origin + s*con.LineVector.assem((line,))
 
         xlabel_anchor = self.make_point(
             [point_from_arclength(xaxis['Line0'], xlabel_position)[0], np.random.rand()]
