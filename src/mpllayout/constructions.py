@@ -643,50 +643,6 @@ class YLength(StaticConstruction):
         return DirectedLength.assem(prims, np.array([0, 1]))
 
 
-class VerticalError(StaticConstruction):
-    """
-    Return the vertical error of a line
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The lines
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line]):
-        return jnp.dot(LineVector.assem(prims), np.array([1, 0]))
-
-
-class HorizontalError(StaticConstruction):
-    """
-    Return the horizontal error of a line
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The lines
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line]):
-        return jnp.dot(LineVector.assem(prims), np.array([0, 1]))
-
-
 ## Quad constructions
 
 # Argument type: tuple[Quadrilateral]

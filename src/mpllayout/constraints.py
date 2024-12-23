@@ -450,7 +450,7 @@ XDistance = generate_constraint(co.XDistance, 'XDistance')
 
 YDistance = generate_constraint(co.YDistance, 'YDistance')
 
-class Coincident(StaticConstraint):
+class Coincident(co.StaticConstruction):
     """
     Constrain two points to be coincident
 
@@ -489,7 +489,7 @@ XLength = generate_constraint(co.XLength, 'XLength')
 YLength = generate_constraint(co.YLength, 'YLength')
 
 
-class Vertical(StaticConstraint):
+class Vertical(co.StaticConstruction):
     """
     Constrain a line to be vertical
 
@@ -506,16 +506,12 @@ class Vertical(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line]):
-        """
-        Return the vertical error for a line
-        """
-        (line0,) = prims
-        dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([1, 0]))
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        return jnp.dot(co.LineVector.assem(prims), np.array([1, 0]))
 
 
-class Horizontal(StaticConstraint):
+class Horizontal(co.StaticConstruction):
     """
     Constrain a line to be horizontal
 
@@ -532,18 +528,14 @@ class Horizontal(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line]):
-        """
-        Return the horizontal error for a line
-        """
-        (line0,) = prims
-        dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([0, 1]))
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        return jnp.dot(co.LineVector.assem(prims), np.array([0, 1]))
 
 
 # Argument type: tuple[Line, Line]
 
-class RelativeLength(StaticConstraint):
+class RelativeLength(co.StaticConstruction):
     """
     Constrain the length of a line relative to another line
 
@@ -564,14 +556,15 @@ class RelativeLength(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
         }
 
-    def assem(self, prims: tuple[pr.Line, pr.Line], length: float):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line], length: float):
         """
         Return the length error of line `prims[0]` relative to line `prims[1]`
         """
         # This sets the length of a line
         line0, line1 = prims
-        vec_a = line_vector(line0)
-        vec_b = line_vector(line1)
+        vec_a = co.LineVector.assem((line0,))
+        vec_b = co.LineVector.assem((line1,))
         return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
 
