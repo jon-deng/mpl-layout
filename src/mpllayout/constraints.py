@@ -263,12 +263,12 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
     def __call__(
             self,
             prims: ResPrims,
-            params: tuple[Any, ...] | dict[str, Any]
+            *args: list[Any]
         ):
         prim_keys = tuple(f'arg{n}' for n, _ in enumerate(prims))
         root_prim = self.root_prim(prim_keys, prims)
         root_prim_keys = self.root_prim_keys(prim_keys)
-        root_params = self.root_params(params)
+        root_params = self.root_params(args)
         return self.assem_from_tree(root_prim, root_prim_keys, root_params)
 
     def assem_from_tree(
@@ -283,19 +283,19 @@ class Constraint(Node[ChildPrimKeys, "Constraint"]):
 
         residuals = tuple(
             constraint.assem_atleast_1d(
-                tuple(root_prim[arg_key] for arg_key in argkeys), params
+                tuple(root_prim[arg_key] for arg_key in argkeys), *params
             )
             for constraint, argkeys, params in zip(flat_constraints, flat_prim_keys, flat_params)
         )
         return jnp.concatenate(residuals)
 
     def assem_atleast_1d(
-            self, prims: ResPrims, params: ResParams
+            self, prims: ResPrims, *args: list[Any]
         ) -> NDArray:
-        return jnp.atleast_1d(self.assem(prims, **params._asdict()))
+        return jnp.atleast_1d(self.assem(prims, *args))
 
     def assem(
-            self, prims: ResPrims, **kwargs
+            self, prims: ResPrims, *args: list[Any]
         ) -> NDArray:
         """
         Return a residual vector representing the constraint satisfaction
@@ -350,7 +350,7 @@ class StaticConstraint(Constraint):
         return (), ((), ())
 
     def propogate_child_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self)
+        return tuple(() for _ in self)
 
     @classmethod
     def init_aux_data(
@@ -393,7 +393,7 @@ class ParameterizedConstraint(Constraint):
         return (), ((), ())
 
     def propogate_child_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self)
+        return tuple(() for _ in self)
 
     @classmethod
     def init_aux_data(
