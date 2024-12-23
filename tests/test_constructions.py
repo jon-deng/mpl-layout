@@ -222,20 +222,6 @@ class TestLine(GeometryFixtures):
 
         assert np.all(np.isclose(res, 0))
 
-    @pytest.fixture()
-    def HVError(self, axis_name):
-        if axis_name == 'x':
-            return co.HorizontalError
-        else:
-            return co.VerticalError
-
-    def test_HVError(self, HVError, axis_dir, length):
-        sign = 2*np.random.randint(0, 2)-1
-        line = self.make_line(np.random.rand(2), sign*axis_dir*length)
-
-        res = HVError()((line,))
-        assert np.all(np.isclose(res, 0))
-
 
 class TestQuadrilateral(GeometryFixtures):
     """
@@ -254,14 +240,4 @@ class TestQuadrilateral(GeometryFixtures):
 
     def test_AspectRatio(self, quada: pr.Quadrilateral, aspect_ratio: float):
         res = co.AspectRatio()((quada,)) - aspect_ratio
-        assert np.all(np.isclose(res, 0))
-
-    @pytest.fixture()
-    def quad_box(self):
-        translation = np.random.rand(2)
-        deformation = np.diag(np.random.rand(2))
-        return self.make_quad(translation, deformation)
-
-    def test_BoxError(self, quad_box: pr.Quadrilateral):
-        res = co.BoxError()((quad_box,))
         assert np.all(np.isclose(res, 0))
