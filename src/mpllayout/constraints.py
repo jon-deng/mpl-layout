@@ -63,28 +63,11 @@ class ParamsNode(Node[ResParams, "ParamsNode"]):
 # TODO: Add constraint class that accepts a unit
 # This would handle the case of setting a length relative to another one
 
-
-class ConstraintNode(Node[ChildPrimKeys, con.Construction]):
-    """
-    Container tree for constraints
-    """
-    pass
-
+ConstraintNode = con.ConstructionNode
+ArrayConstraint = con.ArrayConstruction
 
 ChildKeys = tuple[str, ...]
 ChildConstraints = tuple[con.Construction, ...]
-
-
-class ArrayConstraint(con.ParameterizedConstruction):
-    """
-    Constraint representing an array of child constraints
-    """
-
-    def __init__(self, shape: tuple[int, ...]=(0,)):
-        if isinstance(shape, int):
-            shape = (shape,)
-        super().__init__(shape=shape)
-
 
 ## Point constraints
 # NOTE: These are actual constraint classes that can be called so class docstrings

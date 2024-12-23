@@ -402,6 +402,17 @@ class ParameterizedConstruction(Construction):
     def __init__(self, **kwargs):
         super().__init__(*self.init_children(**kwargs), self.init_aux_data(**kwargs))
 
+
+class ArrayConstruction(ParameterizedConstruction):
+    """
+    Constraint representing an array of child constraints
+    """
+
+    def __init__(self, shape: tuple[int, ...]=(0,)):
+        if isinstance(shape, int):
+            shape = (shape,)
+        super().__init__(shape=shape)
+
 ## Point constructions
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
