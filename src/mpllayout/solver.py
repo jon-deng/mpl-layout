@@ -154,7 +154,7 @@ def assem_constraint_residual(
         Each residual vector corresponds to a constraint in `constraints`
     """
     residuals = [
-        constraint(tuple(root_prim[key] for key in prim_keys), param)
+        constraint(tuple(root_prim[key] for key in prim_keys), *param)
         for constraint, prim_keys, param in zip(constraints, constraint_graph, constraint_params)
     ]
     return residuals
