@@ -258,12 +258,12 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     def __call__(
             self,
             prims: Prims,
-            *args
+            *params
         ):
         prim_keys = tuple(f'arg{n}' for n, _ in enumerate(prims))
         root_prim = self.root_prim(prim_keys, prims)
         root_prim_keys = self.root_prim_keys(prim_keys)
-        root_params = self.root_params(args)
+        root_params = self.root_params(params)
         return self.assem_from_tree(root_prim, root_prim_keys, root_params)
 
     def assem_from_tree(
@@ -278,19 +278,19 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
 
         residuals = tuple(
             construction.assem_atleast_1d(
-                tuple(root_prim[arg_key] for arg_key in argkeys), params
+                tuple(root_prim[arg_key] for arg_key in argkeys), *params
             )
             for construction, argkeys, params in zip(flat_constructions, flat_prim_keys, flat_params)
         )
         return jnp.concatenate(residuals)
 
     def assem_atleast_1d(
-            self, prims: Prims, params: Params
+            self, prims: Prims, *params: Params
         ) -> NDArray:
         return jnp.atleast_1d(self.assem(prims, *params))
 
     def assem(
-            self, prims: Prims, *args
+            self, prims: Prims, *params
         ) -> NDArray:
         """
         Return a residual vector representing the construction satisfaction
