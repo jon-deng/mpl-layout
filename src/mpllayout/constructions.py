@@ -948,3 +948,100 @@ class AspectRatio(StaticConstruction):
         height = Length.assem((quad['Line1'],))
         return  width/height
 
+# Argument type: tuple[Quadrilateral, Quadrilateral]
+
+class OuterMargin(ParameterizedConstruction):
+    """
+    Return the outer margin between two quadrilaterals
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quad
+    """
+
+    @classmethod
+    def init_children(cls, side: str="left"):
+        child_keys = ("Margin",)
+        if side == "left":
+            child_constructions = (MidpointXDistance(),)
+            child_prim_keys = (("arg1/Line1", "arg0/Line3"),)
+        elif side == "right":
+            child_constructions = (MidpointXDistance(),)
+            child_prim_keys = (("arg0/Line1", "arg1/Line3"),)
+        elif side == "bottom":
+            child_constructions = (MidpointYDistance(),)
+            child_prim_keys = (("arg1/Line2", "arg0/Line0"),)
+        elif side == "top":
+            child_constructions = (MidpointYDistance(),)
+            child_prim_keys = (("arg0/Line2", "arg1/Line0"),)
+        else:
+            raise ValueError()
+
+        def propogate_child_params(params):
+            return [()]
+
+        return child_keys, child_constructions, child_prim_keys, propogate_child_params
+
+    @classmethod
+    def init_aux_data(cls, side: str="left"):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
+        return np.array([])
+
+
+class InnerMargin(ParameterizedConstruction):
+    """
+    Return the inner margin between two quadrilaterals
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quad
+    """
+
+    @classmethod
+    def init_children(cls, side: str="left"):
+        child_keys = ["Margin"]
+        if side == "left":
+            child_constructions = [MidpointXDistance()]
+            child_prim_keys = [("arg1/Line3", "arg0/Line3")]
+        elif side == "right":
+            child_constructions = [MidpointXDistance()]
+            child_prim_keys = [("arg0/Line1", "arg1/Line1")]
+        elif side == "bottom":
+            child_constructions = [MidpointYDistance()]
+            child_prim_keys = [("arg1/Line0", "arg0/Line0")]
+        elif side == "top":
+            child_constructions = [MidpointYDistance()]
+            child_prim_keys = [("arg0/Line2", "arg1/Line2")]
+        else:
+            raise ValueError()
+
+        def propogate_child_params(params):
+            return [()]
+
+        return child_keys, child_constructions, child_prim_keys, propogate_child_params
+
+    @classmethod
+    def init_aux_data(cls, side: str="left"):
+        return {
+            'RES_ARG_TYPES': (pr.Quadrilateral,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
+        }
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
+        return np.array([])
+
