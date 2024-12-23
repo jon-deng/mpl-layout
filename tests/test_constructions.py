@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 from mpllayout import primitives as pr
-from mpllayout import constructions as co
+from mpllayout import constructions as con
 from mpllayout import ui
 from mpllayout.containers import Node
 
@@ -150,7 +150,7 @@ class TestPoint(GeometryFixtures):
 
     def test_Coordinate(self, coordinate):
         point = self.make_point(coordinate)
-        res = co.Coordinate()((point,)) - coordinate
+        res = con.Coordinate()((point,)) - coordinate
         assert np.all(np.isclose(res, 0))
 
 
@@ -175,7 +175,7 @@ class TestLine(GeometryFixtures):
         return self.make_line(origin, direction * length)
 
     def test_Length(self, linea, length):
-        res = co.Length()((linea,)) - length
+        res = con.Length()((linea,)) - length
         assert np.all(np.isclose(res, 0))
 
     def test_DirectedLength(self, length, direction):
@@ -184,7 +184,7 @@ class TestLine(GeometryFixtures):
         line = self.make_line((0, 0), line_vec)
 
         dlength = np.dot(line_vec, direction)
-        res = co.DirectedLength()((line,), direction) - dlength
+        res = con.DirectedLength()((line,), direction) - dlength
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture(
@@ -207,9 +207,9 @@ class TestLine(GeometryFixtures):
     @pytest.fixture()
     def XYLength(self, axis_name):
         if axis_name == 'x':
-            return co.XLength
+            return con.XLength
         else:
-            return co.YLength
+            return con.YLength
 
     def test_XYLength(self, XYLength, axis_dir, length):
         line_dir = np.random.rand(2)
@@ -234,10 +234,10 @@ class TestQuadrilateral(GeometryFixtures):
 
     @pytest.fixture()
     def aspect_ratio(self, quada):
-        width = np.linalg.norm(co.LineVector.assem((quada['Line0'],)))
-        height = np.linalg.norm(co.LineVector.assem((quada['Line1'],)))
+        width = np.linalg.norm(con.LineVector.assem((quada['Line0'],)))
+        height = np.linalg.norm(con.LineVector.assem((quada['Line1'],)))
         return width/height
 
     def test_AspectRatio(self, quada: pr.Quadrilateral, aspect_ratio: float):
-        res = co.AspectRatio()((quada,)) - aspect_ratio
+        res = con.AspectRatio()((quada,)) - aspect_ratio
         assert np.all(np.isclose(res, 0))

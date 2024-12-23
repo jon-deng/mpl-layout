@@ -13,7 +13,7 @@ import jax.numpy as jnp
 
 from . import primitives as pr
 from .containers import Node, iter_flat
-from . import constructions as co
+from . import constructions as con
 
 Primitive = pr.Primitive
 
@@ -328,41 +328,6 @@ class ConstraintNode(Node[ChildPrimKeys, Constraint]):
 ChildKeys = tuple[str, ...]
 ChildConstraints = tuple[Constraint, ...]
 
-class StaticConstraint(Constraint):
-    """
-    Constraint with static primitive argument types and child constraints
-
-    To specify a `StaticConstraint`:
-    - define `init_aux_data`,
-    - and optionally define, `init_children` and `split_children_params`.
-
-    If `init_children` is undefined the constraint will have no child
-    constraints by default.
-
-    If `split_children_params` is undefined, all child constraints will be passed
-    empty parameters, and therefore use default values.
-    """
-
-    @classmethod
-    def init_children(
-        cls
-    ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
-        return (), ((), ())
-
-    def propogate_child_params(self, params: ResParams) -> ResParams:
-        return tuple(() for _ in self)
-
-    @classmethod
-    def init_aux_data(
-        cls
-    ) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    def __init__(self):
-        child_prim_keys, (child_keys, child_constraints) = self.init_children()
-        aux_data = self.init_aux_data()
-        super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
-
 
 class ParameterizedConstraint(Constraint):
     """
@@ -423,7 +388,7 @@ class ArrayConstraint(ParameterizedConstraint):
 # document there `assem_res` function.
 
 def generate_constraint(
-    ConstructionType: type[co.Construction],
+    ConstructionType: type[con.Construction],
     constraint_name: str
 ):
 
@@ -440,17 +405,17 @@ def generate_constraint(
 
 # Argument type: tuple[Point,]
 
-Fix = generate_constraint(co.Coordinate, 'Fix')
+Fix = generate_constraint(con.Coordinate, 'Fix')
 
 # Argument type: tuple[Point, Point]
 
-DirectedDistance = generate_constraint(co.DirectedDistance, 'DirectedDistance')
+DirectedDistance = generate_constraint(con.DirectedDistance, 'DirectedDistance')
 
-XDistance = generate_constraint(co.XDistance, 'XDistance')
+XDistance = generate_constraint(con.XDistance, 'XDistance')
 
-YDistance = generate_constraint(co.YDistance, 'YDistance')
+YDistance = generate_constraint(con.YDistance, 'YDistance')
 
-class Coincident(co.StaticConstruction):
+class Coincident(con.StaticConstruction):
     """
     Constrain two points to be coincident
 
@@ -473,23 +438,23 @@ class Coincident(co.StaticConstruction):
         Return the coincident error between two points
         """
         point0, point1 = prims
-        return co.Coordinate.assem((point1,)) - co.Coordinate.assem((point0,))
+        return con.Coordinate.assem((point1,)) - con.Coordinate.assem((point0,))
 
 
 ## Line constraints
 
 # Argument type: tuple[Line,]
 
-Length = generate_constraint(co.Length, 'Length')
+Length = generate_constraint(con.Length, 'Length')
 
-DirectedLength = generate_constraint(co.DirectedLength, 'DirectedLength')
+DirectedLength = generate_constraint(con.DirectedLength, 'DirectedLength')
 
-XLength = generate_constraint(co.XLength, 'XLength')
+XLength = generate_constraint(con.XLength, 'XLength')
 
-YLength = generate_constraint(co.YLength, 'YLength')
+YLength = generate_constraint(con.YLength, 'YLength')
 
 
-class Vertical(co.StaticConstruction):
+class Vertical(con.StaticConstruction):
     """
     Constrain a line to be vertical
 
@@ -508,10 +473,10 @@ class Vertical(co.StaticConstruction):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
-        return jnp.dot(co.LineVector.assem(prims), np.array([1, 0]))
+        return jnp.dot(con.LineVector.assem(prims), np.array([1, 0]))
 
 
-class Horizontal(co.StaticConstruction):
+class Horizontal(con.StaticConstruction):
     """
     Constrain a line to be horizontal
 
@@ -530,12 +495,12 @@ class Horizontal(co.StaticConstruction):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
-        return jnp.dot(co.LineVector.assem(prims), np.array([0, 1]))
+        return jnp.dot(con.LineVector.assem(prims), np.array([0, 1]))
 
 
 # Argument type: tuple[Line, Line]
 
-class RelativeLength(co.StaticConstruction):
+class RelativeLength(con.StaticConstruction):
     """
     Constrain the length of a line relative to another line
 
@@ -563,15 +528,15 @@ class RelativeLength(co.StaticConstruction):
         """
         # This sets the length of a line
         line0, line1 = prims
-        vec_a = co.LineVector.assem((line0,))
-        vec_b = co.LineVector.assem((line1,))
+        vec_a = con.LineVector.assem((line0,))
+        vec_b = con.LineVector.assem((line1,))
         return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
-MidpointXDistance = generate_constraint(co.MidpointXDistance, 'MidpointXDistance')
+MidpointXDistance = generate_constraint(con.MidpointXDistance, 'MidpointXDistance')
 
-MidpointYDistance = generate_constraint(co.MidpointYDistance, 'MidpointYDistance')
+MidpointYDistance = generate_constraint(con.MidpointYDistance, 'MidpointYDistance')
 
-class Orthogonal(StaticConstraint):
+class Orthogonal(con.StaticConstruction):
     """
     Constrain two lines to be orthogonal
 
@@ -588,19 +553,20 @@ class Orthogonal(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line, pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
         """
         Return the orthogonal error between two lines
         """
         line0, line1 = prims
-        dir0 = line_vector(line0)
-        dir1 = line_vector(line1)
-        return jnp.dot(dir0, dir1)
+        return jnp.dot(
+            con.LineVector.assem((line0,)), con.LineVector.assem((line1,))
+        )
 
 
-class Parallel(StaticConstraint):
+class Parallel(con.StaticConstruction):
     """
-    Constrain two lines to be parallel
+    Return the parallel error between two lines
 
     Parameters
     ----------
@@ -615,22 +581,23 @@ class Parallel(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Line, pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
         """
         Return the parallel error between two lines
         """
         line0, line1 = prims
-        dir0 = line_vector(line0)
-        dir1 = line_vector(line1)
-        return jnp.cross(dir0, dir1)
+        return jnp.cross(
+            con.LineVector.assem((line0,)), con.LineVector.assem((line1,))
+        )
 
 
-Angle = generate_constraint(co.Angle, 'Angle')
+Angle = generate_constraint(con.Angle, 'Angle')
 
 
-class Collinear(StaticConstraint):
+class Collinear(con.StaticConstruction):
     """
-    Constrain two lines to be collinear
+    Return the collinear error between two lines
 
     Parameters
     ----------
@@ -645,30 +612,29 @@ class Collinear(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
+    @classmethod
     def assem(self, prims: tuple[pr.Line, pr.Line]):
         """
         Return the collinearity error between two lines
         """
-        res_parallel = Parallel()
         line0, line1 = prims
         line2 = pr.Line(prims=(line1[0], line0[0]))
-        # line3 = primitives.Line(children=(line1['Point0'], line0['Point1']))
 
-        return jnp.concatenate(
-            [res_parallel((line0, line1)), res_parallel((line0, line2))]
+        return jnp.array(
+            [Parallel.assem((line0, line1)), Parallel.assem((line0, line2))]
         )
 
 
-class CoincidentLines(StaticConstraint):
+class CoincidentLines(con.StaticConstruction):
     """
-    Constrain two lines to be coincident
+    Return coincident error between two lines
 
     Parameters
     ----------
     prims: tuple[pr.Line, pr.Line]
         The lines
     reverse: bool
-        A boolean indicating whether to coincide lines in the same or reverse directions
+        A boolean indicating whether lines are reversed
     """
 
     @classmethod
@@ -678,17 +644,18 @@ class CoincidentLines(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
         }
 
-    def assem(self, prims: tuple[pr.Line, pr.Line], reverse: bool):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line], reverse: bool):
         """
         Return the coincident error between two lines
         """
         line0, line1 = prims
-        if not reverse:
-            point0_err = line1["Point0"].value - line0["Point0"].value
-            point1_err = line1["Point1"].value - line0["Point1"].value
+        if reverse:
+            point0_err = Coincident.assem((line1['Point0'], line0['Point1']))
+            point1_err = Coincident.assem((line1['Point1'], line0['Point0']))
         else:
-            point0_err = line1["Point0"].value - line0["Point1"].value
-            point1_err = line1["Point1"].value - line0["Point0"].value
+            point0_err = Coincident.assem((line1['Point0'], line0['Point0']))
+            point1_err = Coincident.assem((line1['Point1'], line0['Point1']))
         return jnp.concatenate([point0_err, point1_err])
 
 # Argument type: tuple[Line, ...]
@@ -851,12 +818,12 @@ class CollinearArray(ArrayConstraint):
 # + and offset
 # This would be useful for aligning axis labels
 
-PointOnLineDistance = generate_constraint(co.PointOnLineDistance, 'PointOnLineDistance')
+PointOnLineDistance = generate_constraint(con.PointOnLineDistance, 'PointOnLineDistance')
 
-PointToLineDistance = generate_constraint(co.PointToLineDistance, 'PointToLineDistance')
+PointToLineDistance = generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
 
 
-class RelativePointOnLineDistance(StaticConstraint):
+class RelativePointOnLineDistance(con.StaticConstruction):
     """
     Constrain the projected distance of a point along a line
 
@@ -880,8 +847,9 @@ class RelativePointOnLineDistance(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
         }
 
+    @classmethod
     def assem(
-        self,
+        cls,
         prims: tuple[pr.Point, pr.Line],
         reverse: bool,
         distance: float
@@ -891,13 +859,12 @@ class RelativePointOnLineDistance(StaticConstraint):
         """
         point, line = prims
         if reverse:
-            origin = line['Point1'].value
-            line_vec = -line_vector(line)
+            origin = con.Coordinate.assem((line['Point1'],))
+            unit_vec = -con.UnitLineVector.assem((line,))
         else:
-            origin = line['Point0'].value
-            line_vec = line_vector(line)
-        line_length = jnp.linalg.norm(line_vec)
-        unit_vec = line_vec / line_length
+            origin = con.Coordinate.assem((line['Point0'],))
+            unit_vec = con.UnitLineVector.assem((line,))
+        line_length = con.Length.assem((line,))
 
         proj_dist = jnp.dot(point.value-origin, unit_vec)
         return jnp.array([proj_dist - distance*line_length])
@@ -907,7 +874,7 @@ class RelativePointOnLineDistance(StaticConstraint):
 
 # Argument type: tuple[Quadrilateral]
 
-class Box(StaticConstraint):
+class Box(con.StaticConstruction):
     """
     Constrain a quadrilateral to be rectangular
 
@@ -922,7 +889,9 @@ class Box(StaticConstraint):
         child_keys = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
         child_constraints = (Horizontal(), Horizontal(), Vertical(), Vertical())
         child_prim_keys = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
-        return child_prim_keys, (child_keys, child_constraints)
+        def propagate_child_params(params):
+            return [(), (), (), ()]
+        return child_keys, child_constraints, child_prim_keys, propagate_child_params
 
     @classmethod
     def init_aux_data(cls):
@@ -931,48 +900,17 @@ class Box(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    def assem(self, prims: tuple[pr.Quadrilateral]):
-        return np.array(())
-
-
-class AspectRatio(StaticConstraint):
-    """
-    Constrain the aspect ratio of a quadrilateral
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral]
-        The quad
-    ar: float
-        The aspect ratio
-    """
-
     @classmethod
-    def init_children(cls):
-        child_keys = ("RelativeLength",)
-        child_constraints = (RelativeLength(), )
-        child_prim_keys = (("arg0/Line0", "arg0/Line1"),)
-        return child_prim_keys, (child_keys, child_constraints)
+    def assem(cls, prims: tuple[pr.Quadrilateral]):
+        return np.array([])
 
-    def propogate_child_params(self, parameters):
-        return [(parameters.ar,)]
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",))
-        }
-
-    def assem(self, prims: tuple[pr.Quadrilateral], ar: float):
-        return np.array(())
-
+AspectRatio = generate_constraint(con.AspectRatio, 'AspectRatio')
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-OuterMargin = generate_constraint(co.OuterMargin, 'OuterMargin')
+OuterMargin = generate_constraint(con.OuterMargin, 'OuterMargin')
 
-InnerMargin = generate_constraint(co.InnerMargin, 'InnerMargin')
+InnerMargin = generate_constraint(con.InnerMargin, 'InnerMargin')
 
 # Argument type: tuple[Quadrilateral, ...]
 
@@ -1185,9 +1123,9 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
     return dim
 
-class XAxisHeight(StaticConstraint):
+class XAxisHeight(con.StaticConstruction):
     """
-    Constrain the x-axis height for an axes
+    Return the x-axis height for an axes
 
     Parameters
     ----------
@@ -1206,14 +1144,16 @@ class XAxisHeight(StaticConstraint):
         child_keys = ("Height",)
         child_constraints = (YDistance(),)
         child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
-        return child_prim_keys, (child_keys, child_constraints)
 
-    def propogate_child_params(self, parameters):
-        xaxis: XAxis | None = parameters.axis
-        if xaxis is None:
-            return [(0,)]
-        else:
-            return [(self.get_xaxis_height(xaxis),)]
+        def propogate_child_params(parameters):
+            xaxis: XAxis | None
+            xaxis, = parameters
+            if xaxis is None:
+                return [(0,)]
+            else:
+                return [(cls.get_xaxis_height(xaxis),)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls):
@@ -1222,11 +1162,12 @@ class XAxisHeight(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
         }
 
-    def assem(self, prims: tuple[pr.Quadrilateral], axis: XAxis):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral], axis: XAxis):
         return np.array([])
 
 
-class YAxisWidth(StaticConstraint):
+class YAxisWidth(con.StaticConstruction):
     """
     Constrain the y-axis width for an axes
 
@@ -1247,14 +1188,16 @@ class YAxisWidth(StaticConstraint):
         child_keys = ("Width",)
         child_constraints = (XDistance(),)
         child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
-        return child_prim_keys, (child_keys, child_constraints)
 
-    def propogate_child_params(self, parameters):
-        yaxis: YAxis | None = parameters.axis
-        if yaxis is None:
-            return [(0,)]
-        else:
-            return [(self.get_yaxis_width(yaxis),)]
+        def propogate_child_params(parameters):
+            yaxis: YAxis | None
+            yaxis, = parameters
+            if yaxis is None:
+                return [(0,)]
+            else:
+                return [(cls.get_yaxis_width(yaxis),)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls):
@@ -1263,7 +1206,8 @@ class YAxisWidth(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
         }
 
-    def assem(self, prims: tuple[pr.Quadrilateral], axis: YAxis):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral], axis: YAxis):
         return np.array([])
 
 # Argument type: tuple[Axes]
@@ -1357,7 +1301,7 @@ class PositionYAxis(ParameterizedConstraint):
         return np.array([])
 
 
-class PositionXAxisLabel(StaticConstraint):
+class PositionXAxisLabel(con.StaticConstruction):
     """
     Constrain the x-axis label horizontal distance (left to right) relative to axes width
 
@@ -1375,11 +1319,12 @@ class PositionXAxisLabel(StaticConstraint):
         child_keys = ('RelativePointOnLineDistance',)
         child_constraints = (RelativePointOnLineDistance(),)
         child_prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
-        return child_prim_keys, (child_keys, child_constraints)
 
-    def propogate_child_params(self, params):
-        distance, = params
-        return [(False, params.distance)]
+        def propogate_child_params(params):
+            distance, = params
+            return [(False, distance)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls):
@@ -1388,11 +1333,12 @@ class PositionXAxisLabel(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
         }
 
-    def assem(self, prims: tuple[pr.Axes], distance: float):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Axes], distance: float):
         return np.array([])
 
 
-class PositionYAxisLabel(StaticConstraint):
+class PositionYAxisLabel(con.StaticConstruction):
     """
     Constrain the y-axis label vertical distance (bottom to top) relative to axes height
 
@@ -1409,11 +1355,12 @@ class PositionYAxisLabel(StaticConstraint):
         child_keys = ('RelativePointOnLineDistance',)
         child_constraints = (RelativePointOnLineDistance(),)
         child_prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
-        return child_prim_keys, (child_keys, child_constraints)
 
-    def propogate_child_params(self, params):
-        distance, = params
-        return [(False, params.distance)]
+        def propogate_child_params(params):
+            distance, = params
+            return [(False, distance)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
 
     @classmethod
     def init_aux_data(cls):
@@ -1422,5 +1369,6 @@ class PositionYAxisLabel(StaticConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
         }
 
-    def assem(self, prims: tuple[pr.Axes], distance: float):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Axes], distance: float):
         return np.array([])
