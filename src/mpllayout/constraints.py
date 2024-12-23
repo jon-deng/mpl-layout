@@ -63,7 +63,8 @@ def generate_constraint(
 
     class DerivedConstraint(ConstructionType):
 
-        def assem(self, prims, *args):
+        @classmethod
+        def assem(cls, prims, *args):
             *params, value = args
             return ConstructionType.assem(prims, *params) - value
 
