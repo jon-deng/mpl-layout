@@ -40,25 +40,8 @@ def load_named_tuple(
         raise TypeError()
     return args
 
-
-class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
-    """
-    A tree of primitive keys indicating primitives for a constraint
-
-    The tree structure should match the tree structure of a constraint such that
-    for each constraint node, there is a corresponding primitive keys node.
-    """
-    pass
-
-
-class ParamsNode(Node[ResParams, "ParamsNode"]):
-    """
-    A tree of residual parameters (kwargs) for a constraint
-
-    The tree structure should match the tree structure of a constraint such that
-    for each constraint node, there is a corresponding parameters node.
-    """
-    pass
+PrimKeysNode = con.PrimKeysNode
+ParamsNode = con.ParamsNode
 
 # TODO: Add constraint class that accepts a unit
 # This would handle the case of setting a length relative to another one
