@@ -787,6 +787,98 @@ class Angle(StaticConstruction):
         dir1 = UnitLineVector.assem((line1,))
         return jnp.arccos(jnp.dot(dir0, dir1))
 
+## Point and Line constraints
+
+# Argument type: tuple[Point, Line]
+
+class PointOnLineDistance(StaticConstruction):
+    """
+    Return the projected distance of a point along a line
+
+    Parameters
+    ----------
+    prims: tuple[pr.Point, pr.Line]
+        The point and line
+    reverse: bool
+        A boolean indicating whether to reverse the line direction
+
+        The distance of the point on the line is measured either from the start or end
+        point of the line based on `reverse`. If `reverse=False` then the start point is
+        used.
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
+        }
+
+    @classmethod
+    def assem(
+        cls,
+        prims: tuple[pr.Point, pr.Line],
+        reverse: bool
+    ):
+        """
+        Return the projected distance error of a point along a line
+        """
+        point, line = prims
+        if reverse:
+            origin = line['Point1'].value
+            unit_vec = -UnitLineVector.assem((line,))
+        else:
+            origin = line['Point0'].value
+            unit_vec = UnitLineVector.assem((line,))
+
+        return jnp.dot(point.value-origin, unit_vec)
+
+
+class PointToLineDistance(StaticConstruction):
+    """
+    Return the orthogonal distance of a point to a line
+
+    Parameters
+    ----------
+    prims: tuple[pr.Point, pr.Line]
+        The point and line
+    reverse: NDArray
+        Whether to reverse the line direction for measuring the orthogonal
+
+        By convention the orthogonal direction points to the left of the line relative
+        to the line direction. If `reverse=True` then the orthogonal direction points to
+        the right of the line.
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Point, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
+        }
+
+    @classmethod
+    def assem(
+        cls,
+        prims: tuple[pr.Point, pr.Line],
+        reverse: bool
+    ):
+        """
+        Return the projected distance error of a point to a line
+        """
+        point, line = prims
+
+        line_vec = UnitLineVector.assem((line,))
+
+        if reverse:
+            orth_vec = jnp.cross(line_vec, np.array([0, 0, 1]))[:2]
+        else:
+            orth_vec = jnp.cross(line_vec, np.array([0, 0, -1]))[:2]
+
+        origin = line['Point0'].value
+
+        return jnp.dot(point.value-origin, orth_vec)
+
 ## Quad constructions
 
 # Argument type: tuple[Quadrilateral]

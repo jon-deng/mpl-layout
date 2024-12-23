@@ -851,51 +851,9 @@ class CollinearArray(ArrayConstraint):
 # + and offset
 # This would be useful for aligning axis labels
 
-class PointOnLineDistance(StaticConstraint):
-    """
-    Constrain the projected distance of a point along a line
+PointOnLineDistance = generate_constraint(co.PointOnLineDistance, 'PointOnLineDistance')
 
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Line]
-        The point and line
-    distance: float
-    reverse: bool
-        A boolean indicating whether to reverse the line direction
-
-        The distance of the point on the line is measured either from the start or end
-        point of the line based on `reverse`. If `reverse=False` then the start point is
-        used.
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
-        }
-
-    def assem(
-        self,
-        prims: tuple[pr.Point, pr.Line],
-        reverse: bool,
-        distance: float
-    ):
-        """
-        Return the projected distance error of a point along a line
-        """
-        point, line = prims
-        if reverse:
-            origin = line['Point1'].value
-            line_vec = -line_vector(line)
-        else:
-            origin = line['Point0'].value
-            line_vec = line_vector(line)
-        line_length = jnp.linalg.norm(line_vec)
-        unit_vec = line_vec / line_length
-
-        proj_dist = jnp.dot(point.value-origin, unit_vec)
-        return jnp.array([proj_dist - distance])
+PointToLineDistance = generate_constraint(co.PointToLineDistance, 'PointToLineDistance')
 
 
 class RelativePointOnLineDistance(StaticConstraint):
@@ -943,59 +901,6 @@ class RelativePointOnLineDistance(StaticConstraint):
 
         proj_dist = jnp.dot(point.value-origin, unit_vec)
         return jnp.array([proj_dist - distance*line_length])
-
-
-class PointToLineDistance(StaticConstraint):
-    """
-    Constrain the orthogonal distance of a point to a line
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Line]
-        The point and line
-    distance: float
-    reverse: NDArray
-        Whether to reverse the line direction for measuring the orthogonal
-
-        By convention the orthogonal direction points to the left of the line relative
-        to the line direction. If `reverse=True` then the orthogonal direction points to
-        the right of the line.
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
-        }
-
-    def assem(
-        self,
-        prims: tuple[pr.Point, pr.Line],
-        reverse: bool,
-        distance: float,
-    ):
-        """
-        Return the projected distance error of a point to a line
-        """
-        point, line = prims
-
-        line_vec = line_vector(line)
-        line_length = jnp.linalg.norm(line_vec)
-        line_unit_vec = line_vec / line_length
-
-        zsign = 1 if reverse else -1
-        orth_unit_vec = jnp.cross(line_unit_vec, np.array([0, 0, zsign]))[:2]
-
-        origin = line['Point0'].value
-
-        proj_dist = jnp.dot(point.value-origin, orth_unit_vec)
-        return jnp.array([proj_dist - distance])
-#
-# This would constrain the projected distance of a point to a line
-# You would need a convention of which "distance" is positive by picking an orthogonal
-# to the line
-# This would be useful to constrain a point to line on a line or off set a line from a point
 
 
 ## Quad constraints
