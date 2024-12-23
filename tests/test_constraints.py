@@ -75,23 +75,20 @@ class TestPointPoint(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def xdistance(self, distance, direction):
-        return distance*direction[0]
-
-    def test_XDistance(
-        self, pointa: pr.Point, pointb: pr.Point, xdistance: float
-    ):
-        res = co.XDistance()((pointa, pointb), xdistance)
-        assert np.all(np.isclose(res, 0))
+    def XYDistance(self, axis_name: str):
+        if axis_name == 'x':
+            return co.XDistance
+        else:
+            return co.YDistance
 
     @pytest.fixture()
-    def ydistance(self, distance, direction):
-        return distance*direction[1]
+    def xy_distance(self, distance, direction, axis_dir):
+        return np.dot(distance*direction, axis_dir)
 
-    def test_YDistance(
-        self, pointa: pr.Point, pointb: pr.Point, ydistance: float
+    def test_XYDistance(
+        self, XYDistance, pointa: pr.Point, pointb: pr.Point, xy_distance: float
     ):
-        res = co.YDistance()((pointa, pointb), ydistance)
+        res = XYDistance()((pointa, pointb), xy_distance)
         assert np.all(np.isclose(res, 0))
 
     def test_Coincident(
@@ -126,23 +123,18 @@ class TestLine(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def xlength(self, length, direction):
-        proj_dir = np.array([1, 0])
-        proj_length = length * np.dot(direction, proj_dir)
-        return proj_length
-
-    def test_XLength(self, linea, xlength):
-        res = co.XLength()((linea,), xlength)
-        assert np.all(np.isclose(res, 0))
+    def XYLength(self, axis_name:str):
+        if axis_name == 'x':
+            return co.XLength
+        else:
+            return co.YLength
 
     @pytest.fixture()
-    def ylength(self, length, direction):
-        proj_dir = np.array([0, 1])
-        proj_length = length * np.dot(direction, proj_dir)
-        return proj_length
+    def xy_length(self, length: float, direction: NDArray, axis_dir: NDArray):
+        return np.dot(length * direction, axis_dir)
 
-    def test_YLength(self, linea, ylength):
-        res = co.YLength()((linea,), ylength)
+    def test_XYLength(self, XYLength, linea, xy_length):
+        res = XYLength()((linea,), xy_length)
         assert np.all(np.isclose(res, 0))
 
 
@@ -241,17 +233,20 @@ class TestLineLine(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def midpoint_distance(self, linea, lineb):
+    def MidpointXYDistance(self, axis_name: str):
+        if axis_name == 'x':
+            return co.MidpointXDistance
+        else:
+            return co.MidpointYDistance
+
+    @pytest.fixture()
+    def midpoint_xy_distance(self, linea, lineb, axis_dir: NDArray):
         midpointa = 1/2*(linea['Point0'].value + linea['Point1'].value)
         midpointb = 1/2*(lineb['Point0'].value + lineb['Point1'].value)
-        return midpointb - midpointa
+        return np.dot(midpointb - midpointa, axis_dir)
 
-    def test_MidpointXDistance(self, linea, lineb, midpoint_distance):
-        res = co.MidpointXDistance()((linea, lineb), midpoint_distance[0])
-        assert np.all(np.isclose(res, 0))
-
-    def test_MidpointYDistance(self, linea, lineb, midpoint_distance):
-        res = co.MidpointYDistance()((linea, lineb), midpoint_distance[1])
+    def test_MidpointXYDistance(self, MidpointXYDistance, linea, lineb, midpoint_xy_distance):
+        res = MidpointXYDistance()((linea, lineb), midpoint_xy_distance)
         assert np.all(np.isclose(res, 0))
 
 
@@ -329,21 +324,33 @@ class TestLineArray(GeometryFixtures):
         )
 
     @pytest.fixture()
-    def midpoint_distances(self, line_pairs):
+    def MidpointXYDistanceArray(self, axis_name: str):
+        if axis_name == 'x':
+            return co.MidpointXDistanceArray
+        else:
+            return co.MidpointYDistanceArray
+
+    @pytest.fixture()
+    def midpoint_xy_distances(self, line_pairs, axis_dir: NDArray):
         def midpoint_distance(linea, lineb):
             mida = 1/2*(linea['Point0'].value + linea['Point1'].value)
             midb = 1/2*(lineb['Point0'].value + lineb['Point1'].value)
             return midb - mida
-        return np.array([midpoint_distance(*line_pair) for line_pair in line_pairs])
+        midpoint_distances = np.array(
+            [midpoint_distance(*line_pair) for line_pair in line_pairs]
+        )
+        return np.dot(midpoint_distances, axis_dir)
 
     @pytest.fixture()
     def lines_midpointsarray(self, line_pairs):
         return tuple(itertools.chain.from_iterable(line_pairs))
 
-    def test_XDistanceMidpointsArray(self, lines_midpointsarray, midpoint_distances):
+    def test_MidpointXYDistanceArray(
+        self, MidpointXYDistanceArray, lines_midpointsarray, midpoint_xy_distances
+    ):
         num_pairs = len(lines_midpointsarray) // 2
-        res = co.MidpointXDistanceArray(num_pairs)(
-            lines_midpointsarray, midpoint_distances[:, 0]
+        res = MidpointXYDistanceArray(num_pairs)(
+            lines_midpointsarray, midpoint_xy_distances
         )
         assert np.all(np.isclose(res, 0))
 
@@ -544,14 +551,7 @@ class TestQuadrilateralArray(GeometryFixtures):
         rel_row_heights = 3 * np.ones(num_row - 1)
         row_margins = 0.1 * np.ones(num_row - 1)
 
-        grid_kwargs = {
-            "col_widths": rel_col_widths,
-            "row_heights": rel_row_heights,
-            "col_margins": col_margins,
-            "row_margins": row_margins,
-        }
         return (rel_col_widths, rel_row_heights, col_margins, row_margins)
-        # return grid_kwargs
 
     @pytest.fixture()
     def quads_grid(
