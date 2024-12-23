@@ -480,33 +480,13 @@ class Coincident(StaticConstraint):
 
 # Argument type: tuple[Line,]
 
-class Length(StaticConstraint):
-    """
-    Constrain the length of a line
+Length = generate_constraint(co.Length, 'Length')
 
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    """
+DirectedLength = generate_constraint(co.DirectedLength, 'DirectedLength')
 
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
+XLength = generate_constraint(co.XLength, 'XLength')
 
-    def assem(self, prims: tuple[pr.Line], length: float):
-        """
-        Return the length error of a line
-        """
-        # This sets the length of a line
-        (line,) = prims
-        vec = line_vector(line)
-        return jnp.sum(vec**2) - length**2
+YLength = generate_constraint(co.YLength, 'YLength')
 
 
 class Vertical(StaticConstraint):
@@ -559,114 +539,6 @@ class Horizontal(StaticConstraint):
         (line0,) = prims
         dir0 = line_vector(line0)
         return jnp.dot(dir0, np.array([0, 1]))
-
-
-class DirectedLength(StaticConstraint):
-    """
-    Constrain the length of a line projected along a vector
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    direction: NDArray
-        The direction
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length", "direction"))
-        }
-
-    def assem(
-        self,
-        prims: tuple[pr.Line],
-        direction: NDArray,
-        length: float
-    ):
-        """
-        Return the length error of a line
-        """
-        # This sets the length of a line
-        return co.DirectedLength.assem(prims, direction) - length
-
-
-class XLength(StaticConstraint):
-    """
-    Constrain the length of a line projected along the x direction
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("DirectedLength",)
-        child_constraints = (DirectedLength(),)
-        child_prim_keys = (("arg0",),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def propogate_child_params(self, params):
-        length, = params
-        return [(np.array([1, 0]), length)]
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
-
-    def assem(self, prims: tuple[pr.Line], length: float):
-        """
-        Return the length error of a line
-        """
-        return np.array([])
-
-
-class YLength(StaticConstraint):
-    """
-    Constrain the length of a line projected along the y direction
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("DirectedLength",)
-        child_constraints = (DirectedLength(),)
-        child_prim_keys = (("arg0",),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def propogate_child_params(self, params):
-        length, = params
-        return [(np.array([0, 1]), length)]
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
-
-    def assem(self, prims: tuple[pr.Line], length: float):
-        """
-        Return the length error of a line
-        """
-        return np.array([])
 
 
 # Argument type: tuple[Line, Line]
