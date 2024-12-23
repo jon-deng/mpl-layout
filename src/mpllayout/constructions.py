@@ -289,8 +289,9 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         ) -> NDArray:
         return jnp.atleast_1d(self.assem(prims, *params))
 
+    @classmethod
     def assem(
-            self, prims: Prims, *params
+            cls, prims: Prims, *params
         ) -> NDArray:
         """
         Return a residual vector representing the construction satisfaction
@@ -547,6 +548,29 @@ class LineVector(StaticConstruction):
         return pointb.value - pointa.value
 
 
+class UnitLineVector(StaticConstruction):
+    """
+    Return the unit line vector
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The lines
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line,),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        line_vec = LineVector.assem(prims)
+        return line_vec/jnp.linalg.norm(line_vec)
+
+
 class Length(StaticConstruction):
     """
     Return the length of a line
@@ -722,8 +746,6 @@ class MidpointYDistance(StaticConstruction):
         The lines
 
         The distance is measured from the first to the second line
-    distance: float
-        The distance
     """
 
     @classmethod
@@ -739,6 +761,31 @@ class MidpointYDistance(StaticConstruction):
         Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
         """
         return MidpointDirectedDistance.assem(prims, np.array([0, 1]))
+
+
+class Angle(StaticConstruction):
+    """
+    Return the angle between two lines
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line, pr.Line]
+        The lines
+    """
+
+    @classmethod
+    def init_aux_data(cls):
+        return {
+            'RES_ARG_TYPES': (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+        }
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
+        line0, line1 = prims
+        dir0 = UnitLineVector.assem((line0,))
+        dir1 = UnitLineVector.assem((line1,))
+        return jnp.arccos(jnp.dot(dir0, dir1))
 
 ## Quad constructions
 

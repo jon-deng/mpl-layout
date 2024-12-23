@@ -625,36 +625,7 @@ class Parallel(StaticConstraint):
         return jnp.cross(dir0, dir1)
 
 
-class Angle(StaticConstraint):
-    """
-    Constrain the angle between two lines
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-    angle: float
-        The angle
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("angle",))
-        }
-
-    def assem(self, prims: tuple[pr.Line, pr.Line], angle: float):
-        """
-        Return the angle error between two lines
-        """
-        line0, line1 = prims
-        dir0 = line_vector(line0)
-        dir1 = line_vector(line1)
-
-        dir0 = dir0 / jnp.linalg.norm(dir0)
-        dir1 = dir1 / jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - angle
+Angle = generate_constraint(co.Angle, 'Angle')
 
 
 class Collinear(StaticConstraint):
