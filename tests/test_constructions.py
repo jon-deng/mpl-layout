@@ -62,23 +62,6 @@ class TestLine(GeometryFixtures):
         res = con.DirectedLength()((line,), direction) - dlength
         assert np.all(np.isclose(res, 0))
 
-    @pytest.fixture(
-        params=[
-            ('x', np.array([1, 0])),
-            ('y', np.array([0, 1]))
-        ]
-    )
-    def axis_name_dir(self, request):
-        return request.param
-
-    @pytest.fixture()
-    def axis_name(self, axis_name_dir):
-        return axis_name_dir[0]
-
-    @pytest.fixture()
-    def axis_dir(self, axis_name_dir):
-        return axis_name_dir[1]
-
     @pytest.fixture()
     def XYLength(self, axis_name):
         if axis_name == 'x':

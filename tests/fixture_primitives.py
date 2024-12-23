@@ -4,6 +4,7 @@ Fixtures to create primitives
 
 from numpy.typing import NDArray
 
+import pytest
 import itertools
 
 import numpy as np
@@ -14,6 +15,25 @@ class GeometryFixtures:
     """
     Utilities to help create primitives
     """
+
+    ## Coordinate axes
+
+    @pytest.fixture(
+        params=[
+            ('x', np.array([1, 0])),
+            ('y', np.array([0, 1]))
+        ]
+    )
+    def axis_name_dir(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def axis_name(self, axis_name_dir):
+        return axis_name_dir[0]
+
+    @pytest.fixture()
+    def axis_dir(self, axis_name_dir):
+        return axis_name_dir[1]
 
     ## Point creation
     def make_point(self, coord):
