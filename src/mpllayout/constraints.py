@@ -46,6 +46,7 @@ ParamsNode = con.ParamsNode
 # TODO: Add constraint class that accepts a unit
 # This would handle the case of setting a length relative to another one
 
+Constraint = con.Construction
 ConstraintNode = con.ConstructionNode
 ArrayConstraint = con.ArrayConstruction
 
