@@ -458,10 +458,6 @@ class RelativeLengthArray(ArrayConstraint):
             'RES_SIZE': 0
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line, ...], lengths: NDArray):
-        return np.array([])
-
 
 class MidpointXDistanceArray(ArrayConstraint):
     """
@@ -497,10 +493,6 @@ class MidpointXDistanceArray(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",)),
             'RES_SIZE': 0
         }
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line, ...], distances: NDArray):
-        return np.array(())
 
 
 class MidpointYDistanceArray(ArrayConstraint):
@@ -538,10 +530,6 @@ class MidpointYDistanceArray(ArrayConstraint):
             'RES_SIZE': 0
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line, ...], distances: NDArray):
-        return np.array(())
-
 
 class CollinearArray(ArrayConstraint):
     """
@@ -572,10 +560,6 @@ class CollinearArray(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
             'RES_SIZE': 0
         }
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line, ...]):
-        return np.array([])
 
 ## Point and Line constraints
 
@@ -867,10 +851,6 @@ class RectilinearGrid(ArrayConstraint):
             'RES_SIZE': 0
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, ...]):
-        return np.array(())
-
 
 class Grid(ArrayConstraint):
     """
@@ -963,17 +943,6 @@ class Grid(ArrayConstraint):
             ),
             'RES_SIZE': 0
         }
-
-    @classmethod
-    def assem(
-        cls,
-        prims: tuple[pr.Quadrilateral, ...],
-        col_widths: NDArray,
-        row_heights: NDArray,
-        col_margins: NDArray,
-        row_margins: NDArray
-    ):
-        return np.array([])
 
 
 ## Axes constraints
