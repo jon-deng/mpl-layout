@@ -6,6 +6,8 @@ import pytest
 
 from timeit import timeit
 
+import numpy as np
+
 from mpllayout import containers as cn
 
 
@@ -72,3 +74,29 @@ class TestNode:
         )
         print(f"Unflattening duration: {duration/N: .2e} s")
 
+class TestFunctions:
+
+    def test_map(self):
+        def fun(x):
+            return x+1
+        node = cn.Node(1, {'a': cn.Node(1, {}), 'b': cn.Node(1, {}), 'c': cn.Node(1, {})})
+
+        new_node = cn.map(fun, node)
+
+        test_node_values = [fun(_node.value) for _key, _node in cn.iter_flat('', node)]
+        new_node_values = [_node.value for _key, _node in cn.iter_flat('', new_node)]
+        assert np.all(np.isclose(new_node_values, test_node_values))
+
+    def test_accumulate(self):
+        # TODO: Think of how to test this properly?
+        # Could have two tests to check that recursion works + iterating over different numbers of children works?
+        def fun(x, y):
+            return x + y
+
+        import string
+        values = 5*[1]
+        node = cn.Node(0, {key: cn.Node(value, {}) for key, value in zip(string.ascii_lowercase, values)})
+
+        new_node = cn.accumulate(fun, node, 0)
+
+        assert np.isclose(new_node.value, np.sum(values))
