@@ -8,6 +8,7 @@ This class is used by itself as well as to define geometric primitives and const
 from typing import TypeVar, Generic, Any, Iterable, Callable
 
 import itertools
+import functools
 
 import jax
 
@@ -367,7 +368,7 @@ U = TypeVar("U")
 def map(
     function: Callable[[TValue], U],
     node: Node[TValue, TChild]
-) -> Node[TValue, TChild]:
+) -> Node[U, TChild]:
     """
     Return a node by applying a function to every value in an input node
     """
@@ -380,6 +381,27 @@ def map(
     ]
     return unflatten(flat_map_node_structs)[0]
 
+def accumulate(
+    function: Callable[[TValue, TValue], TValue],
+    node: Node[TValue, TChild],
+    initial: TValue
+) -> Node[TValue, TChild]:
+    """
+    Return a node by accumulating all leaf node values into the root
+    """
+    # Recursively create all accumulated child nodes
+    cnodes = {
+        ckey: accumulate(function, cnode, initial)
+        for ckey, cnode in node.items()
+    }
+
+    if len(cnodes) == 0:
+        value = function(node.value, initial)
+    else:
+        value = functools.reduce(
+            function, [node.value]+[cnode.value for cnode in cnodes.values()]
+        )
+    return Node(value, cnodes)
 
 ## Manual flattening/unflattening implementation
 
