@@ -99,3 +99,72 @@ class TestQuadrilateral(GeometryFixtures):
     def test_AspectRatio(self, quada: pr.Quadrilateral, aspect_ratio: float):
         res = con.AspectRatio()((quada,)) - aspect_ratio
         assert np.all(np.isclose(res, 0))
+
+
+class TestQuadrilateralQuadrilateral(GeometryFixtures):
+    """
+    Test constraints with signature `[Quadrilateral, Quadrilateral]`
+    """
+
+    @pytest.fixture()
+    def margin(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def boxa(self):
+        size = np.random.rand(2)
+        origin = np.random.rand(2)
+        return self.make_quad(origin, np.diag(size))
+
+    @pytest.fixture()
+    def boxb(self):
+        size = np.random.rand(2)
+        origin = np.random.rand(2)
+        return self.make_quad(origin, np.diag(size))
+
+    @pytest.fixture(params=('bottom', 'top', 'left', 'right'))
+    def margin_side(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def outer_margin(self, boxa, boxb, margin_side):
+        a_topright = boxa['Line1/Point1'].value
+        b_topright = boxb['Line1/Point1'].value
+        a_botleft = boxa['Line0/Point0'].value
+        b_botleft = boxb['Line0/Point0'].value
+
+        if margin_side == 'left':
+            margin = (a_botleft - b_topright)[0]
+        elif margin_side == 'right':
+            margin = (b_botleft - a_topright)[0]
+        elif margin_side == 'bottom':
+            margin = (a_botleft - b_topright)[1]
+        elif margin_side == 'top':
+            margin = (b_botleft - a_topright)[1]
+        return margin
+
+    def test_OuterMargin(self, boxa, boxb, outer_margin, margin_side):
+        res = con.OuterMargin(side=margin_side)((boxa, boxb)) - outer_margin
+        assert np.all(np.isclose(res, 0))
+
+    @pytest.fixture()
+    def inner_margin(self, boxa, boxb, margin_side):
+        a_topright = boxa['Line1/Point1'].value
+        b_topright = boxb['Line1/Point1'].value
+        a_botleft = boxa['Line0/Point0'].value
+        b_botleft = boxb['Line0/Point0'].value
+
+        if margin_side == 'left':
+            margin = (a_botleft - b_botleft)[0]
+        elif margin_side == 'right':
+            margin = (b_topright - a_topright)[0]
+        elif margin_side == 'bottom':
+            margin = (a_botleft - b_botleft)[1]
+        elif margin_side == 'top':
+            margin = (b_topright-a_topright)[1]
+        return margin
+
+    def test_InnerMargin(self, boxa, boxb, inner_margin, margin_side):
+        res = con.InnerMargin(side=margin_side)((boxa, boxb)) - inner_margin
+        assert np.all(np.isclose(res, 0))
+
