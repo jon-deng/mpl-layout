@@ -3,6 +3,7 @@ Geometric constraints
 """
 
 from typing import Optional, Any
+from matplotlib.axis import XAxis, YAxis
 from numpy.typing import NDArray
 
 from collections import namedtuple
@@ -162,6 +163,16 @@ Fix = generate_constraint(con.Coordinate, 'Fix')
 
 # Argument type: tuple[Point, Point]
 
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Point, pr.Point),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
+
 DirectedDistance = generate_constraint(con.DirectedDistance, 'DirectedDistance')
 
 XDistance = generate_constraint(con.XDistance, 'XDistance')
@@ -180,10 +191,7 @@ class Coincident(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Point]):
@@ -197,6 +205,16 @@ class Coincident(con.LeafConstruction):
 ## Line constraints
 
 # Argument type: tuple[Line,]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Line,),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 Length = generate_constraint(con.Length, 'Length')
 
@@ -219,10 +237,7 @@ class Vertical(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -241,10 +256,7 @@ class Horizontal(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -252,6 +264,16 @@ class Horizontal(con.LeafConstruction):
 
 
 # Argument type: tuple[Line, Line]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Line, pr.Line),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 class RelativeLength(con.LeafConstruction):
     """
@@ -269,10 +291,7 @@ class RelativeLength(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
+        return _AUX_DATA(1, namedtuple("Parameters", ("length",)))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], length: float):
@@ -301,10 +320,7 @@ class Orthogonal(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -329,10 +345,7 @@ class Parallel(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -360,10 +373,7 @@ class Collinear(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(2)
 
     @classmethod
     def assem(self, prims: tuple[pr.Line, pr.Line]):
@@ -392,10 +402,7 @@ class CoincidentLines(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
-        }
+        return _AUX_DATA(2, namedtuple('Parameters', ('reverse',)))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], reverse: bool):
@@ -447,7 +454,8 @@ class RelativeLengthArray(ArrayConstraint):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Line,) + (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("lengths",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("lengths",)),
+            'RES_SIZE': 0
         }
 
     @classmethod
@@ -486,7 +494,8 @@ class MidpointXDistanceArray(ArrayConstraint):
         num_child = np.prod(shape)
         return {
             'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",)),
+            'RES_SIZE': 0
         }
 
     @classmethod
@@ -525,7 +534,8 @@ class MidpointYDistanceArray(ArrayConstraint):
         num_child = np.prod(shape)
         return {
             'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",)),
+            'RES_SIZE': 0
         }
 
     @classmethod
@@ -559,7 +569,8 @@ class CollinearArray(ArrayConstraint):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Line, ),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 0
         }
 
     @classmethod
@@ -582,6 +593,15 @@ PointOnLineDistance = generate_constraint(con.PointOnLineDistance, 'PointOnLineD
 
 PointToLineDistance = generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
 
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Point, pr.Line),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 class RelativePointOnLineDistance(con.LeafConstruction):
     """
@@ -602,10 +622,7 @@ class RelativePointOnLineDistance(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
-        }
+        return _AUX_DATA(1, namedtuple('Parameters', ('reverse', 'distance')))
 
     @classmethod
     def assem(
@@ -634,6 +651,16 @@ class RelativePointOnLineDistance(con.LeafConstruction):
 
 # Argument type: tuple[Quadrilateral]
 
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Quadrilateral,),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
+
 class Box(con.StaticConstruction):
     """
     Constrain a quadrilateral to be rectangular
@@ -655,13 +682,115 @@ class Box(con.StaticConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(0)
 
 
 AspectRatio = generate_constraint(con.AspectRatio, 'AspectRatio')
+
+
+def get_axis_dim(axis: XAxis | YAxis, side: str):
+
+    # Ignore the axis label in the height by temporarily making it invisible
+    label_visibility = axis.label.get_visible()
+    axis.label.set_visible(False)
+
+    axis_bbox = axis.get_tightbbox()
+
+    if axis_bbox is None:
+        dim = 0
+    else:
+        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
+        fig_width, fig_height = axis.axes.figure.get_size_inches()
+        axes_bbox = axis.axes.get_position()
+
+        if axis.get_ticks_position() == "bottom":
+            dim = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
+        elif axis.get_ticks_position() == "top":
+            dim = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
+        elif axis.get_ticks_position() == "left":
+            dim = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
+        elif axis.get_ticks_position() == "right":
+            dim = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
+        else:
+            raise ValueError()
+
+    axis.label.set_visible(label_visibility)
+
+    return dim
+
+class XAxisHeight(con.StaticConstruction):
+    """
+    Return the x-axis height for an axes
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral]
+        The axes
+    axis: XAxis
+        The XAxis
+    """
+
+    @staticmethod
+    def get_xaxis_height(axis: XAxis):
+        return get_axis_dim(axis, axis.get_ticks_position())
+
+    @classmethod
+    def init_children(cls):
+        child_keys = ("Height",)
+        child_constraints = (YDistance(),)
+        child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
+
+        def propogate_child_params(parameters):
+            xaxis: XAxis | None
+            xaxis, = parameters
+            if xaxis is None:
+                return [(0,)]
+            else:
+                return [(cls.get_xaxis_height(xaxis),)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
+
+    @classmethod
+    def init_aux_data(cls):
+        return _AUX_DATA(0, namedtuple("Parameters", ('axis',)))
+
+
+class YAxisWidth(con.StaticConstruction):
+    """
+    Constrain the y-axis width for an axes
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral]
+        The axes
+    axis: YAxis
+        The YAxis
+    """
+
+    @staticmethod
+    def get_yaxis_width(axis: YAxis):
+        return get_axis_dim(axis, axis.get_ticks_position())
+
+    @classmethod
+    def init_children(cls):
+        child_keys = ("Width",)
+        child_constraints = (XDistance(),)
+        child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
+
+        def propogate_child_params(parameters):
+            yaxis: YAxis | None
+            yaxis, = parameters
+            if yaxis is None:
+                return [(0,)]
+            else:
+                return [(cls.get_yaxis_width(yaxis),)]
+
+        return child_keys, child_constraints, child_prim_keys, propogate_child_params
+
+    @classmethod
+    def init_aux_data(cls):
+        return _AUX_DATA(0, namedtuple("Parameters", ('axis',)))
+
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
@@ -734,7 +863,8 @@ class RectilinearGrid(ArrayConstraint):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 0
         }
 
     @classmethod
@@ -830,7 +960,8 @@ class Grid(ArrayConstraint):
             'RES_PARAMS_TYPE': namedtuple(
                 "Parameters",
                 ("col_widths", "row_heights", "col_margins", "row_margins")
-            )
+            ),
+            'RES_SIZE': 0
         }
 
     @classmethod
@@ -847,120 +978,18 @@ class Grid(ArrayConstraint):
 
 ## Axes constraints
 
-from matplotlib.axis import XAxis, YAxis
-
-# Argument type: tuple[Quadrilateral]
-
-def get_axis_dim(axis: XAxis | YAxis, side: str):
-
-    # Ignore the axis label in the height by temporarily making it invisible
-    label_visibility = axis.label.get_visible()
-    axis.label.set_visible(False)
-
-    axis_bbox = axis.get_tightbbox()
-
-    if axis_bbox is None:
-        dim = 0
-    else:
-        axis_bbox = axis_bbox.transformed(axis.axes.figure.transFigure.inverted())
-        fig_width, fig_height = axis.axes.figure.get_size_inches()
-        axes_bbox = axis.axes.get_position()
-
-        if axis.get_ticks_position() == "bottom":
-            dim = fig_height * (axes_bbox.ymin - axis_bbox.ymin)
-        elif axis.get_ticks_position() == "top":
-            dim = fig_height * (axis_bbox.ymax - axes_bbox.ymax)
-        elif axis.get_ticks_position() == "left":
-            dim = fig_width * (axes_bbox.xmin - axis_bbox.xmin)
-        elif axis.get_ticks_position() == "right":
-            dim = fig_width * (axis_bbox.xmax - axes_bbox.xmax)
-        else:
-            raise ValueError()
-
-    axis.label.set_visible(label_visibility)
-
-    return dim
-
-class XAxisHeight(con.StaticConstruction):
-    """
-    Return the x-axis height for an axes
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral]
-        The axes
-    axis: XAxis
-        The XAxis
-    """
-
-    @staticmethod
-    def get_xaxis_height(axis: XAxis):
-        return get_axis_dim(axis, axis.get_ticks_position())
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("Height",)
-        child_constraints = (YDistance(),)
-        child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
-
-        def propogate_child_params(parameters):
-            xaxis: XAxis | None
-            xaxis, = parameters
-            if xaxis is None:
-                return [(0,)]
-            else:
-                return [(cls.get_xaxis_height(xaxis),)]
-
-        return child_keys, child_constraints, child_prim_keys, propogate_child_params
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
-        }
-
-
-class YAxisWidth(con.StaticConstruction):
-    """
-    Constrain the y-axis width for an axes
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral]
-        The axes
-    axis: YAxis
-        The YAxis
-    """
-
-    @staticmethod
-    def get_yaxis_width(axis: YAxis):
-        return get_axis_dim(axis, axis.get_ticks_position())
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("Width",)
-        child_constraints = (XDistance(),)
-        child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
-
-        def propogate_child_params(parameters):
-            yaxis: YAxis | None
-            yaxis, = parameters
-            if yaxis is None:
-                return [(0,)]
-            else:
-                return [(cls.get_yaxis_width(yaxis),)]
-
-        return child_keys, child_constraints, child_prim_keys, propogate_child_params
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
-        }
-
 # Argument type: tuple[Axes]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Axes,),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
+
 
 # TODO: Handle more specialized x/y axes combos? (i.e. twin x/y axes)
 # The below axis constraints are made for single x and y axises
@@ -999,10 +1028,7 @@ class PositionXAxis(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls, bottom: bool, top: bool):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(0)
 
 
 class PositionYAxis(con.CompoundConstruction):
@@ -1039,10 +1065,7 @@ class PositionYAxis(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls, left: bool=True, right: bool=False):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+        return _AUX_DATA(0)
 
 
 class PositionXAxisLabel(con.CompoundConstruction):
@@ -1072,10 +1095,7 @@ class PositionXAxisLabel(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
+        return _AUX_DATA(0)
 
 
 class PositionYAxisLabel(con.CompoundConstruction):
@@ -1104,7 +1124,4 @@ class PositionYAxisLabel(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
+        return _AUX_DATA(0)
