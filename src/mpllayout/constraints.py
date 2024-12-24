@@ -12,7 +12,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node, iter_flat
+from .containers import Node, iter_flat, map, accumulate
 from . import constructions as con
 
 Primitive = pr.Primitive
@@ -57,22 +57,60 @@ ChildConstraints = tuple[con.Construction, ...]
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
 
+def _generate_aux_data_node(
+    ConstructionType: type[con.StaticConstruction | con.ParameterizedConstruction],
+    **kwargs
+):
+    child_keys, child_constructions, child_prims_keys, split_child_params = ConstructionType.init_children(**kwargs)
+    children = {
+        key: _generate_aux_data_node(type(child))
+        for key, child in zip(child_keys, child_constructions)
+    }
+
+    aux_data = ConstructionType.init_aux_data(**kwargs)
+    return Node(aux_data, children)
+
+
 def generate_constraint(
     ConstructionType: type[con.StaticConstruction | con.ParameterizedConstruction],
-    constraint_name: str
+    constraint_name: str,
+    construction_output_size: Optional[Node[int, Node]] = None
 ):
 
     class DerivedConstraint(ConstructionType):
 
         @classmethod
         def init_children(cls, **kwargs):
-            _children = ConstructionType.init_children(**kwargs)
-            child_keys, child_constructions, child_prim_keys, split_child_params = _children
+            child_keys, child_constructions, child_prim_keys, split_child_params = ConstructionType.init_children(**kwargs)
 
-            derived_child_constructions = [DerivedConstraint(type(con)) for con in child_constructions]
+            if construction_output_size is None:
+                aux_data_node = _generate_aux_data_node(ConstructionType)
 
+                _construction_output_size = accumulate(
+                    lambda x, y: x+y,
+                    map(lambda aux_data: aux_data['RES_SIZE'], aux_data_node),
+                    0
+                )
+            else:
+                _construction_output_size = construction_output_size
+
+            derived_child_constructions = [
+                generate_constraint(
+                    type(child_constraint), child_key, _construction_output_size[child_key]
+                )()
+                for child_key, child_constraint in zip(child_keys, child_constructions)
+            ]
+
+            child_res_sizes = [node.value for node in _construction_output_size.values()]
+            child_value_slices = [
+                slice(start, None)
+                for start in itertools.accumulate(child_res_sizes, initial=0)
+            ]
             def split_value(value):
-                return len(child_keys) * (value,)
+                if isinstance(value, (float, int)):
+                    return len(child_keys) * (value,)
+                else:
+                    return tuple(value[idx] for idx in child_value_slices)
 
             def derived_split_child_params(derived_params):
                 *params, value = derived_params
@@ -88,19 +126,27 @@ def generate_constraint(
 
         @classmethod
         def init_aux_data(cls, **kwargs):
-            aux_data = ConstructionType.init_aux_data()
+            aux_data = ConstructionType.init_aux_data(**kwargs)
             derived_aux_data = {
                 'RES_ARG_TYPES': aux_data['RES_ARG_TYPES'],
                 'RES_PARAMS_TYPE': namedtuple(
                     'Parameters', aux_data['RES_PARAMS_TYPE']._fields+('value',)
-                )
+                ),
+                'RES_SIZE': aux_data['RES_SIZE']
             }
             return derived_aux_data
 
         @classmethod
         def assem(cls, prims, *derived_params):
             *params, value = derived_params
-            return ConstructionType.assem(prims, *params) - value
+            const_value = ConstructionType.assem(prims, *params)
+            if isinstance(value, np.ndarray):
+                if value.shape == ():
+                    return const_value - value
+                else:
+                    return const_value - value[:const_value.size]
+            else:
+                return const_value - value
 
     DerivedConstraint.__name__ = constraint_name
 
@@ -619,101 +665,9 @@ AspectRatio = generate_constraint(con.AspectRatio, 'AspectRatio')
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-class OuterMargin(con.ParameterizedConstruction):
-    """
-    Return the outer margin between two quadrilaterals
+OuterMargin = generate_constraint(con.OuterMargin, 'OuterMargin')
 
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
-    """
-
-    @classmethod
-    def init_children(cls, side: str="left"):
-        child_keys = ("Margin",)
-        if side == "left":
-            child_constructions = (MidpointXDistance(),)
-            child_prim_keys = (("arg1/Line1", "arg0/Line3"),)
-        elif side == "right":
-            child_constructions = (MidpointXDistance(),)
-            child_prim_keys = (("arg0/Line1", "arg1/Line3"),)
-        elif side == "bottom":
-            child_constructions = (MidpointYDistance(),)
-            child_prim_keys = (("arg1/Line2", "arg0/Line0"),)
-        elif side == "top":
-            child_constructions = (MidpointYDistance(),)
-            child_prim_keys = (("arg0/Line2", "arg1/Line0"),)
-        else:
-            raise ValueError()
-
-        def propogate_child_params(params):
-            return [params]
-
-        return child_keys, child_constructions, child_prim_keys, propogate_child_params
-
-    @classmethod
-    def init_aux_data(cls, side: str="left"):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float):
-        return np.array([])
-
-
-class InnerMargin(con.ParameterizedConstruction):
-    """
-    Return the inner margin between two quadrilaterals
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
-    """
-
-    @classmethod
-    def init_children(cls, side: str="left"):
-        child_keys = ["Margin"]
-        if side == "left":
-            child_constructions = [MidpointXDistance()]
-            child_prim_keys = [("arg1/Line3", "arg0/Line3")]
-        elif side == "right":
-            child_constructions = [MidpointXDistance()]
-            child_prim_keys = [("arg0/Line1", "arg1/Line1")]
-        elif side == "bottom":
-            child_constructions = [MidpointYDistance()]
-            child_prim_keys = [("arg1/Line0", "arg0/Line0")]
-        elif side == "top":
-            child_constructions = [MidpointYDistance()]
-            child_prim_keys = [("arg0/Line2", "arg1/Line2")]
-        else:
-            raise ValueError()
-
-        def propogate_child_params(params):
-            # margin, = params
-            return [params]
-
-        return child_keys, child_constructions, child_prim_keys, propogate_child_params
-
-    @classmethod
-    def init_aux_data(cls, side: str="left"):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
-        }
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float):
-        return np.array([])
+InnerMargin = generate_constraint(con.InnerMargin, 'InnerMargin')
 
 # Argument type: tuple[Quadrilateral, ...]
 
