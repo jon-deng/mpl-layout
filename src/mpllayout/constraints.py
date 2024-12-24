@@ -58,15 +58,48 @@ ChildConstraints = tuple[con.Construction, ...]
 # document there `assem_res` function.
 
 def generate_constraint(
-    ConstructionType: type[con.Construction],
+    ConstructionType: type[con.StaticConstruction | con.ParameterizedConstruction],
     constraint_name: str
 ):
 
     class DerivedConstraint(ConstructionType):
 
         @classmethod
-        def assem(cls, prims, *args):
-            *params, value = args
+        def init_children(cls, **kwargs):
+            _children = ConstructionType.init_children(**kwargs)
+            child_keys, child_constructions, child_prim_keys, split_child_params = _children
+
+            derived_child_constructions = [DerivedConstraint(type(con)) for con in child_constructions]
+
+            def split_value(value):
+                return len(child_keys) * (value,)
+
+            def derived_split_child_params(derived_params):
+                *params, value = derived_params
+                split_params = split_child_params(params)
+                _split_value = split_value(value)
+
+                return tuple(
+                    (*params, value)
+                    for params, value in zip(split_params, _split_value)
+                )
+
+            return child_keys, derived_child_constructions, child_prim_keys, derived_split_child_params
+
+        @classmethod
+        def init_aux_data(cls, **kwargs):
+            aux_data = ConstructionType.init_aux_data()
+            derived_aux_data = {
+                'RES_ARG_TYPES': aux_data['RES_ARG_TYPES'],
+                'RES_PARAMS_TYPE': namedtuple(
+                    'Parameters', aux_data['RES_PARAMS_TYPE']._fields+('value',)
+                )
+            }
+            return derived_aux_data
+
+        @classmethod
+        def assem(cls, prims, *derived_params):
+            *params, value = derived_params
             return ConstructionType.assem(prims, *params) - value
 
     DerivedConstraint.__name__ = constraint_name
