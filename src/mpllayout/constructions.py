@@ -450,6 +450,16 @@ class LeafConstruction(Construction):
 
 # Argument type: tuple[Point,]
 
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Point,),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
+
 class Coordinate(LeafConstruction):
     """
     Return point coordinates
@@ -462,11 +472,7 @@ class Coordinate(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 2
-        }
+        return _AUX_DATA(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point]):
@@ -477,6 +483,16 @@ class Coordinate(LeafConstruction):
         return point.value
 
 # Argument type: tuple[Point, Point]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Point, pr.Point),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 class DirectedDistance(LeafConstruction):
     """
@@ -494,11 +510,7 @@ class DirectedDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1, namedtuple('Parameters', ('direction',)))
 
     @classmethod
     def assem(
@@ -524,11 +536,7 @@ class XDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(
@@ -551,11 +559,7 @@ class YDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(
@@ -566,6 +570,16 @@ class YDistance(LeafConstruction):
 ## Line constructions
 
 # Argument type: tuple[Line,]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Line,),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 class LineVector(LeafConstruction):
     """
@@ -579,11 +593,7 @@ class LineVector(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 2
-        }
+        return _AUX_DATA(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -607,11 +617,7 @@ class UnitLineVector(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 2
-        }
+        return _AUX_DATA(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -631,11 +637,7 @@ class Length(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -657,11 +659,7 @@ class DirectedLength(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction")),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1, namedtuple('Parameters', ('direction',)))
 
     @classmethod
     def assem(
@@ -685,11 +683,7 @@ class XLength(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -708,11 +702,7 @@ class YLength(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -722,11 +712,7 @@ class YLength(LeafConstruction):
 class Midpoint(LeafConstruction):
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 2
-        }
+        return _AUX_DATA(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -734,6 +720,16 @@ class Midpoint(LeafConstruction):
         return 1/2*(line["Point0"].value + line["Point1"].value)
 
 # Argument type: tuple[Line, Line]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Line, pr.Line),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 class MidpointDirectedDistance(LeafConstruction):
     """
@@ -751,11 +747,7 @@ class MidpointDirectedDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1, namedtuple("Parameters", ("direction",)))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], direction: NDArray):
@@ -780,11 +772,7 @@ class MidpointXDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -805,11 +793,7 @@ class MidpointYDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -831,11 +815,7 @@ class Angle(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -847,6 +827,17 @@ class Angle(LeafConstruction):
 ## Point and Line constraints
 
 # Argument type: tuple[Point, Line]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Point, pr.Line),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
+
 
 class PointOnLineDistance(LeafConstruction):
     """
@@ -866,11 +857,7 @@ class PointOnLineDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1, namedtuple('Parameters', ('reverse',)))
 
     @classmethod
     def assem(
@@ -910,11 +897,7 @@ class PointToLineDistance(LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1, namedtuple('Parameters', ('reverse',)))
 
     @classmethod
     def assem(
@@ -942,6 +925,16 @@ class PointToLineDistance(LeafConstruction):
 
 # Argument type: tuple[Quadrilateral]
 
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Quadrilateral,),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
+
 class AspectRatio(LeafConstruction):
     """
     Return the aspect ratio of a quadrilateral
@@ -950,26 +943,30 @@ class AspectRatio(LeafConstruction):
     ----------
     prims: tuple[pr.Quadrilateral]
         The quad
-    ar: float
-        The aspect ratio
     """
 
     @classmethod
     def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",)),
-            'RES_SIZE': 1
-        }
+        return _AUX_DATA(1)
 
     @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral], ar:float=1):
+    def assem(cls, prims: tuple[pr.Quadrilateral]):
         quad, = prims
         width = Length.assem((quad['Line0'],))
         height = Length.assem((quad['Line1'],))
         return  width/height
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
+
+def _AUX_DATA(
+    value_size: int,
+    params: tuple[any] = namedtuple('Parameters', ())
+):
+    return {
+        'RES_ARG_TYPES': (pr.Quadrilateral, pr.Quadrilateral),
+        'RES_PARAMS_TYPE': params,
+        'RES_SIZE': value_size
+    }
 
 class OuterMargin(CompoundConstruction):
     """
@@ -1009,11 +1006,7 @@ class OuterMargin(CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls, side: str="left"):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 0
-        }
+        return _AUX_DATA(0, namedtuple('Parameters', ('side',)))
 
 
 class InnerMargin(CompoundConstruction):
@@ -1054,9 +1047,5 @@ class InnerMargin(CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls, side: str="left"):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",)),
-            'RES_SIZE': 0
-        }
+        return _AUX_DATA(0, namedtuple('Parameters', ('side',)))
 
