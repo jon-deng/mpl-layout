@@ -360,6 +360,27 @@ class ItemCounter(Generic[TItem]):
         return self.add_item_until_valid(item, valid)
 
 
+## Node functions
+
+U = TypeVar("U")
+
+def map(
+    function: Callable[[TValue], U],
+    node: Node[TValue, TChild]
+) -> Node[TValue, TChild]:
+    """
+    Return a node by applying a function to every value in an input node
+    """
+
+    flat_node_structs = flatten('', node)
+
+    flat_map_node_structs = [
+        (key, Node, function(value), child_keys)
+        for (key, _NodeType, value, child_keys) in flat_node_structs
+    ]
+    return unflatten(flat_map_node_structs)[0]
+
+
 ## Manual flattening/unflattening implementation
 
 def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
