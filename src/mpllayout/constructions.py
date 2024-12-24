@@ -978,7 +978,7 @@ class OuterMargin(ParameterizedConstruction):
         return {
             'RES_ARG_TYPES': (pr.Quadrilateral,),
             'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 1
+            'RES_SIZE': 0
         }
 
     def __init__(self, side: str="left"):
@@ -1027,7 +1027,7 @@ class InnerMargin(ParameterizedConstruction):
         return {
             'RES_ARG_TYPES': (pr.Quadrilateral,),
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",)),
-            'RES_SIZE': 1
+            'RES_SIZE': 0
         }
 
     def __init__(self, side: str="left"):
