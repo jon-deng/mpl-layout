@@ -60,7 +60,7 @@ class ParamsNode(Node[Params, "ParamsNode"]):
     pass
 
 
-class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
+class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
     """
     The base geometric construction class
 
@@ -133,7 +133,7 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
     def __init__(
         self,
         child_keys: list[str],
-        child_constructions: list["Construction"],
+        child_constructions: list["ConstructionNode"],
         child_prim_keys: list[PrimKeys],
         child_params: Callable[[Params], list[Params]],
         aux_data: Optional[dict[str, Any]] = None
@@ -314,53 +314,10 @@ class Construction(Node[tuple[PrimKeys, ...], "Construction"]):
         raise NotImplementedError()
 
 
-class ConstructionNode(Node[tuple[PrimKeys, ...], Construction]):
-    """
-    Container tree for constructions
-    """
-    pass
-
-
 ChildKeys = tuple[str, ...]
-ChildConstraints = tuple[Construction, ...]
+ChildConstraints = tuple[ConstructionNode, ...]
 
-class StaticConstruction(Construction):
-    """
-    Construction with static primitive argument types and child constructions
-
-    To specify a `StaticConstraint`:
-    - define `init_aux_data`,
-    - and optionally define, `init_children` and `split_children_params`.
-
-    If `init_children` is undefined the construction will have no child
-    constructions by default.
-
-    If `split_children_params` is undefined, all child constructions will be passed
-    empty parameters, and therefore use default values.
-    """
-
-    @classmethod
-    def init_children(
-        cls
-    ) -> tuple[
-        list[str],
-        list[Construction],
-        list[PrimKeys],
-        Callable[[Params], list[Params]]
-    ]:
-        return [], [], [], lambda x: ()
-
-    @classmethod
-    def init_aux_data(
-        cls
-    ) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    def __init__(self):
-        super().__init__(*self.init_children(), self.init_aux_data())
-
-
-class ParameterizedConstruction(Construction):
+class Construction(ConstructionNode):
     """
     Construction with parameterized primitive argument types and child constructions
 
@@ -382,16 +339,19 @@ class ParameterizedConstruction(Construction):
         Subclasses should define what these keyword arguments are.
     """
 
+    def __init__(self, **kwargs):
+        super().__init__(*self.init_children(**kwargs), self.init_aux_data(**kwargs))
+
     @classmethod
     def init_children(
         cls, **kwargs
     ) -> tuple[
         list[str],
-        list[Construction],
+        list[ConstructionNode],
         list[PrimKeys],
         Callable[[Params], list[Params]]
     ]:
-        return [], [], [], lambda x: ()
+        raise NotImplementedError()
 
     @classmethod
     def init_aux_data(
@@ -399,11 +359,19 @@ class ParameterizedConstruction(Construction):
     ) -> dict[str, Any]:
         raise NotImplementedError()
 
-    def __init__(self, **kwargs):
-        super().__init__(*self.init_children(**kwargs), self.init_aux_data(**kwargs))
+    @classmethod
+    def assem(cls, prims: Prims, *params):
+        raise NotImplementedError()
 
 
-class ArrayConstruction(ParameterizedConstruction):
+class CompoundConstruction(Construction):
+
+    @classmethod
+    def assem(cls, prims: Prims, *params):
+        return np.array([])
+
+
+class ArrayConstruction(CompoundConstruction):
     """
     Constraint representing an array of child constraints
     """
@@ -413,13 +381,76 @@ class ArrayConstruction(ParameterizedConstruction):
             shape = (shape,)
         super().__init__(shape=shape)
 
+
+class StaticConstruction(CompoundConstruction):
+    """
+    Construction with static primitive argument types and child constructions
+
+    To specify a `StaticConstraint`:
+    - define `init_aux_data`,
+    - and optionally define, `init_children` and `split_children_params`.
+
+    If `init_children` is undefined the construction will have no child
+    constructions by default.
+
+    If `split_children_params` is undefined, all child constructions will be passed
+    empty parameters, and therefore use default values.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    @classmethod
+    def init_children(
+        cls
+    ) -> tuple[
+        list[str],
+        list[ConstructionNode],
+        list[PrimKeys],
+        Callable[[Params], list[Params]]
+    ]:
+        raise NotImplementedError()
+
+    @classmethod
+    def init_aux_data(
+        cls
+    ) -> dict[str, Any]:
+        raise NotImplementedError()
+
+    @classmethod
+    def assem(cls, prims: Prims, *params):
+        return np.array([])
+
+
+class LeafConstruction(Construction):
+    """
+    Construction without any child constructions
+
+    To specify a `LeafConstruction`, define `assem` and `init_aux_data`
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    @classmethod
+    def init_children(
+        cls
+    ) -> tuple[
+        list[str],
+        list[ConstructionNode],
+        list[PrimKeys],
+        Callable[[Params], list[Params]]
+    ]:
+        return [], [], [], lambda x: ()
+
+
 ## Point constructions
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
 
 # Argument type: tuple[Point,]
 
-class Coordinate(StaticConstruction):
+class Coordinate(LeafConstruction):
     """
     Return point coordinates
 
@@ -447,7 +478,7 @@ class Coordinate(StaticConstruction):
 
 # Argument type: tuple[Point, Point]
 
-class DirectedDistance(StaticConstruction):
+class DirectedDistance(LeafConstruction):
     """
     Return the distance between two points along a direction
 
@@ -479,7 +510,7 @@ class DirectedDistance(StaticConstruction):
         return jnp.dot(point1.value - point0.value, direction)
 
 
-class XDistance(StaticConstruction):
+class XDistance(LeafConstruction):
     """
     Return the x-distance between two points
 
@@ -506,7 +537,7 @@ class XDistance(StaticConstruction):
         return DirectedDistance.assem(prims, np.array([1, 0]))
 
 
-class YDistance(StaticConstruction):
+class YDistance(LeafConstruction):
     """
     Return the y-distance between two points
 
@@ -536,7 +567,7 @@ class YDistance(StaticConstruction):
 
 # Argument type: tuple[Line,]
 
-class LineVector(StaticConstruction):
+class LineVector(LeafConstruction):
     """
     Return the line vector
 
@@ -564,7 +595,7 @@ class LineVector(StaticConstruction):
         return pointb.value - pointa.value
 
 
-class UnitLineVector(StaticConstruction):
+class UnitLineVector(LeafConstruction):
     """
     Return the unit line vector
 
@@ -588,7 +619,7 @@ class UnitLineVector(StaticConstruction):
         return line_vec/jnp.linalg.norm(line_vec)
 
 
-class Length(StaticConstruction):
+class Length(LeafConstruction):
     """
     Return the length of a line
 
@@ -612,7 +643,7 @@ class Length(StaticConstruction):
         return jnp.sum(LineVector.assem((line,))**2)**(1/2)
 
 
-class DirectedLength(StaticConstruction):
+class DirectedLength(LeafConstruction):
     """
     Return the length of a line along a vector
 
@@ -642,7 +673,7 @@ class DirectedLength(StaticConstruction):
         return jnp.dot(LineVector.assem((line,)), direction)
 
 
-class XLength(StaticConstruction):
+class XLength(LeafConstruction):
     """
     Constrain the length of a line projected along the x direction
 
@@ -665,7 +696,7 @@ class XLength(StaticConstruction):
         return DirectedLength.assem(prims, np.array([1, 0]))
 
 
-class YLength(StaticConstruction):
+class YLength(LeafConstruction):
     """
     Constrain the length of a line projected along the y direction
 
@@ -688,7 +719,7 @@ class YLength(StaticConstruction):
         return DirectedLength.assem(prims, np.array([0, 1]))
 
 
-class Midpoint(StaticConstruction):
+class Midpoint(LeafConstruction):
     @classmethod
     def init_aux_data(cls):
         return {
@@ -704,7 +735,7 @@ class Midpoint(StaticConstruction):
 
 # Argument type: tuple[Line, Line]
 
-class MidpointDirectedDistance(StaticConstruction):
+class MidpointDirectedDistance(LeafConstruction):
     """
     Return the directed distance between two line midpoints
 
@@ -735,7 +766,7 @@ class MidpointDirectedDistance(StaticConstruction):
         return jnp.dot(Midpoint.assem((line1,)) - Midpoint.assem((line0,)), direction)
 
 
-class MidpointXDistance(StaticConstruction):
+class MidpointXDistance(LeafConstruction):
     """
     Return the x-distance between two line midpoints
 
@@ -760,7 +791,7 @@ class MidpointXDistance(StaticConstruction):
         return MidpointDirectedDistance.assem(prims, np.array([1, 0]))
 
 
-class MidpointYDistance(StaticConstruction):
+class MidpointYDistance(LeafConstruction):
     """
     Constrain the y-distance between two line midpoints
 
@@ -788,7 +819,7 @@ class MidpointYDistance(StaticConstruction):
         return MidpointDirectedDistance.assem(prims, np.array([0, 1]))
 
 
-class Angle(StaticConstruction):
+class Angle(LeafConstruction):
     """
     Return the angle between two lines
 
@@ -817,7 +848,7 @@ class Angle(StaticConstruction):
 
 # Argument type: tuple[Point, Line]
 
-class PointOnLineDistance(StaticConstruction):
+class PointOnLineDistance(LeafConstruction):
     """
     Return the projected distance of a point along a line
 
@@ -861,7 +892,7 @@ class PointOnLineDistance(StaticConstruction):
         return jnp.dot(point.value-origin, unit_vec)
 
 
-class PointToLineDistance(StaticConstruction):
+class PointToLineDistance(LeafConstruction):
     """
     Return the orthogonal distance of a point to a line
 
@@ -911,7 +942,7 @@ class PointToLineDistance(StaticConstruction):
 
 # Argument type: tuple[Quadrilateral]
 
-class AspectRatio(StaticConstruction):
+class AspectRatio(LeafConstruction):
     """
     Return the aspect ratio of a quadrilateral
 
@@ -940,7 +971,7 @@ class AspectRatio(StaticConstruction):
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-class OuterMargin(ParameterizedConstruction):
+class OuterMargin(CompoundConstruction):
     """
     Return the outer margin between two quadrilaterals
 
@@ -949,6 +980,9 @@ class OuterMargin(ParameterizedConstruction):
     prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
         The quad
     """
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
 
     @classmethod
     def init_children(cls, side: str="left"):
@@ -981,15 +1015,8 @@ class OuterMargin(ParameterizedConstruction):
             'RES_SIZE': 0
         }
 
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
-        return np.array([])
-
-
-class InnerMargin(ParameterizedConstruction):
+class InnerMargin(CompoundConstruction):
     """
     Return the inner margin between two quadrilaterals
 
@@ -998,6 +1025,9 @@ class InnerMargin(ParameterizedConstruction):
     prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
         The quad
     """
+
+    def __init__(self, side: str="left"):
+        super().__init__(side=side)
 
     @classmethod
     def init_children(cls, side: str="left"):
@@ -1029,11 +1059,4 @@ class InnerMargin(ParameterizedConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",)),
             'RES_SIZE': 0
         }
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
-        return np.array([])
 

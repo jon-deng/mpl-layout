@@ -51,14 +51,14 @@ ConstraintNode = con.ConstructionNode
 ArrayConstraint = con.ArrayConstruction
 
 ChildKeys = tuple[str, ...]
-ChildConstraints = tuple[con.Construction, ...]
+ChildConstraints = tuple[con.ConstructionNode, ...]
 
 ## Point constraints
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
 
 def _generate_aux_data_node(
-    ConstructionType: type[con.StaticConstruction | con.ParameterizedConstruction],
+    ConstructionType: type[con.Construction | con.Construction],
     **kwargs
 ):
     child_keys, child_constructions, child_prims_keys, split_child_params = ConstructionType.init_children(**kwargs)
@@ -72,7 +72,7 @@ def _generate_aux_data_node(
 
 
 def generate_constraint(
-    ConstructionType: type[con.StaticConstruction | con.ParameterizedConstruction],
+    ConstructionType: type[con.Construction | con.Construction],
     constraint_name: str,
     construction_output_size: Optional[Node[int, Node]] = None
 ):
@@ -165,7 +165,7 @@ XDistance = generate_constraint(con.XDistance, 'XDistance')
 
 YDistance = generate_constraint(con.YDistance, 'YDistance')
 
-class Coincident(con.StaticConstruction):
+class Coincident(con.LeafConstruction):
     """
     Constrain two points to be coincident
 
@@ -204,7 +204,7 @@ XLength = generate_constraint(con.XLength, 'XLength')
 YLength = generate_constraint(con.YLength, 'YLength')
 
 
-class Vertical(con.StaticConstruction):
+class Vertical(con.LeafConstruction):
     """
     Constrain a line to be vertical
 
@@ -226,7 +226,7 @@ class Vertical(con.StaticConstruction):
         return jnp.dot(con.LineVector.assem(prims), np.array([1, 0]))
 
 
-class Horizontal(con.StaticConstruction):
+class Horizontal(con.LeafConstruction):
     """
     Constrain a line to be horizontal
 
@@ -250,7 +250,7 @@ class Horizontal(con.StaticConstruction):
 
 # Argument type: tuple[Line, Line]
 
-class RelativeLength(con.StaticConstruction):
+class RelativeLength(con.LeafConstruction):
     """
     Constrain the length of a line relative to another line
 
@@ -286,7 +286,7 @@ MidpointXDistance = generate_constraint(con.MidpointXDistance, 'MidpointXDistanc
 
 MidpointYDistance = generate_constraint(con.MidpointYDistance, 'MidpointYDistance')
 
-class Orthogonal(con.StaticConstruction):
+class Orthogonal(con.LeafConstruction):
     """
     Constrain two lines to be orthogonal
 
@@ -314,7 +314,7 @@ class Orthogonal(con.StaticConstruction):
         )
 
 
-class Parallel(con.StaticConstruction):
+class Parallel(con.LeafConstruction):
     """
     Return the parallel error between two lines
 
@@ -345,7 +345,7 @@ class Parallel(con.StaticConstruction):
 Angle = generate_constraint(con.Angle, 'Angle')
 
 
-class Collinear(con.StaticConstruction):
+class Collinear(con.LeafConstruction):
     """
     Return the collinear error between two lines
 
@@ -375,7 +375,7 @@ class Collinear(con.StaticConstruction):
         )
 
 
-class CoincidentLines(con.StaticConstruction):
+class CoincidentLines(con.LeafConstruction):
     """
     Return coincident error between two lines
 
@@ -580,7 +580,7 @@ PointOnLineDistance = generate_constraint(con.PointOnLineDistance, 'PointOnLineD
 PointToLineDistance = generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
 
 
-class RelativePointOnLineDistance(con.StaticConstruction):
+class RelativePointOnLineDistance(con.LeafConstruction):
     """
     Constrain the projected distance of a point along a line
 
@@ -657,9 +657,6 @@ class Box(con.StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral]):
-        return np.array([])
 
 AspectRatio = generate_constraint(con.AspectRatio, 'AspectRatio')
 
@@ -920,10 +917,6 @@ class XAxisHeight(con.StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral], axis: XAxis):
-        return np.array([])
-
 
 class YAxisWidth(con.StaticConstruction):
     """
@@ -964,16 +957,12 @@ class YAxisWidth(con.StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral], axis: YAxis):
-        return np.array([])
-
 # Argument type: tuple[Axes]
 
 # TODO: Handle more specialized x/y axes combos? (i.e. twin x/y axes)
 # The below axis constraints are made for single x and y axises
 
-class PositionXAxis(con.ParameterizedConstruction):
+class PositionXAxis(con.CompoundConstruction):
     """
     Constrain the x-axis to the top or bottom of an axes
 
@@ -1012,12 +1001,8 @@ class PositionXAxis(con.ParameterizedConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Axes]):
-        return np.array([])
 
-
-class PositionYAxis(con.ParameterizedConstruction):
+class PositionYAxis(con.CompoundConstruction):
     """
     Constrain the y-axis to the left or right of an axes
 
@@ -1056,12 +1041,8 @@ class PositionYAxis(con.ParameterizedConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ())
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Axes]):
-        return np.array([])
 
-
-class PositionXAxisLabel(con.StaticConstruction):
+class PositionXAxisLabel(con.CompoundConstruction):
     """
     Constrain the x-axis label horizontal distance (left to right) relative to axes width
 
@@ -1093,12 +1074,8 @@ class PositionXAxisLabel(con.StaticConstruction):
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
         }
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Axes], distance: float):
-        return np.array([])
 
-
-class PositionYAxisLabel(con.StaticConstruction):
+class PositionYAxisLabel(con.CompoundConstruction):
     """
     Constrain the y-axis label vertical distance (bottom to top) relative to axes height
 
@@ -1128,7 +1105,3 @@ class PositionYAxisLabel(con.StaticConstruction):
             'RES_ARG_TYPES': (pr.Axes,),
             'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
         }
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Axes], distance: float):
-        return np.array([])
