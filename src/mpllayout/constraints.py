@@ -58,7 +58,7 @@ ChildConstraints = tuple[con.ConstructionNode, ...]
 # document there `assem_res` function.
 
 def _generate_aux_data_node(
-    ConstructionType: type[con.Construction | con.Construction],
+    ConstructionType: type[con.Construction],
     **kwargs
 ):
     child_keys, child_constructions, child_prims_keys, split_child_params = ConstructionType.init_children(**kwargs)
@@ -72,10 +72,20 @@ def _generate_aux_data_node(
 
 
 def generate_constraint(
-    ConstructionType: type[con.Construction | con.Construction],
+    ConstructionType: type[con.Construction],
     constraint_name: str,
     construction_output_size: Optional[Node[int, Node]] = None
 ):
+    if issubclass(ConstructionType, con.CompoundConstruction):
+        def derived_assem(prims, derived_params):
+            *params, value = derived_params
+            return np.array([])
+    elif issubclass(ConstructionType, con.LeafConstruction):
+        def derived_assem(prims, derived_params):
+            *params, value = derived_params
+            return ConstructionType.assem(prims, *params) - value
+    else:
+        raise TypeError()
 
     class DerivedConstraint(ConstructionType):
 
@@ -102,9 +112,10 @@ def generate_constraint(
             ]
 
             child_res_sizes = [node.value for node in _construction_output_size.values()]
+            cum_child_res_sizes = [size for size in itertools.accumulate([0] + child_res_sizes, initial=0)]
             child_value_slices = [
-                slice(start, None)
-                for start in itertools.accumulate(child_res_sizes, initial=0)
+                slice(start,  stop)
+                for start, stop in zip(cum_child_res_sizes[:-1], cum_child_res_sizes[1:])
             ]
             def split_value(value):
                 if isinstance(value, (float, int)):
@@ -138,15 +149,7 @@ def generate_constraint(
 
         @classmethod
         def assem(cls, prims, *derived_params):
-            *params, value = derived_params
-            const_value = ConstructionType.assem(prims, *params)
-            if isinstance(value, np.ndarray):
-                if value.shape == ():
-                    return const_value - value
-                else:
-                    return const_value - value[:const_value.size]
-            else:
-                return const_value - value
+            return derived_assem(prims, derived_params)
 
     DerivedConstraint.__name__ = constraint_name
 
