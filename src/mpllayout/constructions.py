@@ -433,7 +433,8 @@ class Coordinate(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Point,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 2
         }
 
     @classmethod
@@ -464,7 +465,8 @@ class DirectedDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -493,7 +495,8 @@ class XDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -519,7 +522,8 @@ class YDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -546,7 +550,8 @@ class LineVector(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 2
         }
 
     @classmethod
@@ -573,7 +578,8 @@ class UnitLineVector(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 2
         }
 
     @classmethod
@@ -596,7 +602,8 @@ class Length(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -621,7 +628,8 @@ class DirectedLength(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction"))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction")),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -648,7 +656,8 @@ class XLength(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -670,7 +679,8 @@ class YLength(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -683,7 +693,8 @@ class Midpoint(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 2
         }
 
     @classmethod
@@ -711,7 +722,8 @@ class MidpointDirectedDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("direction",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -739,7 +751,8 @@ class MidpointXDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -763,7 +776,8 @@ class MidpointYDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -788,7 +802,8 @@ class Angle(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -822,7 +837,8 @@ class PointOnLineDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -865,7 +881,8 @@ class PointToLineDistance(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -910,7 +927,8 @@ class AspectRatio(StaticConstruction):
     def init_aux_data(cls):
         return {
             'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",)),
+            'RES_SIZE': 1
         }
 
     @classmethod
@@ -959,7 +977,8 @@ class OuterMargin(ParameterizedConstruction):
     def init_aux_data(cls, side: str="left"):
         return {
             'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_SIZE': 1
         }
 
     def __init__(self, side: str="left"):
@@ -1007,7 +1026,8 @@ class InnerMargin(ParameterizedConstruction):
     def init_aux_data(cls, side: str="left"):
         return {
             'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
+            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",)),
+            'RES_SIZE': 1
         }
 
     def __init__(self, side: str="left"):
