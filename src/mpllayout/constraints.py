@@ -58,6 +58,9 @@ ChildConstraints = tuple[con.ConstructionNode, ...]
 # NOTE: These are actual constraint classes that can be called so class docstrings
 # document there `assem_res` function.
 
+# TODO: Move derived constructions to `constructions`
+
+# TODO: Refactor this with `Construction` node representation
 def _generate_aux_data_node(
     ConstructionType: type[con.Construction],
     **kwargs
@@ -156,6 +159,11 @@ def generate_constraint(
 
     return DerivedConstraint
 
+# TODO: Add `map` and `accumulate` functions to derive constructions over
+# primitive iterables
+
+# TODO: Add `relative` functions to derive a relative constraint over
+# primitive iterables
 
 # Argument type: tuple[Point,]
 
