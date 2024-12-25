@@ -66,51 +66,48 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
 
     A geometric construction is a function returning a vector from geometric
     primitives.
-    The condition is implemented through a function
-        `assem(self, prims, *args)`
-    where
-    - `prims` are the geometric primitives to construction
-    - and `*args` are additional arguments for the residual.
-    The construction is satisified when `assem(self, prims, *args) == 0`.
-    To implement `assem`, `jax` functions should be used to return a
-    residual vector from the parameter vectors of input primitives.
+    A construction has a tree structure.
+    The return vector consists of recursively stacking constructions from all
+    child constructions.
 
-    Constraints have a tree-like structure.
-    A construction can contain child constructions by passing subsets of its input
-    primitives (`prims` in `assem`) on to child constructions.
-    The residual of a construction is the result of concatenating all child
-    construction residuals.
+    The construction function is implemented through the method
+        `assem(self, prims, *params)`
+    where `prims` are the geometric primitives to construction and `*params` are
+    additional parameters for the residual.
+    This should be implemented using `jax` functions.
 
-    To create a construction, subclass `Construction` then:
-        1. Define the residual for the construction (`assem`)
-        2. Specify the parameters for `Construction.__init__` (see `Parameters`)\
-        3. Define `Construction.split_children_params` (see below)
-    Note that some of the `Construction.__init__` parameters are for type checking
-    inputs to `assem` while the others are for specifying child constructions.
-    `StaticConstraint` and `ParameterizedConstraint` are two `Construction`
-    subclasses that can be subclassed to create constructions.
+    Constructions must specify how to create `(prims, *params)` for each child
+    construction.
+    This is done through `child_prim_keys` and `child_params`.
+
+    You must subclass `LeafConstruction` and/or `CompoundConstruction` to create
+    specific construction implementations.
 
     Parameters
     ----------
+    child_keys: list[str]
+        Keys for any child constructions
+    child_constructions: list[Construction]
+        Child constructions
     child_prim_keys: tuple[PrimKeys, ...]
-        Primitive key tuples for each child construction
+        `prims` argument representation for each child construction
 
         This is stored as the "value" of the tree structure and encodes how to
         create primitives for each child construction from the parent construction's
-        `prims` (in `assem(self, prims, *args)`).
+        `prims` (in `assem(self, prims, *params)`).
         For each child construction, a tuple of primitive keys indicates a
         subset of parent primitives to form child construction primitive
         arguments.
 
         To illustrate this, consider a parent construction with residual
 
-        ```python
-        Parent.assem(self, prims, *args)
+        ```
+        Parent.assem(self, prims, *params)
         ```
 
         and the n'th child construction with primitive key tuple
 
-        ```python
+        ```
         child_prim_keys[n] == ('arg0', 'arg3/Line2')
         ```.
 
@@ -119,10 +116,11 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         ```
         child_prims = (prims[0], prims[3]['Line2'])
         ```
-    child_keys: list[str]
-        Keys for any child constructions
-    child_constructions: list[Construction]
-        Child constructions
+    child_params: Callable[[Params], list[Params]]
+        `*params` argument representation for each child construction
+
+        This function should return `params` for each child construction given
+        the parent `params`.
     aux_data: Mapping[str, Any]
         Any auxiliary data
 
@@ -138,17 +136,10 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         child_params: Callable[[Params], list[Params]],
         aux_data: Optional[dict[str, Any]] = None
     ):
-        self.propogate_child_params = child_params
         children = {
             key: child for key, child in zip(child_keys, child_constructions)
         }
-        super().__init__((child_prim_keys, aux_data), children)
-
-    def propogate_child_params(self, params: Params) -> tuple[Params, ...]:
-        """
-        Return children construction parameters from parent construction parameters
-        """
-        raise NotImplementedError()
+        super().__init__((child_prim_keys, child_params, aux_data), children)
 
     def root_params(self, params: Params) -> ParamsNode:
         """
@@ -248,8 +239,11 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         )
 
     @property
-    def child_prim_keys(self):
+    def child_prim_keys(self) -> tuple[PrimKeys, ...]:
         return self.value[0]
+
+    def propogate_child_params(self, params: Params) -> tuple[Params, ...]:
+        return self.value[1](params)
 
     @property
     def RES_PARAMS_TYPE(self):
@@ -291,16 +285,19 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
 
     @classmethod
     def assem(
-            cls, prims: Prims, *params
-        ) -> NDArray:
+        cls, prims: Prims, *params: Params
+    ) -> NDArray:
         """
-        Return a residual vector representing the construction satisfaction
+        Return the (local) construction output
+
+        The full construction output consists of recursively stacking all
+        construction outputs together in the tree.
 
         Parameters
         ----------
         prims: ResPrims
             A tuple of primitives the construction applies to
-        *args:
+        *params: Params
             A set of parameters for the residual
 
             These are things like length, distance, angle, etc.
@@ -308,8 +305,6 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         Returns
         -------
         NDArray
-            The residual representing whether the construction is satisfied. The
-            construction is satisfied when the residual is 0.
         """
         raise NotImplementedError()
 
