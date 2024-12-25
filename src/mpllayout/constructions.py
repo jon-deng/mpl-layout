@@ -433,24 +433,29 @@ class LeafConstruction(Construction):
 
 # These functions accept one or more `Construction` class instances
 
-# TODO: Refactor this with `Construction` node representation
-def _generate_aux_data_node(
-    ConstructionType: type[Construction],
-    **kwargs
-):
-    c_keys, c_construction_types, c_construction_type_kwargs, *_ = ConstructionType.init_children(**kwargs)
-    children = {
-        key: _generate_aux_data_node(CConstructionType, **c_kwargs)
-        for key, CConstructionType, c_kwargs in zip(c_keys, c_construction_types, c_construction_type_kwargs)
-    }
 
+def generate_construction_type_node(
+    ConstructionType: type[Construction], **kwargs
+) -> Node:
+    """
+    Return a tree representing the construction type
+    """
+    cons_type_children = ConstructionType.init_children(**kwargs)
     aux_data = ConstructionType.init_aux_data(**kwargs)
-    return Node(aux_data, children)
+
+    c_keys, c_cons_types, c_cons_type_kwargs, *_ = cons_type_children
+
+    children = {
+        key: generate_construction_type_node(ChildConstructionType, **type_kwargs)
+        for key, ChildConstructionType, type_kwargs
+        in zip(c_keys, c_cons_types, c_cons_type_kwargs)
+    }
+    return Node((cons_type_children, aux_data), children)
 
 
 def generate_constraint(
     ConstructionType: type[Construction],
-    constraint_name: str,
+    construction_name: str,
     construction_output_size: Optional[Node[int, Node]] = None
 ):
     if issubclass(ConstructionType, CompoundConstruction):
@@ -472,11 +477,11 @@ def generate_constraint(
                 ConstructionType.init_children(**kwargs)
 
             if construction_output_size is None:
-                aux_data_node = _generate_aux_data_node(ConstructionType, **kwargs)
+                cons_node = generate_construction_type_node(ConstructionType, **kwargs)
 
                 _construction_output_size = accumulate(
                     lambda x, y: x+y,
-                    map(lambda aux_data: aux_data['RES_SIZE'], aux_data_node),
+                    map(lambda value: value[1]['RES_SIZE'], cons_node),
                     0
                 )
             else:
@@ -528,7 +533,7 @@ def generate_constraint(
         def assem(cls, prims, *derived_params):
             return derived_assem(prims, derived_params)
 
-    DerivedConstraint.__name__ = constraint_name
+    DerivedConstraint.__name__ = construction_name
 
     return DerivedConstraint
 
