@@ -13,7 +13,6 @@ import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node, iter_flat, map, accumulate
 from . import constructions as con
 
 Primitive = pr.Primitive
@@ -55,119 +54,10 @@ ChildKeys = tuple[str, ...]
 ChildConstraints = tuple[con.ConstructionNode, ...]
 
 ## Point constraints
-# NOTE: These are actual constraint classes that can be called so class docstrings
-# document there `assem_res` function.
-
-# TODO: Move derived constructions to `constructions`
-
-# TODO: Refactor this with `Construction` node representation
-def _generate_aux_data_node(
-    ConstructionType: type[con.Construction],
-    **kwargs
-):
-    c_keys, c_construction_types, c_construction_type_kwargs, *_ = ConstructionType.init_children(**kwargs)
-    children = {
-        key: _generate_aux_data_node(CConstructionType, **c_kwargs)
-        for key, CConstructionType, c_kwargs in zip(c_keys, c_construction_types, c_construction_type_kwargs)
-    }
-
-    aux_data = ConstructionType.init_aux_data(**kwargs)
-    return Node(aux_data, children)
-
-
-def generate_constraint(
-    ConstructionType: type[con.Construction],
-    constraint_name: str,
-    construction_output_size: Optional[Node[int, Node]] = None
-):
-    if issubclass(ConstructionType, con.CompoundConstruction):
-        def derived_assem(prims, derived_params):
-            *params, value = derived_params
-            return np.array([])
-    elif issubclass(ConstructionType, con.LeafConstruction):
-        def derived_assem(prims, derived_params):
-            *params, value = derived_params
-            return ConstructionType.assem(prims, *params) - value
-    else:
-        raise TypeError()
-
-    class DerivedConstraint(ConstructionType):
-
-        @classmethod
-        def init_children(cls, **kwargs):
-            c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, c_params = \
-                ConstructionType.init_children(**kwargs)
-
-            if construction_output_size is None:
-                aux_data_node = _generate_aux_data_node(ConstructionType, **kwargs)
-
-                _construction_output_size = accumulate(
-                    lambda x, y: x+y,
-                    map(lambda aux_data: aux_data['RES_SIZE'], aux_data_node),
-                    0
-                )
-            else:
-                _construction_output_size = construction_output_size
-
-            derived_child_construction_types = tuple(
-                generate_constraint(
-                    ChConstraintType, child_key, _construction_output_size[child_key]
-                )
-                for child_key, ChConstraintType in zip(c_keys, c_construction_types)
-            )
-
-            child_res_sizes = [node.value for node in _construction_output_size.values()]
-            cum_child_res_sizes = [size for size in itertools.accumulate([0] + child_res_sizes, initial=0)]
-            child_value_slices = [
-                slice(start,  stop)
-                for start, stop in zip(cum_child_res_sizes[:-1], cum_child_res_sizes[1:])
-            ]
-            def child_value(value):
-                if isinstance(value, (float, int)):
-                    return len(c_keys) * (value,)
-                else:
-                    return tuple(value[idx] for idx in child_value_slices)
-
-            def derived_child_params(derived_params):
-                *params, value = derived_params
-                return tuple(
-                    (*params, value)
-                    for params, value in zip(
-                        c_params(params), child_value(value)
-                    )
-                )
-
-            return c_keys, derived_child_construction_types, c_construction_type_kwargs, c_prim_keys, derived_child_params
-
-        @classmethod
-        def init_aux_data(cls, **kwargs):
-            aux_data = ConstructionType.init_aux_data(**kwargs)
-            derived_aux_data = {
-                'RES_ARG_TYPES': aux_data['RES_ARG_TYPES'],
-                'RES_PARAMS_TYPE': namedtuple(
-                    'Parameters', aux_data['RES_PARAMS_TYPE']._fields+('value',)
-                ),
-                'RES_SIZE': aux_data['RES_SIZE']
-            }
-            return derived_aux_data
-
-        @classmethod
-        def assem(cls, prims, *derived_params):
-            return derived_assem(prims, derived_params)
-
-    DerivedConstraint.__name__ = constraint_name
-
-    return DerivedConstraint
-
-# TODO: Add `map` and `accumulate` functions to derive constructions over
-# primitive iterables
-
-# TODO: Add `relative` functions to derive a relative constraint over
-# primitive iterables
 
 # Argument type: tuple[Point,]
 
-Fix = generate_constraint(con.Coordinate, 'Fix')
+Fix = con.generate_constraint(con.Coordinate, 'Fix')
 
 # Argument type: tuple[Point, Point]
 
@@ -181,11 +71,11 @@ def _AUX_DATA(
         'RES_SIZE': value_size
     }
 
-DirectedDistance = generate_constraint(con.DirectedDistance, 'DirectedDistance')
+DirectedDistance = con.generate_constraint(con.DirectedDistance, 'DirectedDistance')
 
-XDistance = generate_constraint(con.XDistance, 'XDistance')
+XDistance = con.generate_constraint(con.XDistance, 'XDistance')
 
-YDistance = generate_constraint(con.YDistance, 'YDistance')
+YDistance = con.generate_constraint(con.YDistance, 'YDistance')
 
 class Coincident(con.LeafConstruction):
     """
@@ -224,13 +114,13 @@ def _AUX_DATA(
         'RES_SIZE': value_size
     }
 
-Length = generate_constraint(con.Length, 'Length')
+Length = con.generate_constraint(con.Length, 'Length')
 
-DirectedLength = generate_constraint(con.DirectedLength, 'DirectedLength')
+DirectedLength = con.generate_constraint(con.DirectedLength, 'DirectedLength')
 
-XLength = generate_constraint(con.XLength, 'XLength')
+XLength = con.generate_constraint(con.XLength, 'XLength')
 
-YLength = generate_constraint(con.YLength, 'YLength')
+YLength = con.generate_constraint(con.YLength, 'YLength')
 
 
 class Vertical(con.LeafConstruction):
@@ -312,9 +202,9 @@ class RelativeLength(con.LeafConstruction):
         vec_b = con.LineVector.assem((line1,))
         return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
-MidpointXDistance = generate_constraint(con.MidpointXDistance, 'MidpointXDistance')
+MidpointXDistance = con.generate_constraint(con.MidpointXDistance, 'MidpointXDistance')
 
-MidpointYDistance = generate_constraint(con.MidpointYDistance, 'MidpointYDistance')
+MidpointYDistance = con.generate_constraint(con.MidpointYDistance, 'MidpointYDistance')
 
 class Orthogonal(con.LeafConstruction):
     """
@@ -366,7 +256,7 @@ class Parallel(con.LeafConstruction):
         )
 
 
-Angle = generate_constraint(con.Angle, 'Angle')
+Angle = con.generate_constraint(con.Angle, 'Angle')
 
 
 class Collinear(con.LeafConstruction):
@@ -585,9 +475,9 @@ class CollinearArray(ArrayConstraint):
 # + and offset
 # This would be useful for aligning axis labels
 
-PointOnLineDistance = generate_constraint(con.PointOnLineDistance, 'PointOnLineDistance')
+PointOnLineDistance = con.generate_constraint(con.PointOnLineDistance, 'PointOnLineDistance')
 
-PointToLineDistance = generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
+PointToLineDistance = con.generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
 
 def _AUX_DATA(
     value_size: int,
@@ -682,7 +572,7 @@ class Box(con.StaticCompoundConstruction):
         return _AUX_DATA(0)
 
 
-AspectRatio = generate_constraint(con.AspectRatio, 'AspectRatio')
+AspectRatio = con.generate_constraint(con.AspectRatio, 'AspectRatio')
 
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
@@ -793,9 +683,9 @@ class YAxisWidth(con.StaticCompoundConstruction):
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-OuterMargin = generate_constraint(con.OuterMargin, 'OuterMargin')
+OuterMargin = con.generate_constraint(con.OuterMargin, 'OuterMargin')
 
-InnerMargin = generate_constraint(con.InnerMargin, 'InnerMargin')
+InnerMargin = con.generate_constraint(con.InnerMargin, 'InnerMargin')
 
 # Argument type: tuple[Quadrilateral, ...]
 

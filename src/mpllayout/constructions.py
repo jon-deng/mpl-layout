@@ -16,7 +16,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node, iter_flat
+from .containers import Node, iter_flat, map, accumulate
 
 Params = tuple[Any, ...]
 
@@ -429,6 +429,114 @@ class LeafConstruction(Construction):
     ]:
         return (), (), {}, (), lambda x: ()
 
+## Construction functions
+
+# These functions accept one or more `Construction` class instances
+
+# TODO: Refactor this with `Construction` node representation
+def _generate_aux_data_node(
+    ConstructionType: type[Construction],
+    **kwargs
+):
+    c_keys, c_construction_types, c_construction_type_kwargs, *_ = ConstructionType.init_children(**kwargs)
+    children = {
+        key: _generate_aux_data_node(CConstructionType, **c_kwargs)
+        for key, CConstructionType, c_kwargs in zip(c_keys, c_construction_types, c_construction_type_kwargs)
+    }
+
+    aux_data = ConstructionType.init_aux_data(**kwargs)
+    return Node(aux_data, children)
+
+
+def generate_constraint(
+    ConstructionType: type[Construction],
+    constraint_name: str,
+    construction_output_size: Optional[Node[int, Node]] = None
+):
+    if issubclass(ConstructionType, CompoundConstruction):
+        def derived_assem(prims, derived_params):
+            *params, value = derived_params
+            return np.array([])
+    elif issubclass(ConstructionType, LeafConstruction):
+        def derived_assem(prims, derived_params):
+            *params, value = derived_params
+            return ConstructionType.assem(prims, *params) - value
+    else:
+        raise TypeError()
+
+    class DerivedConstraint(ConstructionType):
+
+        @classmethod
+        def init_children(cls, **kwargs):
+            c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, c_params = \
+                ConstructionType.init_children(**kwargs)
+
+            if construction_output_size is None:
+                aux_data_node = _generate_aux_data_node(ConstructionType, **kwargs)
+
+                _construction_output_size = accumulate(
+                    lambda x, y: x+y,
+                    map(lambda aux_data: aux_data['RES_SIZE'], aux_data_node),
+                    0
+                )
+            else:
+                _construction_output_size = construction_output_size
+
+            derived_child_construction_types = tuple(
+                generate_constraint(
+                    ChConstraintType, child_key, _construction_output_size[child_key]
+                )
+                for child_key, ChConstraintType in zip(c_keys, c_construction_types)
+            )
+
+            child_res_sizes = [node.value for node in _construction_output_size.values()]
+            cum_child_res_sizes = [size for size in itertools.accumulate([0] + child_res_sizes, initial=0)]
+            child_value_slices = [
+                slice(start,  stop)
+                for start, stop in zip(cum_child_res_sizes[:-1], cum_child_res_sizes[1:])
+            ]
+            def child_value(value):
+                if isinstance(value, (float, int)):
+                    return len(c_keys) * (value,)
+                else:
+                    return tuple(value[idx] for idx in child_value_slices)
+
+            def derived_child_params(derived_params):
+                *params, value = derived_params
+                return tuple(
+                    (*params, value)
+                    for params, value in zip(
+                        c_params(params), child_value(value)
+                    )
+                )
+
+            return c_keys, derived_child_construction_types, c_construction_type_kwargs, c_prim_keys, derived_child_params
+
+        @classmethod
+        def init_aux_data(cls, **kwargs):
+            aux_data = ConstructionType.init_aux_data(**kwargs)
+            derived_aux_data = {
+                'RES_ARG_TYPES': aux_data['RES_ARG_TYPES'],
+                'RES_PARAMS_TYPE': namedtuple(
+                    'Parameters', aux_data['RES_PARAMS_TYPE']._fields+('value',)
+                ),
+                'RES_SIZE': aux_data['RES_SIZE']
+            }
+            return derived_aux_data
+
+        @classmethod
+        def assem(cls, prims, *derived_params):
+            return derived_assem(prims, derived_params)
+
+    DerivedConstraint.__name__ = constraint_name
+
+    return DerivedConstraint
+
+# TODO: Add `map` and `accumulate` functions to derive constructions over
+# primitive iterables
+
+# TODO: Add `relative` functions to derive a relative constraint over
+# primitive iterables
 
 ## Point constructions
 # NOTE: These are actual constraint classes that can be called so class docstrings
