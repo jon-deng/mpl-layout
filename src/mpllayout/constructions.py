@@ -157,7 +157,7 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         root_params: ParamsNode
             A tree of keyword arguments for the construction and all children
         """
-        children_params = self.propogate_child_params(params)
+        children_params = self.child_params(params)
         children = {
             key: child.root_params(child_params)
             for (key, child), child_params in zip(self.items(), children_params)
@@ -242,7 +242,7 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
     def child_prim_keys(self) -> tuple[PrimKeys, ...]:
         return self.value[0]
 
-    def propogate_child_params(self, params: Params) -> tuple[Params, ...]:
+    def child_params(self, params: Params) -> tuple[Params, ...]:
         return self.value[1](params)
 
     @property
@@ -994,10 +994,10 @@ class OuterMargin(CompoundConstruction):
         else:
             raise ValueError()
 
-        def propogate_child_params(params):
+        def child_params(params):
             return [()]
 
-        return child_keys, child_constructions, child_prim_keys, propogate_child_params
+        return child_keys, child_constructions, child_prim_keys, child_params
 
     @classmethod
     def init_aux_data(cls, side: str="left"):
@@ -1035,10 +1035,10 @@ class InnerMargin(CompoundConstruction):
         else:
             raise ValueError()
 
-        def propogate_child_params(params):
+        def child_params(params):
             return [()]
 
-        return child_keys, child_constructions, child_prim_keys, propogate_child_params
+        return child_keys, child_constructions, child_prim_keys, child_params
 
     @classmethod
     def init_aux_data(cls, side: str="left"):
