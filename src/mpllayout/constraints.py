@@ -92,7 +92,8 @@ def generate_constraint(
 
         @classmethod
         def init_children(cls, **kwargs):
-            child_keys, child_constructions, child_prim_keys, split_child_params = ConstructionType.init_children(**kwargs)
+            child_keys, child_constructions, child_prim_keys, child_params = \
+                ConstructionType.init_children(**kwargs)
 
             if construction_output_size is None:
                 aux_data_node = _generate_aux_data_node(ConstructionType)
@@ -118,23 +119,22 @@ def generate_constraint(
                 slice(start,  stop)
                 for start, stop in zip(cum_child_res_sizes[:-1], cum_child_res_sizes[1:])
             ]
-            def split_value(value):
+            def child_value(value):
                 if isinstance(value, (float, int)):
                     return len(child_keys) * (value,)
                 else:
                     return tuple(value[idx] for idx in child_value_slices)
 
-            def derived_split_child_params(derived_params):
+            def derived_child_params(derived_params):
                 *params, value = derived_params
-                split_params = split_child_params(params)
-                _split_value = split_value(value)
-
                 return tuple(
                     (*params, value)
-                    for params, value in zip(split_params, _split_value)
+                    for params, value in zip(
+                        child_params(params), child_value(value)
+                    )
                 )
 
-            return child_keys, derived_child_constructions, child_prim_keys, derived_split_child_params
+            return child_keys, derived_child_constructions, child_prim_keys, derived_child_params
 
         @classmethod
         def init_aux_data(cls, **kwargs):
