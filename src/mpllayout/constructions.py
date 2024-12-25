@@ -186,35 +186,10 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         root_prim_keys: PrimKeysNode
             A tree of primitive keys for the construction and all children
         """
-        # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
-
-        def parent_argnum_from_key(arg_key: str):
-            arg_number_str = arg_key.split("/", 1)[0]
-            if arg_number_str[:3] == "arg":
-                arg_number = int(arg_number_str[3:])
-            else:
-                raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
-            return arg_number
-
-        def replace_prim_key_prefix(arg_key: str, parent_prim_keys):
-            split_key = arg_key.split("/", 1)
-            prefix, postfix = split_key[0], split_key[1:]
-            new_prefix = parent_prim_keys[parent_argnum_from_key(arg_key)]
-            return "/".join([new_prefix] + postfix)
-
-        # For each child, find the parent primitive part of its argument tuple
-        children_prim_keys = tuple(
-            tuple(
-                replace_prim_key_prefix(prim_key, prim_keys)
-                for prim_key in child_prim_keys
-            )
-            for child_prim_keys in self.child_prim_keys
-        )
-
         children = {
             key: child.root_prim_keys(child_prim_keys)
             for (key, child), child_prim_keys
-            in zip(self.items(), children_prim_keys)
+            in zip(self.items(), self.child_prim_keys(prim_keys))
         }
         return PrimKeysNode(prim_keys, children)
 
@@ -239,8 +214,41 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         )
 
     @property
-    def child_prim_keys(self) -> tuple[PrimKeys, ...]:
+    def _child_prim_keys_template(self) -> tuple[PrimKeys, ...]:
         return self.value[0]
+
+    def child_prim_keys(self, arg_keys: tuple[str, ...]) -> tuple[PrimKeys, ...]:
+        """
+        Return primitive key tuples for each child constraint
+
+        The 'arg{n}' part of the prim key is replace with the corresponding key
+        in `parent_prim_keys`.
+        """
+        # Replace the 'arg{n}/...' component with the corresponding string
+        # in `prim_keys`
+
+        def argnum_from_key(arg_prefix: str):
+            if arg_prefix[:3] == "arg":
+                arg_num = int(arg_prefix[3:])
+            else:
+                raise ValueError(
+                    f"Argument key {arg_prefix} must contain 'arg' prefix"
+                )
+            return arg_num
+
+        def replace_prim_key_prefix(prim_key: str, arg_keys):
+            arg_prefix, *child_key = prim_key.split("/", 1)
+            new_prefix = arg_keys[argnum_from_key(arg_prefix)]
+            return "/".join([new_prefix] + child_key)
+
+        # For each child, find the parent primitive part of its argument tuple
+        return tuple(
+            tuple(
+                replace_prim_key_prefix(prim_key, arg_keys)
+                for prim_key in child_prim_keys
+            )
+            for child_prim_keys in self._child_prim_keys_template
+        )
 
     def child_params(self, params: Params) -> tuple[Params, ...]:
         return self.value[1](params)
