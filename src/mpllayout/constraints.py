@@ -49,7 +49,7 @@ ParamsNode = con.ParamsNode
 
 Constraint = con.Construction
 ConstraintNode = con.ConstructionNode
-ArrayConstraint = con.ArrayConstruction
+ArrayConstraint = con.ArrayCompoundConstruction
 
 ChildKeys = tuple[str, ...]
 ChildConstraints = tuple[con.ConstructionNode, ...]
@@ -645,7 +645,7 @@ def _AUX_DATA(
         'RES_SIZE': value_size
     }
 
-class Box(con.StaticConstruction):
+class Box(con.StaticCompoundConstruction):
     """
     Constrain a quadrilateral to be rectangular
 
@@ -702,7 +702,7 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
     return dim
 
-class XAxisHeight(con.StaticConstruction):
+class XAxisHeight(con.StaticCompoundConstruction):
     """
     Return the x-axis height for an axes
 
@@ -739,7 +739,7 @@ class XAxisHeight(con.StaticConstruction):
         return _AUX_DATA(0, namedtuple("Parameters", ('axis',)))
 
 
-class YAxisWidth(con.StaticConstruction):
+class YAxisWidth(con.StaticCompoundConstruction):
     """
     Constrain the y-axis width for an axes
 

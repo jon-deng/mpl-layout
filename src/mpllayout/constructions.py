@@ -371,7 +371,7 @@ class CompoundConstruction(Construction):
         return np.array([])
 
 
-class ArrayConstruction(CompoundConstruction):
+class ArrayCompoundConstruction(CompoundConstruction):
     """
     Constraint representing an array of child constraints
     """
@@ -382,7 +382,7 @@ class ArrayConstruction(CompoundConstruction):
         super().__init__(shape=shape)
 
 
-class StaticConstruction(CompoundConstruction):
+class StaticCompoundConstruction(CompoundConstruction):
     """
     Construction with static primitive argument types and child constructions
 
