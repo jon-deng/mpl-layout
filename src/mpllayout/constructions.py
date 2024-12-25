@@ -253,10 +253,6 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
     def child_params(self, params: Params) -> tuple[Params, ...]:
         return self.value[1](params)
 
-    @property
-    def RES_PARAMS_TYPE(self):
-        return self.value[1]['RES_PARAMS_TYPE']
-
     def __call__(
             self,
             prims: Prims,
