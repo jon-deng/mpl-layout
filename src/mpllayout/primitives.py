@@ -18,7 +18,7 @@ import mpllayout.containers as cn
 
 ChildPrimitive = TypeVar("ChildPrimitive", bound="Primitive")
 
-
+# TODO: Refactor this as `PrimitiveNode` like constructions
 class Primitive(cn.Node[NDArray[np.float64], ChildPrimitive]):
     """
     The base geometric primitive class

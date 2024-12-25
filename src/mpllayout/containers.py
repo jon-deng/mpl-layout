@@ -16,6 +16,7 @@ TValue = TypeVar("TValue")
 TChild = TypeVar("TChild", bound="Node")
 TNode = TypeVar("TNode", bound="Node")
 
+# TODO: Remove `TChild` generic type parameter (too complicated)
 class Node(Generic[TValue, TChild]):
     """
     Tree structure with labelled child nodes
