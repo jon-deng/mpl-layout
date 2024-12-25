@@ -339,14 +339,21 @@ class Construction(ConstructionNode):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(*self.init_children(**kwargs), self.init_aux_data(**kwargs))
+        (c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, c_params) = self.init_children(**kwargs)
+        c_constructions = tuple(
+            ConstructionType(**kwargs)
+            for ConstructionType, kwargs
+            in zip(c_construction_types, c_construction_type_kwargs)
+        )
+        super().__init__(c_keys, c_constructions, c_prim_keys, c_params, self.init_aux_data(**kwargs))
 
     @classmethod
     def init_children(
         cls, **kwargs
     ) -> tuple[
         list[str],
-        list[ConstructionNode],
+        list[type["Construction"]],
+        list[dict[str, any]],
         list[PrimKeys],
         Callable[[Params], list[Params]]
     ]:
@@ -399,27 +406,6 @@ class StaticCompoundConstruction(CompoundConstruction):
     def __init__(self):
         super().__init__()
 
-    @classmethod
-    def init_children(
-        cls
-    ) -> tuple[
-        list[str],
-        list[ConstructionNode],
-        list[PrimKeys],
-        Callable[[Params], list[Params]]
-    ]:
-        raise NotImplementedError()
-
-    @classmethod
-    def init_aux_data(
-        cls
-    ) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    @classmethod
-    def assem(cls, prims: Prims, *params):
-        return np.array([])
-
 
 class LeafConstruction(Construction):
     """
@@ -436,11 +422,12 @@ class LeafConstruction(Construction):
         cls
     ) -> tuple[
         list[str],
-        list[ConstructionNode],
+        list[type["Construction"]],
+        list[dict[str, any]],
         list[PrimKeys],
         Callable[[Params], list[Params]]
     ]:
-        return [], [], [], lambda x: ()
+        return (), (), {}, (), lambda x: ()
 
 
 ## Point constructions
@@ -982,26 +969,31 @@ class OuterMargin(CompoundConstruction):
 
     @classmethod
     def init_children(cls, side: str="left"):
-        child_keys = ("Margin",)
         if side == "left":
-            child_constructions = (MidpointXDistance(),)
-            child_prim_keys = (("arg1/Line1", "arg0/Line3"),)
+            c_keys = ("LeftMargin",)
+            c_construction_types = (MidpointXDistance,)
+            c_prim_keys = (("arg1/Line1", "arg0/Line3"),)
         elif side == "right":
-            child_constructions = (MidpointXDistance(),)
-            child_prim_keys = (("arg0/Line1", "arg1/Line3"),)
+            c_keys = ("RightMargin",)
+            c_construction_types = (MidpointXDistance,)
+            c_prim_keys = (("arg0/Line1", "arg1/Line3"),)
         elif side == "bottom":
-            child_constructions = (MidpointYDistance(),)
-            child_prim_keys = (("arg1/Line2", "arg0/Line0"),)
+            c_keys = ("BottomMargin",)
+            c_construction_types = (MidpointYDistance,)
+            c_prim_keys = (("arg1/Line2", "arg0/Line0"),)
         elif side == "top":
-            child_constructions = (MidpointYDistance(),)
-            child_prim_keys = (("arg0/Line2", "arg1/Line0"),)
+            c_keys = ("TopMargin",)
+            c_construction_types = (MidpointYDistance,)
+            c_prim_keys = (("arg0/Line2", "arg1/Line0"),)
         else:
             raise ValueError()
 
-        def child_params(params):
+        c_construction_type_kwargs = ({},)
+
+        def c_params(params):
             return [()]
 
-        return child_keys, child_constructions, child_prim_keys, child_params
+        return c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, c_params
 
     @classmethod
     def init_aux_data(cls, side: str="left"):
@@ -1023,26 +1015,31 @@ class InnerMargin(CompoundConstruction):
 
     @classmethod
     def init_children(cls, side: str="left"):
-        child_keys = ["Margin"]
         if side == "left":
-            child_constructions = [MidpointXDistance()]
-            child_prim_keys = [("arg1/Line3", "arg0/Line3")]
+            c_keys = ("LeftMargin",)
+            c_construction_types = (MidpointXDistance,)
+            c_prim_keys = (("arg1/Line3", "arg0/Line3"),)
         elif side == "right":
-            child_constructions = [MidpointXDistance()]
-            child_prim_keys = [("arg0/Line1", "arg1/Line1")]
+            c_keys = ("RightMargin",)
+            c_construction_types = (MidpointXDistance,)
+            c_prim_keys = (("arg0/Line1", "arg1/Line1"),)
         elif side == "bottom":
-            child_constructions = [MidpointYDistance()]
-            child_prim_keys = [("arg1/Line0", "arg0/Line0")]
+            c_keys = ("BottomMargin",)
+            c_construction_types = (MidpointYDistance,)
+            c_prim_keys = (("arg1/Line0", "arg0/Line0"),)
         elif side == "top":
-            child_constructions = [MidpointYDistance()]
-            child_prim_keys = [("arg0/Line2", "arg1/Line2")]
+            c_keys = ("TopMargin",)
+            c_construction_types = (MidpointYDistance,)
+            c_prim_keys = (("arg0/Line2", "arg1/Line2"),)
         else:
             raise ValueError()
 
-        def child_params(params):
+        c_construction_type_kwargs = ({},)
+
+        def c_params(params):
             return [()]
 
-        return child_keys, child_constructions, child_prim_keys, child_params
+        return c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, c_params
 
     @classmethod
     def init_aux_data(cls, side: str="left"):
