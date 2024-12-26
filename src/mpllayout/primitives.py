@@ -16,9 +16,7 @@ import mpllayout.containers as cn
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
 
-ChildPrimitive = TypeVar("ChildPrimitive", bound="PrimitiveNode")
-
-class PrimitiveNode(cn.Node[NDArray[np.float64], ChildPrimitive]):
+class PrimitiveNode(cn.Node[NDArray[np.float64]]):
     """
     The base geometric primitive class
 
@@ -34,17 +32,9 @@ class PrimitiveNode(cn.Node[NDArray[np.float64], ChildPrimitive]):
     be defined instead (for example, see `Point` or `Line` below).
     Subclasses `StaticPrimitive` and `DynamicPrimitive` are intermediate
     sub-classes that can be used to define these subclasses.
-
-    Parameters
-    ----------
-    value: NDArray with shape (n,)
-        A parameter vector for the primitive
-    child_keys: list[str]
-        Child primitive keys
-    child_prims: list[ChildPrimitive]
-        Child primitives
     """
 
+TPrim = TypeVar("TPrim", bound="Primitive")
 
 class Primitive(PrimitiveNode):
 
@@ -52,7 +42,7 @@ class Primitive(PrimitiveNode):
         self,
         value: NDArray,
         child_keys: list[str],
-        child_prims: list[ChildPrimitive],
+        child_prims: list[TPrim],
     ):
         children = {key: prim for key, prim in zip(child_keys, child_prims)}
         super().__init__(value, children)
@@ -80,7 +70,7 @@ class StaticPrimitive(Primitive):
         The parameter vector should match a known shape.
 
         If not supplied, `default_value` will be used to generate a default.
-    prims: list[Primitive], optional
+    prims: list[TPrim], optional
         Parameterizing primitives
 
         The parameterizing primitives must match the known primitive types.
@@ -95,28 +85,28 @@ class StaticPrimitive(Primitive):
         """
         raise NotImplementedError()
 
-    def default_prims(self) -> list[Primitive]:
+    def default_prims(self) -> list[TPrim]:
         """
         Return default parameterizing primitives
         """
         raise NotImplementedError()
 
     def init_children(
-        self, prims: list[Primitive]
-    ) -> tuple[list[str], list[ChildPrimitive]]:
+        self, prims: list[TPrim]
+    ) -> tuple[list[str], list[TPrim]]:
         """
         Return child primitives from parameterizing primitives
 
         Parameters
         ----------
-        prims: list[Primitive]
+        prims: list[TPrim]
             Parameterizing primitives
 
         Returns
         -------
         List[str]
             Child primitive keys
-        List[ChildPrimitive]
+        List[TPrim]
             Child primitives
         """
         raise NotImplementedError()
@@ -124,7 +114,7 @@ class StaticPrimitive(Primitive):
     def __init__(
         self,
         value: Optional[NDArray] = None,
-        prims: Optional[list[Primitive]] = None,
+        prims: Optional[list[TPrim]] = None,
     ):
         if value is None:
             value = self.default_value()
@@ -161,7 +151,7 @@ class ParameterizedPrimitive(Primitive):
         The parameter vector should match a known shape.
 
         If not supplied, `default_value` will be used to generate a default.
-    prims: list[Primitive], optional
+    prims: list[TPrim], optional
         Parameterizing primitives
 
         The parameterizing primitives should match known primitive types.
@@ -183,28 +173,28 @@ class ParameterizedPrimitive(Primitive):
         """
         raise NotImplementedError()
 
-    def default_prims(self, **kwargs) -> list[Primitive]:
+    def default_prims(self, **kwargs) -> list[TPrim]:
         """
         Return default parameterizing primitives
         """
         raise NotImplementedError()
 
     def init_children(
-        self, prims: list[Primitive], **kwargs
-    ) -> tuple[list[str], list[ChildPrimitive]]:
+        self, prims: list[TPrim], **kwargs
+    ) -> tuple[list[str], list[TPrim]]:
         """
         Return child primitives from parameterizing primitives
 
         Parameters
         ----------
-        prims: list[Primitive]
+        prims: list[TPrim]
             Parameterizing primitives
 
         Returns
         -------
         List[str]
             Child primitive keys
-        List[ChildPrimitive]
+        List[TPrim]
             Child primitives
         """
         raise NotImplementedError()
@@ -212,7 +202,7 @@ class ParameterizedPrimitive(Primitive):
     def __init__(
         self,
         value: Optional[NDArray] = None,
-        prims: Optional[list[Primitive]] = None,
+        prims: Optional[list[TPrim]] = None,
         **kwargs
     ):
         if value is None:
@@ -417,7 +407,7 @@ class Axes(ParameterizedPrimitive):
         prims: AxesChildPrims,
         xaxis: bool=False,
         yaxis: bool=False
-    ) -> tuple[list[str], list[ChildPrimitive]]:
+    ) -> tuple[list[str], AxesChildPrims]:
 
         if xaxis:
             xaxis_keys = ("XAxis", "XAxisLabel")

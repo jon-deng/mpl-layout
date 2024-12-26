@@ -13,11 +13,9 @@ import functools
 import jax
 
 TValue = TypeVar("TValue")
-TChild = TypeVar("TChild", bound="Node")
 TNode = TypeVar("TNode", bound="Node")
 
-# TODO: Remove `TChild` generic type parameter (too complicated)
-class Node(Generic[TValue, TChild]):
+class Node(Generic[TValue]):
     """
     Tree structure with labelled child nodes
 
@@ -25,24 +23,24 @@ class Node(Generic[TValue, TChild]):
     ----------
     value: TValue
         A value associated with the node
-    children: dict[str, TChild]
+    children: dict[str, Node]
         A dictionary of child nodes
 
     Attributes
     ----------
     value: TValue
         The value stored in the node
-    children: dict[str, TChild]
+    children: dict[str, Node]
         A dictionary of child nodes
     """
 
-    def __init__(self, value: TValue, children: dict[str, TChild]):
+    def __init__(self: TNode, value: TValue, children: dict[str, TNode]):
         assert isinstance(children, dict)
         self._value = value
         self._children = children
 
     @classmethod
-    def from_tree(cls, value: TValue, children: dict[str, TChild]):
+    def from_tree(cls, value: TValue, children: dict[str, TNode]):
         """
         Return any `Node` subclass from its value and children
 
@@ -67,7 +65,7 @@ class Node(Generic[TValue, TChild]):
         return self._value
 
     @property
-    def children(self) -> dict[str, TChild]:
+    def children(self: TNode) -> dict[str, TNode]:
         """
         Return all child nodes
         """
@@ -90,7 +88,7 @@ class Node(Generic[TValue, TChild]):
         else:
             return 1 + max(child.node_height() for _, child in self.items())
 
-    def get_child(self, key: str) -> TChild:
+    def get_child(self: TNode, key: str) -> TNode:
         split_key = key.split("/", 1)
         parent_key, child_keys = split_key[0], split_key[1:]
 
@@ -102,10 +100,10 @@ class Node(Generic[TValue, TChild]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def _get_child_nonrecursive(self, key: str) -> TChild:
+    def _get_child_nonrecursive(self: TNode, key: str) -> TNode:
         return self.children[key]
 
-    def add_child(self, key: str, child: TChild):
+    def add_child(self: TNode, key: str, child: TNode):
         """
         Add a child node at the given key
 
@@ -117,7 +115,7 @@ class Node(Generic[TValue, TChild]):
             A child node key
 
             see `__getitem__`
-        node: TChild
+        node: Node
             The node to set
         """
         split_key = key.split("/", 1)
@@ -132,7 +130,7 @@ class Node(Generic[TValue, TChild]):
         except KeyError as err:
             raise KeyError(f"{key}") from err
 
-    def _add_child_nonrecursive(self, key: str, child: TChild):
+    def _add_child_nonrecursive(self: TNode, key: str, child: TNode):
         """
         Add a primitive indexed by a key
 
@@ -177,7 +175,7 @@ class Node(Generic[TValue, TChild]):
         """
         return list(self.children.keys())
 
-    def values(self) -> list[TChild]:
+    def values(self: TNode) -> list[TNode]:
         """
         Return child nodes
         """
@@ -189,7 +187,7 @@ class Node(Generic[TValue, TChild]):
         """
         return self.children.items()
 
-    def __setitem__(self, key: str, node: TChild):
+    def __setitem__(self: TNode, key: str, node: TNode):
         """
         Set the child node at the given key
 
@@ -201,7 +199,7 @@ class Node(Generic[TValue, TChild]):
             A child node key
 
             see `__getitem__`
-        node: TChild
+        node: Node
             The node to set
         """
         # This splits `key = 'a/b/c/d'`
@@ -219,7 +217,7 @@ class Node(Generic[TValue, TChild]):
                 parent = self[parent_key]
             parent.children[child_key] = node
 
-    def __getitem__(self, key: str | int | slice) -> TChild | list[TChild]:
+    def __getitem__(self: TNode, key: str | int | slice) -> TNode | list[TNode]:
         """
         Return the value indexed by a slash-separated key
 
@@ -368,8 +366,8 @@ U = TypeVar("U")
 
 def map(
     function: Callable[[TValue], U],
-    node: Node[TValue, TChild]
-) -> Node[U, TChild]:
+    node: Node[TValue]
+) -> Node[U]:
     """
     Return a node by applying a function to every value in an input node
     """
@@ -384,9 +382,9 @@ def map(
 
 def accumulate(
     function: Callable[[TValue, TValue], TValue],
-    node: Node[TValue, TChild],
+    node: Node[TValue],
     initial: TValue
-) -> Node[TValue, TChild]:
+) -> Node[TValue]:
     """
     Return a node by accumulating all leaf node values into the root
     """

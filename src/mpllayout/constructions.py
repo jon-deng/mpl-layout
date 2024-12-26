@@ -6,7 +6,7 @@ For example, this could be the coordinates of a point, the angle between two
 lines, or the length of a single line.
 """
 
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, TypeVar
 from numpy.typing import NDArray
 
 import itertools
@@ -25,7 +25,7 @@ PrimKeys = tuple[str, ...]
 PrimTypes = tuple[type[pr.Primitive], ...]
 
 
-class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
+class PrimKeysNode(Node[PrimKeys]):
     """
     A tree of primitive keys indicating primitives for a construction
 
@@ -36,7 +36,7 @@ class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
     pass
 
 
-class ParamsNode(Node[Params, "ParamsNode"]):
+class ParamsNode(Node[Params]):
     """
     A tree of residual parameters (kwargs) for a construction
 
@@ -47,7 +47,7 @@ class ParamsNode(Node[Params, "ParamsNode"]):
     pass
 
 
-class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
+class ConstructionNode(Node[tuple[PrimKeys, ...]]):
     """
     The base geometric construction class
 
@@ -74,7 +74,7 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
     ----------
     child_keys: list[str]
         Keys for any child constructions
-    child_constructions: list[Construction]
+    child_constructions: list[TCons]
         Child constructions
     child_prim_keys: tuple[PrimKeys, ...]
         `prims` argument representation for each child construction
@@ -290,6 +290,9 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         """
         raise NotImplementedError()
 
+
+TCons = TypeVar("TConstruction", bound="Construction")
+
 # TODO: Refine design of *params and **kwargs for controlling construction behaviour
 # It's not nice that there are two ways change constructions
 
@@ -341,7 +344,7 @@ class Construction(ConstructionNode):
     @classmethod
     def init_children(cls, **kwargs) -> tuple[
         list[str],
-        list[type["Construction"]],
+        list[type[TCons]],
         list[dict[str, any]],
         list[PrimKeys],
         Callable[[Params], list[Params]],
@@ -409,7 +412,7 @@ class LeafConstruction(Construction):
         cls,
     ) -> tuple[
         list[str],
-        list[type["Construction"]],
+        list[type[TCons]],
         list[dict[str, any]],
         list[PrimKeys],
         Callable[[Params], list[Params]],
@@ -423,7 +426,7 @@ class LeafConstruction(Construction):
 
 
 def generate_construction_type_node(
-    ConstructionType: type[Construction], **kwargs
+    ConstructionType: type[TCons], **kwargs
 ) -> Node:
     """
     Return a tree representing the construction type
@@ -443,9 +446,9 @@ def generate_construction_type_node(
 
 
 def generate_constraint(
-    ConstructionType: type[Construction],
+    ConstructionType: type[TCons],
     construction_name: str,
-    construction_output_size: Optional[Node[int, Node]] = None,
+    construction_output_size: Optional[Node[int]] = None,
 ):
     if issubclass(ConstructionType, CompoundConstruction):
 
@@ -545,7 +548,7 @@ def generate_constraint(
     return DerivedConstraint
 
 
-def map(ConstructionType: type[Construction], PrimTypes: list[type[pr.Primitive]]):
+def map(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
     N = len(PrimTypes)
 
     class MapConstruction(CompoundConstruction):
