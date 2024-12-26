@@ -9,7 +9,6 @@ lines, or the length of a single line.
 from typing import Callable, Optional, Any
 from numpy.typing import NDArray
 
-from collections import namedtuple
 import itertools
 
 import numpy as np
@@ -24,18 +23,6 @@ Params = tuple[Any, ...]
 Prims = tuple[pr.Primitive, ...]
 PrimKeys = tuple[str, ...]
 PrimTypes = tuple[type[pr.Primitive], ...]
-
-
-def load_named_tuple(NamedTuple: namedtuple, args: dict[str, Any] | tuple[Any, ...]):
-    if isinstance(args, dict):
-        args = NamedTuple(**args)
-    elif isinstance(args, tuple):
-        args = NamedTuple(*args)
-    elif isinstance(args, NamedTuple):
-        pass
-    else:
-        raise TypeError()
-    return args
 
 
 class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
@@ -537,9 +524,7 @@ def generate_constraint(
             aux_data = ConstructionType.init_aux_data(**kwargs)
             derived_aux_data = {
                 "RES_ARG_TYPES": aux_data["RES_ARG_TYPES"],
-                "RES_PARAMS_TYPE": namedtuple(
-                    "Parameters", aux_data["RES_PARAMS_TYPE"]._fields + ("value",)
-                ),
+                "RES_PARAMS_TYPE": aux_data["RES_PARAMS_TYPE"] + (np.ndarray,),
                 "RES_SIZE": aux_data["RES_SIZE"],
             }
             return derived_aux_data
@@ -562,7 +547,7 @@ def map(ConstructionType: type[Construction], PrimTypes: list[type[pr.Primitive]
         def init_children(cls, **kwargs):
             num_prims = len(ConstructionType.init_aux_data(**kwargs)["RES_ARG_TYPES"])
             num_params = len(
-                ConstructionType.init_aux_data(**kwargs)["RES_PARAMS_TYPE"]._fields
+                ConstructionType.init_aux_data(**kwargs)["RES_PARAMS_TYPE"]
             )
             num_constr = max(N - num_prims + 1, 0)
 
@@ -592,9 +577,7 @@ def map(ConstructionType: type[Construction], PrimTypes: list[type[pr.Primitive]
             aux_data = ConstructionType.init_aux_data(**kwargs)
             derived_aux_data = {
                 "RES_ARG_TYPES": N * aux_data["RES_ARG_TYPES"],
-                "RES_PARAMS_TYPE": namedtuple(
-                    "Parameters", N * aux_data["RES_PARAMS_TYPE"]._fields
-                ),
+                "RES_PARAMS_TYPE": N * aux_data["RES_PARAMS_TYPE"],
                 "RES_SIZE": aux_data["RES_SIZE"],
             }
             return derived_aux_data
@@ -619,7 +602,7 @@ def make_signature_class(arg_types: tuple[type[pr.Primitive], ...]):
     class PrimsSignature:
         @staticmethod
         def aux_data(
-            value_size: int, params: tuple[any] = namedtuple("Parameters", ())
+            value_size: int, params: tuple[any] = ()
         ):
             return {
                 "RES_ARG_TYPES": arg_types,
@@ -702,7 +685,7 @@ class DirectedDistance(LeafConstruction, _PointPointSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ("direction",)))
+        return cls.aux_data(1, (np.ndarray,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Point], direction: NDArray):
@@ -724,7 +707,7 @@ class XDistance(LeafConstruction, _PointPointSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ()))
+        return cls.aux_data(1, ())
 
     @classmethod
     def assem(self, prims: tuple[pr.Point, pr.Point]):
@@ -745,7 +728,7 @@ class YDistance(LeafConstruction, _PointPointSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ()))
+        return cls.aux_data(1, ())
 
     @classmethod
     def assem(self, prims: tuple[pr.Point, pr.Point]):
@@ -835,7 +818,7 @@ class DirectedLength(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ("direction",)))
+        return cls.aux_data(1, (np.ndarray,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line], direction: NDArray):
@@ -911,7 +894,7 @@ class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ("direction",)))
+        return cls.aux_data(1, (np.ndarray,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], direction: NDArray):
@@ -1015,7 +998,7 @@ class PointOnLineDistance(LeafConstruction, _PointLineSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ("reverse",)))
+        return cls.aux_data(1, (bool,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Line], reverse: bool):
@@ -1051,7 +1034,7 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ("reverse",)))
+        return cls.aux_data(1, (bool,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Line], reverse: bool):
@@ -1151,7 +1134,7 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
 
     @classmethod
     def init_aux_data(cls, side: str = "left"):
-        return cls.aux_data(0, namedtuple("Parameters", ("side",)))
+        return cls.aux_data(0, ())
 
 
 class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
@@ -1203,7 +1186,7 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
 
     @classmethod
     def init_aux_data(cls, side: str = "left"):
-        return cls.aux_data(0, namedtuple("Parameters", ("side",)))
+        return cls.aux_data(0, ())
 
 
 # Argument type: tuple[Quadrilateral, ...]

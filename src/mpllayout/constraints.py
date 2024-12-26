@@ -6,7 +6,6 @@ from typing import Optional, Any
 from matplotlib.axis import XAxis, YAxis
 from numpy.typing import NDArray
 
-from collections import namedtuple
 import itertools
 
 import numpy as np
@@ -25,20 +24,6 @@ ResPrimTypes = tuple[type[Primitive], ...]
 
 PrimKeys = tuple[str, ...]
 ChildPrimKeys = tuple[PrimKeys, ...]
-
-def load_named_tuple(
-        NamedTuple: namedtuple,
-        args: dict[str, Any] | tuple[Any, ...]
-    ):
-    if isinstance(args, dict):
-        args = NamedTuple(**args)
-    elif isinstance(args, tuple):
-        args = NamedTuple(*args)
-    elif isinstance(args, NamedTuple):
-        pass
-    else:
-        raise TypeError()
-    return args
 
 PrimKeysNode = con.PrimKeysNode
 ParamsNode = con.ParamsNode
@@ -156,7 +141,7 @@ class RelativeLength(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple("Parameters", ("length",)))
+        return cls.aux_data(1, (float,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], length: float):
@@ -267,7 +252,7 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(2, namedtuple('Parameters', ('reverse',)))
+        return cls.aux_data(2, (bool,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], reverse: bool):
@@ -320,7 +305,7 @@ class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Line,) + (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("lengths",)),
+            'RES_PARAMS_TYPE': size * (float,),
             'RES_SIZE': 0
         }
 
@@ -354,10 +339,10 @@ class MidpointXDistanceArray(ArrayConstraint, con._LinesSignature):
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
-        num_child = np.prod(shape)
+        size = np.prod(shape)
         return {
-            'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",)),
+            'RES_ARG_TYPES': size * (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': size * (float,),
             'RES_SIZE': 0
         }
 
@@ -391,10 +376,10 @@ class MidpointYDistanceArray(ArrayConstraint, con._LinesSignature):
 
     @classmethod
     def init_aux_data(cls, shape: tuple[int, ...]):
-        num_child = np.prod(shape)
+        size = np.prod(shape)
         return {
-            'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",)),
+            'RES_ARG_TYPES': size * (pr.Line, pr.Line),
+            'RES_PARAMS_TYPE': size * (float,),
             'RES_SIZE': 0
         }
 
@@ -436,7 +421,7 @@ class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature)
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(1, namedtuple('Parameters', ('reverse', 'distance')))
+        return cls.aux_data(1, (bool, float))
 
     @classmethod
     def assem(
@@ -558,7 +543,7 @@ class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(0, namedtuple("Parameters", ('axis',)))
+        return cls.aux_data(0, (XAxis,))
 
 
 class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
@@ -596,7 +581,7 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_aux_data(cls):
-        return cls.aux_data(0, namedtuple("Parameters", ('axis',)))
+        return cls.aux_data(0, (YAxis,))
 
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
@@ -674,7 +659,7 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
+            'RES_PARAMS_TYPE': (),
             'RES_SIZE': 0
         }
 
@@ -771,10 +756,7 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple(
-                "Parameters",
-                ("col_widths", "row_heights", "col_margins", "row_margins")
-            ),
+            'RES_PARAMS_TYPE': (np.ndarray, np.ndarray, np.ndarray, np.ndarray),
             'RES_SIZE': 0
         }
 
