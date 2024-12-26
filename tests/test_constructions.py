@@ -22,10 +22,9 @@ class TestConstructionFunctions(GeometryFixtures):
 
         coords_ref = np.concatenate([con.Coordinate()((point,)) for point in points])
         MapCoordinate = con.map(con.Coordinate, num_point*[pr.Point])
-        breakpoint()
         coords_map = MapCoordinate()(points)
-        print(coords_ref)
-        print(coords_map)
+
+        assert np.all(np.isclose(coords_ref, coords_map))
 
 
 class TestPoint(GeometryFixtures):
