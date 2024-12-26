@@ -538,9 +538,6 @@ def generate_constraint(
 
     return DerivedConstraint
 
-# TODO: Add `accumulate` function to derive constructions over
-# primitive iterables
-
 def map(
     ConstructionType: type[Construction],
     PrimTypes: list[type[pr.Primitive]]
@@ -554,15 +551,19 @@ def map(
             c_keys = tuple(f'MAP{n}' for n in range(N))
             c_construction_types = N*(ConstructionType,)
             c_construction_type_kwargs = N*(kwargs,)
-            c_prim_keys = tuple((f'arg{n}',) for n in range(N))
 
+            n_prims = len(ConstructionType.init_aux_data(**kwargs)['RES_ARG_TYPES'])
             n_params = len(ConstructionType.init_aux_data(**kwargs)['RES_PARAMS_TYPE']._fields)
+            n_cons = N-(n_prims-1)
+            assert n_cons >= 0
+
+            c_prim_keys = tuple(tuple(f'arg{ii}' for ii in range(n, n+n_prims)) for n in range(n_cons))
 
             def child_params(map_params):
                 # breakpoint()
                 return tuple(
                     map_params[n*n_params:(n+1)*n_params]
-                    for n in range(N)
+                    for n in range(n_cons)
                 )
 
             return c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, child_params
