@@ -61,23 +61,13 @@ Fix = con.generate_constraint(con.Coordinate, 'Fix')
 
 # Argument type: tuple[Point, Point]
 
-def _AUX_DATA(
-    value_size: int,
-    params: tuple[any] = namedtuple('Parameters', ())
-):
-    return {
-        'RES_ARG_TYPES': (pr.Point, pr.Point),
-        'RES_PARAMS_TYPE': params,
-        'RES_SIZE': value_size
-    }
-
 DirectedDistance = con.generate_constraint(con.DirectedDistance, 'DirectedDistance')
 
 XDistance = con.generate_constraint(con.XDistance, 'XDistance')
 
 YDistance = con.generate_constraint(con.YDistance, 'YDistance')
 
-class Coincident(con.LeafConstruction):
+class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
     Constrain two points to be coincident
 
@@ -89,7 +79,7 @@ class Coincident(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(2)
+        return cls.aux_data(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Point]):
@@ -104,16 +94,6 @@ class Coincident(con.LeafConstruction):
 
 # Argument type: tuple[Line,]
 
-def _AUX_DATA(
-    value_size: int,
-    params: tuple[any] = namedtuple('Parameters', ())
-):
-    return {
-        'RES_ARG_TYPES': (pr.Line,),
-        'RES_PARAMS_TYPE': params,
-        'RES_SIZE': value_size
-    }
-
 Length = con.generate_constraint(con.Length, 'Length')
 
 DirectedLength = con.generate_constraint(con.DirectedLength, 'DirectedLength')
@@ -123,7 +103,7 @@ XLength = con.generate_constraint(con.XLength, 'XLength')
 YLength = con.generate_constraint(con.YLength, 'YLength')
 
 
-class Vertical(con.LeafConstruction):
+class Vertical(con.LeafConstruction, con._LineSignature):
     """
     Constrain a line to be vertical
 
@@ -135,14 +115,14 @@ class Vertical(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(1)
+        return cls.aux_data(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
         return jnp.dot(con.LineVector.assem(prims), np.array([1, 0]))
 
 
-class Horizontal(con.LeafConstruction):
+class Horizontal(con.LeafConstruction, con._LineSignature):
     """
     Constrain a line to be horizontal
 
@@ -154,7 +134,7 @@ class Horizontal(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(1)
+        return cls.aux_data(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -163,17 +143,7 @@ class Horizontal(con.LeafConstruction):
 
 # Argument type: tuple[Line, Line]
 
-def _AUX_DATA(
-    value_size: int,
-    params: tuple[any] = namedtuple('Parameters', ())
-):
-    return {
-        'RES_ARG_TYPES': (pr.Line, pr.Line),
-        'RES_PARAMS_TYPE': params,
-        'RES_SIZE': value_size
-    }
-
-class RelativeLength(con.LeafConstruction):
+class RelativeLength(con.LeafConstruction, con._LineLineSignature):
     """
     Constrain the length of a line relative to another line
 
@@ -189,7 +159,7 @@ class RelativeLength(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(1, namedtuple("Parameters", ("length",)))
+        return cls.aux_data(1, namedtuple("Parameters", ("length",)))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], length: float):
@@ -206,7 +176,7 @@ MidpointXDistance = con.generate_constraint(con.MidpointXDistance, 'MidpointXDis
 
 MidpointYDistance = con.generate_constraint(con.MidpointYDistance, 'MidpointYDistance')
 
-class Orthogonal(con.LeafConstruction):
+class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
     Constrain two lines to be orthogonal
 
@@ -218,7 +188,7 @@ class Orthogonal(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(1)
+        return cls.aux_data(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -231,7 +201,7 @@ class Orthogonal(con.LeafConstruction):
         )
 
 
-class Parallel(con.LeafConstruction):
+class Parallel(con.LeafConstruction, con._LineLineSignature):
     """
     Return the parallel error between two lines
 
@@ -243,7 +213,7 @@ class Parallel(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(1)
+        return cls.aux_data(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -259,7 +229,7 @@ class Parallel(con.LeafConstruction):
 Angle = con.generate_constraint(con.Angle, 'Angle')
 
 
-class Collinear(con.LeafConstruction):
+class Collinear(con.LeafConstruction, con._LineLineSignature):
     """
     Return the collinear error between two lines
 
@@ -271,7 +241,7 @@ class Collinear(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(2)
+        return cls.aux_data(2)
 
     @classmethod
     def assem(self, prims: tuple[pr.Line, pr.Line]):
@@ -286,7 +256,7 @@ class Collinear(con.LeafConstruction):
         )
 
 
-class CoincidentLines(con.LeafConstruction):
+class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
     """
     Return coincident error between two lines
 
@@ -300,7 +270,7 @@ class CoincidentLines(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(2, namedtuple('Parameters', ('reverse',)))
+        return cls.aux_data(2, namedtuple('Parameters', ('reverse',)))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], reverse: bool):
@@ -318,7 +288,7 @@ class CoincidentLines(con.LeafConstruction):
 
 # Argument type: tuple[Line, ...]
 
-class RelativeLengthArray(ArrayConstraint):
+class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
     """
     Constrain the lengths of a set of lines relative to the last
 
@@ -358,7 +328,7 @@ class RelativeLengthArray(ArrayConstraint):
         }
 
 
-class MidpointXDistanceArray(ArrayConstraint):
+class MidpointXDistanceArray(ArrayConstraint, con._LinesSignature):
     """
     Constrain the x-distances between a set of line midpoints
 
@@ -395,7 +365,7 @@ class MidpointXDistanceArray(ArrayConstraint):
         }
 
 
-class MidpointYDistanceArray(ArrayConstraint):
+class MidpointYDistanceArray(ArrayConstraint, con._LinesSignature):
     """
     Constrain the y-distances between a set of line midpoints
 
@@ -432,7 +402,7 @@ class MidpointYDistanceArray(ArrayConstraint):
         }
 
 
-class CollinearArray(ArrayConstraint):
+class CollinearArray(ArrayConstraint, con._LinesSignature):
     """
     Constrain a set of lines to be collinear
 
@@ -477,19 +447,11 @@ class CollinearArray(ArrayConstraint):
 
 PointOnLineDistance = con.generate_constraint(con.PointOnLineDistance, 'PointOnLineDistance')
 
+
 PointToLineDistance = con.generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
 
-def _AUX_DATA(
-    value_size: int,
-    params: tuple[any] = namedtuple('Parameters', ())
-):
-    return {
-        'RES_ARG_TYPES': (pr.Point, pr.Line),
-        'RES_PARAMS_TYPE': params,
-        'RES_SIZE': value_size
-    }
 
-class RelativePointOnLineDistance(con.LeafConstruction):
+class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature):
     """
     Constrain the projected distance of a point along a line
 
@@ -508,7 +470,7 @@ class RelativePointOnLineDistance(con.LeafConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(1, namedtuple('Parameters', ('reverse', 'distance')))
+        return cls.aux_data(1, namedtuple('Parameters', ('reverse', 'distance')))
 
     @classmethod
     def assem(
@@ -537,17 +499,7 @@ class RelativePointOnLineDistance(con.LeafConstruction):
 
 # Argument type: tuple[Quadrilateral]
 
-def _AUX_DATA(
-    value_size: int,
-    params: tuple[any] = namedtuple('Parameters', ())
-):
-    return {
-        'RES_ARG_TYPES': (pr.Quadrilateral,),
-        'RES_PARAMS_TYPE': params,
-        'RES_SIZE': value_size
-    }
-
-class Box(con.StaticCompoundConstruction):
+class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
     Constrain a quadrilateral to be rectangular
 
@@ -569,7 +521,7 @@ class Box(con.StaticCompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(0)
+        return cls.aux_data(0)
 
 
 AspectRatio = con.generate_constraint(con.AspectRatio, 'AspectRatio')
@@ -605,7 +557,7 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
     return dim
 
-class XAxisHeight(con.StaticCompoundConstruction):
+class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
     Return the x-axis height for an axes
 
@@ -640,10 +592,10 @@ class XAxisHeight(con.StaticCompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(0, namedtuple("Parameters", ('axis',)))
+        return cls.aux_data(0, namedtuple("Parameters", ('axis',)))
 
 
-class YAxisWidth(con.StaticCompoundConstruction):
+class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
     Constrain the y-axis width for an axes
 
@@ -678,7 +630,7 @@ class YAxisWidth(con.StaticCompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(0, namedtuple("Parameters", ('axis',)))
+        return cls.aux_data(0, namedtuple("Parameters", ('axis',)))
 
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
@@ -696,7 +648,7 @@ def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
     strides = shape[1:] + (1,)
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
-class RectilinearGrid(ArrayConstraint):
+class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
     """
     Constrain a set of quads to lie on a rectilinear grid
 
@@ -761,7 +713,7 @@ class RectilinearGrid(ArrayConstraint):
         }
 
 
-class Grid(ArrayConstraint):
+class Grid(ArrayConstraint, con._QuadrilateralsSignature):
     """
     Constrain a set of quads to lie on a dimensioned rectilinear grid
 
@@ -865,21 +817,10 @@ class Grid(ArrayConstraint):
 
 # Argument type: tuple[Axes]
 
-def _AUX_DATA(
-    value_size: int,
-    params: tuple[any] = namedtuple('Parameters', ())
-):
-    return {
-        'RES_ARG_TYPES': (pr.Axes,),
-        'RES_PARAMS_TYPE': params,
-        'RES_SIZE': value_size
-    }
-
-
 # TODO: Handle more specialized x/y axes combos? (i.e. twin x/y axes)
 # The below axis constraints are made for single x and y axises
 
-class PositionXAxis(con.CompoundConstruction):
+class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the x-axis to the top or bottom of an axes
 
@@ -914,10 +855,10 @@ class PositionXAxis(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls, bottom: bool, top: bool):
-        return _AUX_DATA(0)
+        return cls.aux_data(0)
 
 
-class PositionYAxis(con.CompoundConstruction):
+class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the y-axis to the left or right of an axes
 
@@ -952,10 +893,10 @@ class PositionYAxis(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls, left: bool=True, right: bool=False):
-        return _AUX_DATA(0)
+        return cls.aux_data(0)
 
 
-class PositionXAxisLabel(con.CompoundConstruction):
+class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the x-axis label horizontal distance (left to right) relative to axes width
 
@@ -983,10 +924,10 @@ class PositionXAxisLabel(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(0)
+        return cls.aux_data(0)
 
 
-class PositionYAxisLabel(con.CompoundConstruction):
+class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the y-axis label vertical distance (bottom to top) relative to axes height
 
@@ -1013,4 +954,4 @@ class PositionYAxisLabel(con.CompoundConstruction):
 
     @classmethod
     def init_aux_data(cls):
-        return _AUX_DATA(0)
+        return cls.aux_data(0)
