@@ -322,37 +322,6 @@ class TestLineArray(GeometryFixtures):
             (linea, lineb) for linea, lineb in zip(lineas, linebs)
         )
 
-    @pytest.fixture()
-    def MidpointXYDistanceArray(self, axis_name: str):
-        if axis_name == 'x':
-            return co.MidpointXDistanceArray
-        else:
-            return co.MidpointYDistanceArray
-
-    @pytest.fixture()
-    def midpoint_xy_distances(self, line_pairs, axis_dir: NDArray):
-        def midpoint_distance(linea, lineb):
-            mida = 1/2*(linea['Point0'].value + linea['Point1'].value)
-            midb = 1/2*(lineb['Point0'].value + lineb['Point1'].value)
-            return midb - mida
-        midpoint_distances = np.array(
-            [midpoint_distance(*line_pair) for line_pair in line_pairs]
-        )
-        return np.dot(midpoint_distances, axis_dir)
-
-    @pytest.fixture()
-    def lines_midpointsarray(self, line_pairs):
-        return tuple(itertools.chain.from_iterable(line_pairs))
-
-    def test_MidpointXYDistanceArray(
-        self, MidpointXYDistanceArray, lines_midpointsarray, midpoint_xy_distances
-    ):
-        num_pairs = len(lines_midpointsarray) // 2
-        res = MidpointXYDistanceArray(num_pairs)(
-            lines_midpointsarray, midpoint_xy_distances
-        )
-        assert np.all(np.isclose(res, 0))
-
 
 class TestPointLine(GeometryFixtures):
     """

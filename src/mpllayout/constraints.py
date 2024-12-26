@@ -310,80 +310,6 @@ class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
         }
 
 
-class MidpointXDistanceArray(ArrayConstraint, con._LinesSignature):
-    """
-    Constrain the x-distances between a set of line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-
-        The distances are measured from the first to the second line in pairs
-    distances: NDArray
-        The distances
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-
-        child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(size))
-        child_keys = tuple(f"LineMidpointXDistance{n}" for n in range(size))
-        child_constraint_types = size * (MidpointXDistance,)
-        child_constraint_type_kwargs = size * ({},)
-        def child_params(params):
-            distances, = params
-            return tuple((distance,) for distance in distances)
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': size * (float,),
-            'RES_SIZE': 0
-        }
-
-
-class MidpointYDistanceArray(ArrayConstraint, con._LinesSignature):
-    """
-    Constrain the y-distances between a set of line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-
-        The distances are measured from the first to the second line in pairs
-    distances: NDArray
-        The distances
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-
-        child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(size))
-        child_keys = tuple(f"LineMidpointYDistance{n}" for n in range(size))
-        child_constraint_types = size * (MidpointYDistance,)
-        child_constraint_type_kwargs = size * ({},)
-        def child_params(params):
-            distances, = params
-            return tuple((distance,) for distance in distances)
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': size * (float,),
-            'RES_SIZE': 0
-        }
-
-
 ## Point and Line constraints
 
 # TODO: class BoundPointsByLine(DynamicConstraint)
@@ -702,15 +628,15 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
             RectilinearGrid,
             RelativeLengthArray,
             RelativeLengthArray,
-            MidpointXDistanceArray,
-            MidpointYDistanceArray,
+            con.map(OuterMargin, num_col*(pr.Quadrilateral,)),
+            con.map(OuterMargin, num_row*(pr.Quadrilateral,))
         )
         child_constraint_type_kwargs = (
             {'shape': shape},
             {'shape': num_col-1},
             {'shape': num_row-1},
-            {'shape': num_col-1},
-            {'shape': num_row-1},
+            {'side': 'right'},
+            {'side': 'bottom'},
         )
 
         def idx(i, j):
@@ -727,26 +653,20 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
             f"arg{idx(row, col)}/Line1"
             for row, col in itertools.product(rows[1:] + rows[:1], [0])
         )
-        col_margin_line_labels = itertools.chain.from_iterable(
-            (f"arg{idx(0, col)}/Line1", f"arg{idx(0, col+1)}/Line3")
-            for col in cols[:-1]
-        )
-        row_margin_line_labels = itertools.chain.from_iterable(
-            (f"arg{idx(row+1, 0)}/Line2", f"arg{idx(row, 0)}/Line0")
-            for row in rows[:-1]
-        )
+        col_margin_args = tuple(f"arg{idx(0, col)}" for col in cols)
+        row_margin_args = tuple(f"arg{idx(row, 0)}" for row in rows)
 
         child_prim_keys = (
             rectilineargrid_args,
             colwidth_args,
             rowheight_args,
-            tuple(col_margin_line_labels),
-            tuple(row_margin_line_labels),
+            tuple(col_margin_args),
+            tuple(row_margin_args),
         )
 
         def child_params(params):
-            # col_widths, row_heights, col_margins, row_margins = param3s
-            return [()] + [(value,) for value in params]
+            col_widths, row_heights, col_margins, row_margins = params
+            return ((),) + ((col_widths,), (row_heights,)) + (col_margins, row_margins)
 
         return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
 
