@@ -304,10 +304,6 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         raise NotImplementedError()
 
 
-ChildKeys = tuple[str, ...]
-ChildConstraints = tuple[ConstructionNode, ...]
-
-
 class Construction(ConstructionNode):
     """
     Construction with parameterized primitive argument types and child constructions

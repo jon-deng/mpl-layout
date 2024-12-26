@@ -50,9 +50,6 @@ Constraint = con.Construction
 ConstraintNode = con.ConstructionNode
 ArrayConstraint = con.ArrayCompoundConstruction
 
-ChildKeys = tuple[str, ...]
-ChildConstraints = tuple[con.ConstructionNode, ...]
-
 ## Point constraints
 
 # Argument type: tuple[Point,]
