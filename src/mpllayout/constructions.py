@@ -290,6 +290,13 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         """
         raise NotImplementedError()
 
+# TODO: Refine design of *params and **kwargs for controlling construction behaviour
+# It's not nice that there are two ways change constructions
+
+# TODO: Refine design of construction instance vs class usage
+# It would probably be better to have construction functions that operate on
+# construction instances rather than classes
+
 
 class Construction(ConstructionNode):
     """
@@ -591,8 +598,7 @@ def map(ConstructionType: type[Construction], PrimTypes: list[type[pr.Primitive]
     return MapConstruction
 
 
-# TODO: Add `relative` functions to derive a relative constraint over
-# primitive iterables
+# TODO: Add `relative` constraint to derive a relative constraint?
 
 ## Construction signatures
 
