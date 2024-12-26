@@ -13,6 +13,20 @@ from mpllayout import constructions as con
 
 from tests.fixture_primitives import GeometryFixtures
 
+class TestConstructionFunctions(GeometryFixtures):
+
+    def test_map(self):
+        num_point = 2
+        coords = np.random.rand(num_point, 2)
+        points = tuple(pr.Point(value=coord) for coord in coords)
+
+        coords_ref = np.concatenate([con.Coordinate()((point,)) for point in points])
+        MapCoordinate = con.map(con.Coordinate, num_point*[pr.Point])
+        breakpoint()
+        coords_map = MapCoordinate()(points)
+        print(coords_ref)
+        print(coords_map)
+
 
 class TestPoint(GeometryFixtures):
     """

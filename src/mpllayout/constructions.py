@@ -537,8 +537,54 @@ def generate_constraint(
 
     return DerivedConstraint
 
-# TODO: Add `map` and `accumulate` functions to derive constructions over
+# TODO: Add `accumulate` function to derive constructions over
 # primitive iterables
+
+def map(
+    ConstructionType: type[Construction],
+    PrimTypes: list[type[pr.Primitive]]
+):
+    N = len(PrimTypes)
+
+    class MapConstruction(CompoundConstruction):
+
+        @classmethod
+        def init_children(cls, **kwargs):
+            c_keys = tuple(f'MAP{n}' for n in range(N))
+            c_construction_types = N*(ConstructionType,)
+            c_construction_type_kwargs = N*(kwargs,)
+            c_prim_keys = tuple((f'arg{n}',) for n in range(N))
+
+            n_params = len(ConstructionType.init_aux_data(**kwargs)['RES_PARAMS_TYPE']._fields)
+
+            def child_params(map_params):
+                # breakpoint()
+                return tuple(
+                    map_params[n*n_params:(n+1)*n_params]
+                    for n in range(N)
+                )
+
+            return c_keys, c_construction_types, c_construction_type_kwargs, c_prim_keys, child_params
+
+        @classmethod
+        def init_aux_data(cls, **kwargs):
+            aux_data = ConstructionType.init_aux_data(**kwargs)
+            derived_aux_data = {
+                'RES_ARG_TYPES': N*aux_data['RES_ARG_TYPES'],
+                'RES_PARAMS_TYPE': namedtuple(
+                    'Parameters', N*aux_data['RES_PARAMS_TYPE']._fields
+                ),
+                'RES_SIZE': aux_data['RES_SIZE']
+            }
+            return derived_aux_data
+
+        @classmethod
+        def assem(cls, prims, *map_params):
+            return np.array(())
+
+    MapConstruction.__name__ = f'Map{ConstructionType.__name__}'
+
+    return MapConstruction
 
 # TODO: Add `relative` functions to derive a relative constraint over
 # primitive iterables
