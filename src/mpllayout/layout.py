@@ -71,7 +71,7 @@ class Layout:
     ):
 
         if root_prim is None:
-            root_prim = pr.PrimitiveNode(np.array([]), {})
+            root_prim = pr.PrimitiveNode.from_tree(np.array([]), {})
         if root_constraint is None:
             root_constraint = cr.ConstraintNode.from_tree(None, {})
         if root_prim_keys is None:

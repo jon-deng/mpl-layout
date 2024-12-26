@@ -16,10 +16,9 @@ import mpllayout.containers as cn
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
 
-ChildPrimitive = TypeVar("ChildPrimitive", bound="Primitive")
+ChildPrimitive = TypeVar("ChildPrimitive", bound="PrimitiveNode")
 
-# TODO: Refactor this as `PrimitiveNode` like constructions
-class Primitive(cn.Node[NDArray[np.float64], ChildPrimitive]):
+class PrimitiveNode(cn.Node[NDArray[np.float64], ChildPrimitive]):
     """
     The base geometric primitive class
 
@@ -46,6 +45,9 @@ class Primitive(cn.Node[NDArray[np.float64], ChildPrimitive]):
         Child primitives
     """
 
+
+class Primitive(PrimitiveNode):
+
     def __init__(
         self,
         value: NDArray,
@@ -54,19 +56,6 @@ class Primitive(cn.Node[NDArray[np.float64], ChildPrimitive]):
     ):
         children = {key: prim for key, prim in zip(child_keys, child_prims)}
         super().__init__(value, children)
-
-
-class PrimitiveNode(cn.Node[NDArray[np.float64], Primitive]):
-    """
-    A container to store an arbitrary number of child primitives
-
-    You can use the `cn.Node` methods to add child primitives to this container.
-    """
-    # TODO: Define `Primitive` methods for this?
-    # TODO: Make classes differ between immutable/mutable Nodes?
-    # NOTE: `PrimitiveNode` has a mutable number of child primitives while
-    # other geometric primitives are immutable (points, lines, etc.)
-    pass
 
 
 # TODO: Add type checking for `StaticPrimitive` and `ParameterizedPrimitive`
