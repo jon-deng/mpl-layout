@@ -263,9 +263,9 @@ class ConstructionNode(Node[tuple[PrimKeys, ...], "ConstructionNode"]):
         root_prim_keys: PrimKeysNode,
         root_params: ParamsNode,
     ):
-        flat_constructions = (x for _, x in iter_flat("", self))
-        flat_prim_keys = (x.value for _, x in iter_flat("", root_prim_keys))
-        flat_params = (x.value for _, x in iter_flat("", root_params))
+        flat_constructions = [x for _, x in iter_flat("", self)]
+        flat_prim_keys = [x.value for _, x in iter_flat("", root_prim_keys)]
+        flat_params = [x.value for _, x in iter_flat("", root_params)]
 
         residuals = tuple(
             construction.assem_atleast_1d(
