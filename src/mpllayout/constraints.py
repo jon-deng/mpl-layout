@@ -399,37 +399,6 @@ class MidpointYDistanceArray(ArrayConstraint, con._LinesSignature):
         }
 
 
-class CollinearArray(ArrayConstraint, con._LinesSignature):
-    """
-    Constrain a set of lines to be collinear
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-
-        child_prim_keys = tuple(("arg0", f"arg{n}") for n in range(1, size))
-        child_keys = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        child_constraint_types = size * (Collinear,)
-        child_constraint_type_kwargs = size * ({},)
-        def child_params(params):
-            return size*((),)
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Line, ),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ()),
-            'RES_SIZE': 0
-        }
-
 ## Point and Line constraints
 
 # TODO: class BoundPointsByLine(DynamicConstraint)
@@ -666,12 +635,12 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         # Specify child constraints given the grid shape
         # Line up bottom/top and left/right
         child_constraint_types = (
-            2 * num_row * (CollinearArray,)
-            + 2 * num_col * (CollinearArray,)
+            2 * num_row * (con.map(Collinear, num_col*(pr.Line,)),)
+            + 2 * num_col * (con.map(Collinear, num_row*(pr.Line,)),)
         )
         child_constraint_type_kwargs = (
-            2 * num_row * ({'shape': num_col},)
-            + 2 * num_col * ({'shape': num_row},)
+            2 * num_row * ({},)
+            + 2 * num_col * ({},)
         )
         align_bottom = [
             tuple(f"arg{idx(nrow, ncol)}/Line0" for ncol in range(num_col))
