@@ -16,7 +16,8 @@ import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node, iter_flat, map, accumulate
+from .containers import Node, iter_flat
+from .containers import map as node_map, accumulate as node_accumulate
 
 Params = tuple[Any, ...]
 
@@ -479,9 +480,9 @@ def generate_constraint(
             if construction_output_size is None:
                 cons_node = generate_construction_type_node(ConstructionType, **kwargs)
 
-                _construction_output_size = accumulate(
+                _construction_output_size = node_accumulate(
                     lambda x, y: x+y,
-                    map(lambda value: value[1]['RES_SIZE'], cons_node),
+                    node_map(lambda value: value[1]['RES_SIZE'], cons_node),
                     0
                 )
             else:
