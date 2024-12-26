@@ -14,17 +14,6 @@ import jax.numpy as jnp
 from . import primitives as pr
 from . import constructions as con
 
-Primitive = pr.Primitive
-
-
-ResParams = dict[str, Any]
-
-ResPrims = tuple[Primitive, ...]
-ResPrimTypes = tuple[type[Primitive], ...]
-
-PrimKeys = tuple[str, ...]
-ChildPrimKeys = tuple[PrimKeys, ...]
-
 PrimKeysNode = con.PrimKeysNode
 ParamsNode = con.ParamsNode
 
