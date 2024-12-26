@@ -284,9 +284,8 @@ class TestLineArray(GeometryFixtures):
         )
 
     def test_CollinearArray(self, linea, lines_collinear):
-        res = co.CollinearArray(1+len(lines_collinear))(
-            (linea,) + lines_collinear
-        )
+        CollinearArray = con.map(co.Collinear, (1+len(lines_collinear))*(pr.Line,))
+        res = CollinearArray()((linea,) + lines_collinear)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
