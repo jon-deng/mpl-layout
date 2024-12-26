@@ -560,32 +560,30 @@ def map(ConstructionType: type[Construction], PrimTypes: list[type[pr.Primitive]
 
         @classmethod
         def init_children(cls, **kwargs):
-            c_keys = tuple(f"MAP{n}" for n in range(N))
-            c_construction_types = N * (ConstructionType,)
-            c_construction_type_kwargs = N * (kwargs,)
-
-            n_prims = len(ConstructionType.init_aux_data(**kwargs)["RES_ARG_TYPES"])
-            n_params = len(
+            num_prims = len(ConstructionType.init_aux_data(**kwargs)["RES_ARG_TYPES"])
+            num_params = len(
                 ConstructionType.init_aux_data(**kwargs)["RES_PARAMS_TYPE"]._fields
             )
-            n_cons = N - (n_prims - 1)
-            assert n_cons >= 0
+            num_constr = max(N - num_prims + 1, 0)
 
-            c_prim_keys = tuple(
-                tuple(f"arg{ii}" for ii in range(n, n + n_prims)) for n in range(n_cons)
+            ch_keys = tuple(f"MAP{n}" for n in range(num_constr))
+            ch_cons_types = num_constr * (ConstructionType,)
+            ch_cons_type_kwargs = num_constr * (kwargs,)
+            ch_prim_keys = tuple(
+                tuple(f"arg{ii}" for ii in range(n, n + num_prims))
+                for n in range(num_constr)
             )
-
             def child_params(map_params):
-                # breakpoint()
                 return tuple(
-                    map_params[n * n_params : (n + 1) * n_params] for n in range(n_cons)
+                    map_params[n * num_params : (n + 1) * num_params]
+                    for n in range(num_constr)
                 )
 
             return (
-                c_keys,
-                c_construction_types,
-                c_construction_type_kwargs,
-                c_prim_keys,
+                ch_keys,
+                ch_cons_types,
+                ch_cons_type_kwargs,
+                ch_prim_keys,
                 child_params,
             )
 
