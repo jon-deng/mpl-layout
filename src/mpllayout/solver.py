@@ -130,7 +130,7 @@ def assem_constraint_residual(
     root_prim: pr.Primitive,
     constraints: list[cr.Constraint],
     constraint_graph: list[cr.PrimKeys],
-    constraint_params: list[cr.ResParams]
+    constraint_params: list[cr.Params]
 ) -> list[NDArray]:
     """
     Return a list of constraint residual vectors

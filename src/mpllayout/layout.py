@@ -106,7 +106,7 @@ class Layout:
 
     def flat_constraints(
         self
-    ) -> tuple[list[cr.Constraint], list[cr.PrimKeys], list[cr.ResParams]]:
+    ) -> tuple[list[cr.Constraint], list[cr.PrimKeys], list[cr.Params]]:
         """
         Return flat constraints, primitive argument keys and parameters
 
@@ -153,7 +153,7 @@ class Layout:
         self,
         constraint: cr.Constraint,
         prim_keys: cr.PrimKeys,
-        param: cr.ResParams,
+        param: cr.Params,
         key: str = ""
     ):
         """
@@ -242,7 +242,7 @@ def update_layout_constraints(
 def update_root_param(
     root_constraint: cr.ConstraintNode,
     root_param: cr.ParamsNode,
-    constraintkey_to_param: dict[str, cr.ResParams]
+    constraintkey_to_param: dict[str, cr.Params]
 ) -> cr.ParamsNode:
     """
     Update the root constraint parameters node

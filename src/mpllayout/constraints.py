@@ -14,9 +14,11 @@ import jax.numpy as jnp
 from . import primitives as pr
 from . import constructions as con
 
+PrimKeys = con.PrimKeys
+Params = con.Params
+
 PrimKeysNode = con.PrimKeysNode
 ParamsNode = con.ParamsNode
-
 
 Constraint = con.Construction
 ConstraintNode = con.ConstructionNode
