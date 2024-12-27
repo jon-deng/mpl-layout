@@ -15,7 +15,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node, iter_flat
+from .containers import Node, iter_flat, flatten, unflatten
 from .containers import map as node_map, accumulate as node_accumulate
 
 Params = tuple[Any, ...]
@@ -546,6 +546,18 @@ def generate_constraint(
     DerivedConstraint.__name__ = construction_name
 
     return DerivedConstraint
+
+
+def generate_constraint_from_instance(
+    construction: TCons
+):
+    # For each construction in the tree, create a derived construction instance
+    # with:
+    # new assem method
+    # new parameters (+ value parameter)
+    # flat_construction = flatten(construction)
+    pass
+
 
 
 def map(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
