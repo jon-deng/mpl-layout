@@ -505,6 +505,58 @@ OuterMargin = con.generate_constraint(con.OuterMargin, 'OuterMargin')
 
 InnerMargin = con.generate_constraint(con.InnerMargin, 'InnerMargin')
 
+class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+    """
+    Constrain two quadrilaterals to lie in a row
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quadrilaterals
+    """
+
+    @classmethod
+    def init_children(cls):
+        child_keys = ("AlignBottom", "AlignTop")
+        child_constraint_types = (Collinear, Collinear)
+        child_constraint_type_kwargs = ({}, {})
+        child_prim_keys = (("arg0/Line0", "arg1/Line0"), ("arg0/Line2", "arg1/Line2"))
+
+        def child_params(parameters):
+            return 2*((),)
+
+        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+
+    @classmethod
+    def init_aux_data(cls):
+        return cls.aux_data(0)
+
+class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+    """
+    Constrain two quadrilaterals to lie in a column
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quadrilaterals
+    """
+
+    @classmethod
+    def init_children(cls):
+        child_keys = ("AlignLeft", "AlignRight")
+        child_constraint_types = (Collinear, Collinear)
+        child_constraint_type_kwargs = ({}, {})
+        child_prim_keys = (("arg0/Line3", "arg1/Line3"), ("arg0/Line1", "arg1/Line1"))
+
+        def child_params(parameters):
+            return 2*((),)
+
+        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+
+    @classmethod
+    def init_aux_data(cls):
+        return cls.aux_data(0)
+
 # Argument type: tuple[Quadrilateral, ...]
 
 def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
@@ -535,35 +587,26 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         # Specify child constraints given the grid shape
         # Line up bottom/top and left/right
         child_constraint_types = (
-            2 * num_row * (con.map(Collinear, num_col*(pr.Line,)),)
-            + 2 * num_col * (con.map(Collinear, num_row*(pr.Line,)),)
+            num_row * (con.map(AlignRow, num_col*(pr.Quadrilateral,)),)
+            + num_col * (con.map(AlignColumn, num_row*(pr.Quadrilateral,)),)
         )
         child_constraint_type_kwargs = (
-            2 * num_row * ({},)
-            + 2 * num_col * ({},)
+            num_row * ({},)
+            + num_col * ({},)
         )
-        align_bottom = [
-            tuple(f"arg{idx(nrow, ncol)}/Line0" for ncol in range(num_col))
+        align_rows = [
+            tuple(f"arg{idx(nrow, ncol)}" for ncol in range(num_col))
             for nrow in range(num_row)
         ]
-        align_top = [
-            tuple(f"arg{idx(nrow, ncol)}/Line2" for ncol in range(num_col))
-            for nrow in range(num_row)
-        ]
-        align_left = [
-            tuple(f"arg{idx(nrow, ncol)}/Line3" for nrow in range(num_row))
+        align_cols = [
+            tuple(f"arg{idx(nrow, ncol)}" for nrow in range(num_row))
             for ncol in range(num_col)
         ]
-        align_right = [
-            tuple(f"arg{idx(nrow, ncol)}/Line1" for nrow in range(num_row))
-            for ncol in range(num_col)
-        ]
-        child_prim_keys = align_bottom + align_top + align_left + align_right
+
+        child_prim_keys = align_rows + align_cols
         child_keys = (
-            [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
-            + [f"CollinearRowTop{nrow}" for nrow in range(num_row)]
-            + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
-            + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
+            [f"AlignRow{nrow}" for nrow in range(num_row)]
+            + [f"AlignColumn{ncol}" for ncol in range(num_col)]
         )
         def child_params(params):
             return len(child_keys)*[()]
