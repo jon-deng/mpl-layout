@@ -38,7 +38,6 @@ class TestConstructionFunctions(GeometryFixtures):
         constraint = con.generate_constraint_from_instance(construction)
         res = constraint(prims, value)
         assert np.all(np.isclose(res, 0))
-        breakpoint()
 
         construction = con.Coordinate()
         point = self.make_point(np.random.rand(2))
