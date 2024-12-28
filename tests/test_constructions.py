@@ -26,22 +26,30 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(coords_ref, coords_map))
 
-    CONS_AND_PRIMS = [
-        (con.Coordinate(), (pr.Point(np.random.rand(2)),)),
-        (con.Midpoint(), (pr.Line(),)),
-        (con.XDistance(), (pr.Point(np.random.rand(2)), pr.Point(np.random.rand(2))))
-    ]
-    @pytest.fixture(params=CONS_AND_PRIMS)
-    def construction_and_prims(self, request):
-        return request.param
+    def test_generate_constraint_from_instance(self):
 
-    def test_generate_constraint_from_instance(self, construction_and_prims):
-        construction, prims = construction_and_prims
+        construction = con.OuterMargin(side='right')
+        quada = self.make_quad(np.zeros(2), np.diag(np.ones(2)))
+        quadb = self.make_quad(np.array([1.5, 0]), np.diag(np.ones(2)))
+        prims = (quada, quadb)
+
         value = construction(prims)
 
         constraint = con.generate_constraint_from_instance(construction)
         res = constraint(prims, value)
         assert np.all(np.isclose(res, 0))
+        breakpoint()
+
+        construction = con.Coordinate()
+        point = self.make_point(np.random.rand(2))
+        prims = (point,)
+
+        value = construction(prims)
+
+        constraint = con.generate_constraint_from_instance(construction)
+        res = constraint(prims, value)
+        assert np.all(np.isclose(res, 0))
+
 
 class TestPoint(GeometryFixtures):
     """
