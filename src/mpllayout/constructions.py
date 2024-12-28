@@ -450,98 +450,15 @@ def generate_constraint(
     ConstructionType: type[TCons],
     construction_output_size: Optional[Node[int]] = None,
 ):
-    if issubclass(ConstructionType, CompoundConstruction):
-
-        def derived_assem(prims, derived_params):
-            *params, value = derived_params
-            return np.array([])
-
-    elif issubclass(ConstructionType, LeafConstruction):
-
-        def derived_assem(prims, derived_params):
-            *params, value = derived_params
-            return ConstructionType.assem(prims, *params) - value
-
-    else:
-        raise TypeError()
 
     class DerivedConstraint(ConstructionType):
 
-        @classmethod
-        def init_children(cls, **kwargs):
-            (
-                c_keys,
-                c_construction_types,
-                c_construction_type_kwargs,
-                c_prim_keys,
-                c_params,
-            ) = ConstructionType.init_children(**kwargs)
+        def __new__(cls, **kwargs):
+            construction = ConstructionType(**kwargs)
+            return generate_constraint_from_instance(construction)
 
-            if construction_output_size is None:
-                cons_node = generate_construction_type_node(ConstructionType, **kwargs)
-
-                _construction_output_size = node_accumulate(
-                    lambda x, y: x + y,
-                    node_map(lambda value: value[1]["RES_SIZE"], cons_node),
-                    0,
-                )
-            else:
-                _construction_output_size = construction_output_size
-
-            derived_child_construction_types = tuple(
-                generate_constraint(
-                    ChConstraintType, _construction_output_size[child_key]
-                )
-                for child_key, ChConstraintType in zip(c_keys, c_construction_types)
-            )
-
-            child_res_sizes = [
-                node.value for node in _construction_output_size.values()
-            ]
-            cum_child_res_sizes = [
-                size for size in itertools.accumulate([0] + child_res_sizes, initial=0)
-            ]
-            child_value_slices = [
-                slice(start, stop)
-                for start, stop in zip(
-                    cum_child_res_sizes[:-1], cum_child_res_sizes[1:]
-                )
-            ]
-
-            def child_value(value):
-                if isinstance(value, (float, int)):
-                    return len(c_keys) * (value,)
-                else:
-                    return tuple(value[idx] for idx in child_value_slices)
-
-            def derived_child_params(derived_params):
-                *params, value = derived_params
-                return tuple(
-                    (*params, value)
-                    for params, value in zip(c_params(params), child_value(value))
-                )
-
-            return (
-                c_keys,
-                derived_child_construction_types,
-                c_construction_type_kwargs,
-                c_prim_keys,
-                derived_child_params,
-            )
-
-        @classmethod
-        def init_aux_data(cls, **kwargs):
-            aux_data = ConstructionType.init_aux_data(**kwargs)
-            derived_aux_data = {
-                "RES_ARG_TYPES": aux_data["RES_ARG_TYPES"],
-                "RES_PARAMS_TYPE": aux_data["RES_PARAMS_TYPE"] + (np.ndarray,),
-                "RES_SIZE": aux_data["RES_SIZE"],
-            }
-            return derived_aux_data
-
-        @classmethod
-        def assem(cls, prims, *derived_params):
-            return derived_assem(prims, derived_params)
+        def __init__(self, **kwargs):
+            pass
 
     DerivedConstraint.__name__ = ConstructionType.__name__
 
@@ -581,7 +498,10 @@ def flat_constraint_from_construction(
 
     # Define derived `child_params` function
     def child_value(value):
-        return tuple(chunk(value, child_value_sizes))
+        if isinstance(value, (float, int)):
+            return len(CHILD_KEYS) * (value,)
+        else:
+            return tuple(chunk(value, child_value_sizes))
 
     def derived_child_params(derived_params):
         *params, value = derived_params
