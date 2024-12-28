@@ -21,7 +21,7 @@ class TestConstructionFunctions(GeometryFixtures):
         points = tuple(pr.Point(value=coord) for coord in coords)
 
         coords_ref = np.concatenate([con.Coordinate()((point,)) for point in points])
-        MapCoordinate = con.map(con.Coordinate, num_point*[pr.Point])
+        MapCoordinate = con.transform_MapType(con.Coordinate, num_point*[pr.Point])
         coords_map = MapCoordinate()(points)
 
         assert np.all(np.isclose(coords_ref, coords_map))
@@ -35,7 +35,7 @@ class TestConstructionFunctions(GeometryFixtures):
 
         value = construction(prims)
 
-        constraint = con.generate_constraint_from_instance(construction)
+        constraint = con.transform_constraint(construction)
         res = constraint(prims, value)
         assert np.all(np.isclose(res, 0))
 
@@ -45,7 +45,7 @@ class TestConstructionFunctions(GeometryFixtures):
 
         value = construction(prims)
 
-        constraint = con.generate_constraint_from_instance(construction)
+        constraint = con.transform_constraint(construction)
         res = constraint(prims, value)
         assert np.all(np.isclose(res, 0))
 

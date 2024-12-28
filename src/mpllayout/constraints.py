@@ -28,15 +28,15 @@ ArrayConstraint = con.ArrayCompoundConstruction
 
 # Argument type: tuple[Point,]
 
-Fix = con.generate_constraint(con.Coordinate)
+Fix = con.transform_ConstraintType(con.Coordinate)
 
 # Argument type: tuple[Point, Point]
 
-DirectedDistance = con.generate_constraint(con.DirectedDistance)
+DirectedDistance = con.transform_ConstraintType(con.DirectedDistance)
 
-XDistance = con.generate_constraint(con.XDistance)
+XDistance = con.transform_ConstraintType(con.XDistance)
 
-YDistance = con.generate_constraint(con.YDistance)
+YDistance = con.transform_ConstraintType(con.YDistance)
 
 class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
@@ -65,13 +65,13 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
 
 # Argument type: tuple[Line,]
 
-Length = con.generate_constraint(con.Length)
+Length = con.transform_ConstraintType(con.Length)
 
-DirectedLength = con.generate_constraint(con.DirectedLength)
+DirectedLength = con.transform_ConstraintType(con.DirectedLength)
 
-XLength = con.generate_constraint(con.XLength)
+XLength = con.transform_ConstraintType(con.XLength)
 
-YLength = con.generate_constraint(con.YLength)
+YLength = con.transform_ConstraintType(con.YLength)
 
 
 class Vertical(con.LeafConstruction, con._LineSignature):
@@ -143,9 +143,9 @@ class RelativeLength(con.LeafConstruction, con._LineLineSignature):
         vec_b = con.LineVector.assem((line1,))
         return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
-MidpointXDistance = con.generate_constraint(con.MidpointXDistance)
+MidpointXDistance = con.transform_ConstraintType(con.MidpointXDistance)
 
-MidpointYDistance = con.generate_constraint(con.MidpointYDistance)
+MidpointYDistance = con.transform_ConstraintType(con.MidpointYDistance)
 
 class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
@@ -197,7 +197,7 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
         )
 
 
-Angle = con.generate_constraint(con.Angle)
+Angle = con.transform_ConstraintType(con.Angle)
 
 
 class Collinear(con.LeafConstruction, con._LineLineSignature):
@@ -311,10 +311,10 @@ class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
 # + and offset
 # This would be useful for aligning axis labels
 
-PointOnLineDistance = con.generate_constraint(con.PointOnLineDistance)
+PointOnLineDistance = con.transform_ConstraintType(con.PointOnLineDistance)
 
 
-PointToLineDistance = con.generate_constraint(con.PointToLineDistance)
+PointToLineDistance = con.transform_ConstraintType(con.PointToLineDistance)
 
 
 class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature):
@@ -390,7 +390,7 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
         return cls.aux_data(0)
 
 
-AspectRatio = con.generate_constraint(con.AspectRatio)
+AspectRatio = con.transform_ConstraintType(con.AspectRatio)
 
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
@@ -501,9 +501,9 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-OuterMargin = con.generate_constraint(con.OuterMargin)
+OuterMargin = con.transform_ConstraintType(con.OuterMargin)
 
-InnerMargin = con.generate_constraint(con.InnerMargin)
+InnerMargin = con.transform_ConstraintType(con.InnerMargin)
 
 class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
     """
@@ -587,8 +587,8 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         # Specify child constraints given the grid shape
         # Line up bottom/top and left/right
         child_constraint_types = (
-            num_row * (con.map(AlignRow, num_col*(pr.Quadrilateral,)),)
-            + num_col * (con.map(AlignColumn, num_row*(pr.Quadrilateral,)),)
+            num_row * (con.transform_MapType(AlignRow, num_col*(pr.Quadrilateral,)),)
+            + num_col * (con.transform_MapType(AlignColumn, num_row*(pr.Quadrilateral,)),)
         )
         child_constraint_type_kwargs = (
             num_row * ({},)
@@ -660,8 +660,8 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
             RectilinearGrid,
             RelativeLengthArray,
             RelativeLengthArray,
-            con.map(OuterMargin, num_col*(pr.Quadrilateral,)),
-            con.map(OuterMargin, num_row*(pr.Quadrilateral,))
+            con.transform_MapType(OuterMargin, num_col*(pr.Quadrilateral,)),
+            con.transform_MapType(OuterMargin, num_row*(pr.Quadrilateral,))
         )
         child_constraint_type_kwargs = (
             {'shape': shape},

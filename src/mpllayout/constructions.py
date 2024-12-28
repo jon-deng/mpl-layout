@@ -421,17 +421,17 @@ class LeafConstruction(Construction):
         return (), (), {}, (), lambda x: ()
 
 
-## Construction functions
+## Construction transform functions
 
-# These functions accept one or more `Construction` class instances
+# These functions transform constructions into new ones
 
-def generate_constraint(ConstructionType: type[TCons]):
+def transform_ConstraintType(ConstructionType: type[TCons]):
 
     class DerivedConstraint(ConstructionType):
 
         def __new__(cls, **kwargs):
             construction = ConstructionType(**kwargs)
-            return generate_constraint_from_instance(construction)
+            return transform_constraint(construction)
 
         def __init__(self, **kwargs):
             pass
@@ -441,7 +441,7 @@ def generate_constraint(ConstructionType: type[TCons]):
     return DerivedConstraint
 
 
-def generate_constraint_from_instance(construction: TCons):
+def transform_constraint(construction: TCons):
     # Tree of construction output sizes
     size_node = node_map(lambda value: value[-1]["RES_SIZE"], construction)
     cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
@@ -452,7 +452,7 @@ def generate_constraint_from_instance(construction: TCons):
     ]
 
     flat_construction_structs = [
-        (key,) + flat_constraint_from_construction(cons, child_sizes)
+        (key,) + transform_flat_constraint(cons, child_sizes)
         for (key, cons), child_sizes
         in zip(iter_flat("", construction), flat_child_sizes)
     ]
@@ -460,7 +460,7 @@ def generate_constraint_from_instance(construction: TCons):
     return unflatten(flat_construction_structs)[0]
 
 
-def flat_constraint_from_construction(
+def transform_flat_constraint(
     construction: TCons,
     child_value_sizes: tuple[int, ...]
 ):
@@ -531,13 +531,13 @@ def flat_constraint_from_construction(
     return DerivedConstraint, derived_value, CHILD_KEYS
 
 
-def map(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
+def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
 
     class MapConstruction(ConstructionNode):
 
         def __new__(cls, **kwargs):
             construction = ConstructionType(**kwargs)
-            return map_from_instance(construction, PrimTypes)
+            return transform_map(construction, PrimTypes)
 
         def __init__(self, **kwargs):
             pass
@@ -547,7 +547,7 @@ def map(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
     return MapConstruction
 
 
-def map_from_instance(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
+def transform_map(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
     PRIM_KEYS, CHILD_PRIMS, AUX_DATA = construction.value
     N = len(PrimTypes)
     num_prims = len(AUX_DATA["RES_ARG_TYPES"])
