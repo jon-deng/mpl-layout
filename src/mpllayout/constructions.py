@@ -295,11 +295,8 @@ class ConstructionNode(Node[tuple[PrimKeys, ...]]):
 TCons = TypeVar("TConstruction", bound="Construction")
 
 # TODO: Refine design of *params and **kwargs for controlling construction behaviour
-# It's not nice that there are two ways change constructions
-
-# TODO: Refine design of construction instance vs class usage
-# It would probably be better to have construction functions that operate on
-# construction instances rather than classes
+# It's not nice that there are two similar ways to change constructions
+# Should clearly distinguish how they are different
 
 
 class Construction(ConstructionNode):
