@@ -426,6 +426,21 @@ class LeafConstruction(Construction):
 # These functions transform constructions into new ones
 
 def transform_ConstraintType(ConstructionType: type[TCons]):
+    """
+    Return a constraint from a construction type
+
+    See `transform_constraint` for more details.
+
+    Parameters
+    ----------
+    ConstructionType: type[TCons]
+        The construction class to transform
+
+    Returns
+    -------
+    DerivedConstraint: type[ConstructionNode]
+        The transformed constraint class
+    """
 
     class DerivedConstraint(ConstructionNode):
 
@@ -442,6 +457,26 @@ def transform_ConstraintType(ConstructionType: type[TCons]):
 
 
 def transform_constraint(construction: TCons):
+    """
+    Return a constraint from a construction
+
+    The transformed constraint returns a value according to
+    ```construction(prims, *params, value) - value```.
+    The transformed constraint accepts an additional parameter `value` on top
+    of the construction parameters.
+
+
+    Parameters
+    ----------
+    construction: typeTCons
+        The construction to transform
+
+    Returns
+    -------
+    constraint: DerivedConstraint
+        The transformed constraint class
+    """
+
     # Tree of construction output sizes
     size_node = node_map(lambda value: value[-1]["RES_SIZE"], construction)
     cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
@@ -464,6 +499,42 @@ def transform_flat_constraint(
     construction: TCons,
     child_value_sizes: tuple[int, ...]
 ):
+    """
+    Return a constraint structure from a construction
+
+    This transforms all constructions in a node to have an additional `value`
+    parameter.
+    Each transformed constraint has a local output
+    ```construction.assem(prims, *params, value) - value```
+    where `value` is recursively chunked into sizes matching each construction
+    size.
+
+    Parameters
+    ----------
+    construction: TCons
+        The construction to transform
+    child_values_sizes: tuple[int, ...]
+        The sizes of child construction outputs
+
+        This is used to chunk the input `value` into `value` parameters for each
+        child.
+
+    Returns
+    -------
+    DerivedConstraint
+        The derived constraint type with transformed `assem`
+    derived_value
+        The derived constraint 'value'
+
+        This is a tuple of:
+        - primitive keys,
+        - a method to split parameters into child parameters
+        - and auxiliary data describing the construction.
+
+        See `ConstraintNode` for more details.
+    CHILD_KEYS
+        Keys for each child constraint
+    """
     # Return a (nonrecursive) constraint from a construction
     # Every constraint modifies the construction by:
     # split_child_params = split_child_params + value_split
@@ -532,6 +603,23 @@ def transform_flat_constraint(
 
 
 def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
+    """
+    Return a derived construction that maps over an array of primitives
+
+    See `transform_map` for more details.
+
+    Parameters
+    ----------
+    ConstructionType: type[TCons]
+        The construction class to transform
+    PrimType: list[type[pr.Primitive]]
+        The list of primitives to map over
+
+    Returns
+    -------
+    MapConstruction: type[ConstructionNode]
+        The transformed map construction class
+    """
 
     class MapConstruction(ConstructionNode):
 
@@ -548,6 +636,23 @@ def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Pri
 
 
 def transform_map(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
+    """
+    Return a derived construction that maps over an array of primitives
+
+    See `transform_map` for more details.
+
+    Parameters
+    ----------
+    construction: TCons
+        The construction to map
+    PrimType: list[type[pr.Primitive]]
+        The list of primitives to map over
+
+    Returns
+    -------
+    MapConstruction
+        The transformed map construction
+    """
     PRIM_KEYS, CHILD_PRIMS, AUX_DATA = construction.value
     N = len(PrimTypes)
     num_prims = len(AUX_DATA["RES_ARG_TYPES"])
