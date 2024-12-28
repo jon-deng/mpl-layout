@@ -427,7 +427,7 @@ class LeafConstruction(Construction):
 
 def transform_ConstraintType(ConstructionType: type[TCons]):
 
-    class DerivedConstraint(ConstructionType):
+    class DerivedConstraint(ConstructionNode):
 
         def __new__(cls, **kwargs):
             construction = ConstructionType(**kwargs)
@@ -516,7 +516,7 @@ def transform_flat_constraint(
     else:
         assert False
 
-    class DerivedConstraint(type(construction)):
+    class DerivedConstraint(ConstructionNode):
 
         def __init__(self, **kwargs):
             raise NotImplementedError()
