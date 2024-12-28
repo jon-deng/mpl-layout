@@ -28,15 +28,15 @@ ArrayConstraint = con.ArrayCompoundConstruction
 
 # Argument type: tuple[Point,]
 
-Fix = con.generate_constraint(con.Coordinate, 'Fix')
+Fix = con.generate_constraint(con.Coordinate)
 
 # Argument type: tuple[Point, Point]
 
-DirectedDistance = con.generate_constraint(con.DirectedDistance, 'DirectedDistance')
+DirectedDistance = con.generate_constraint(con.DirectedDistance)
 
-XDistance = con.generate_constraint(con.XDistance, 'XDistance')
+XDistance = con.generate_constraint(con.XDistance)
 
-YDistance = con.generate_constraint(con.YDistance, 'YDistance')
+YDistance = con.generate_constraint(con.YDistance)
 
 class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
@@ -65,13 +65,13 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
 
 # Argument type: tuple[Line,]
 
-Length = con.generate_constraint(con.Length, 'Length')
+Length = con.generate_constraint(con.Length)
 
-DirectedLength = con.generate_constraint(con.DirectedLength, 'DirectedLength')
+DirectedLength = con.generate_constraint(con.DirectedLength)
 
-XLength = con.generate_constraint(con.XLength, 'XLength')
+XLength = con.generate_constraint(con.XLength)
 
-YLength = con.generate_constraint(con.YLength, 'YLength')
+YLength = con.generate_constraint(con.YLength)
 
 
 class Vertical(con.LeafConstruction, con._LineSignature):
@@ -143,9 +143,9 @@ class RelativeLength(con.LeafConstruction, con._LineLineSignature):
         vec_b = con.LineVector.assem((line1,))
         return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
 
-MidpointXDistance = con.generate_constraint(con.MidpointXDistance, 'MidpointXDistance')
+MidpointXDistance = con.generate_constraint(con.MidpointXDistance)
 
-MidpointYDistance = con.generate_constraint(con.MidpointYDistance, 'MidpointYDistance')
+MidpointYDistance = con.generate_constraint(con.MidpointYDistance)
 
 class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
@@ -197,7 +197,7 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
         )
 
 
-Angle = con.generate_constraint(con.Angle, 'Angle')
+Angle = con.generate_constraint(con.Angle)
 
 
 class Collinear(con.LeafConstruction, con._LineLineSignature):
@@ -311,10 +311,10 @@ class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
 # + and offset
 # This would be useful for aligning axis labels
 
-PointOnLineDistance = con.generate_constraint(con.PointOnLineDistance, 'PointOnLineDistance')
+PointOnLineDistance = con.generate_constraint(con.PointOnLineDistance)
 
 
-PointToLineDistance = con.generate_constraint(con.PointToLineDistance, 'PointToLineDistance')
+PointToLineDistance = con.generate_constraint(con.PointToLineDistance)
 
 
 class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature):
@@ -390,7 +390,7 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
         return cls.aux_data(0)
 
 
-AspectRatio = con.generate_constraint(con.AspectRatio, 'AspectRatio')
+AspectRatio = con.generate_constraint(con.AspectRatio)
 
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
@@ -501,9 +501,9 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-OuterMargin = con.generate_constraint(con.OuterMargin, 'OuterMargin')
+OuterMargin = con.generate_constraint(con.OuterMargin)
 
-InnerMargin = con.generate_constraint(con.InnerMargin, 'InnerMargin')
+InnerMargin = con.generate_constraint(con.InnerMargin)
 
 class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
     """

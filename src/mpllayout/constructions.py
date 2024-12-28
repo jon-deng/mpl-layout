@@ -448,7 +448,6 @@ def generate_construction_type_node(
 
 def generate_constraint(
     ConstructionType: type[TCons],
-    construction_name: str,
     construction_output_size: Optional[Node[int]] = None,
 ):
     if issubclass(ConstructionType, CompoundConstruction):
@@ -491,7 +490,7 @@ def generate_constraint(
 
             derived_child_construction_types = tuple(
                 generate_constraint(
-                    ChConstraintType, child_key, _construction_output_size[child_key]
+                    ChConstraintType, _construction_output_size[child_key]
                 )
                 for child_key, ChConstraintType in zip(c_keys, c_construction_types)
             )
@@ -544,7 +543,7 @@ def generate_constraint(
         def assem(cls, prims, *derived_params):
             return derived_assem(prims, derived_params)
 
-    DerivedConstraint.__name__ = construction_name
+    DerivedConstraint.__name__ = ConstructionType.__name__
 
     return DerivedConstraint
 
