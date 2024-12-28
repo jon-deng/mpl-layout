@@ -467,12 +467,15 @@ def generate_constraint_from_instance(construction: TCons):
     size_node = node_map(lambda value: value[-1]["RES_SIZE"], construction)
     cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
 
+    flat_child_sizes = [
+        tuple(child.value for child in node.values())
+        for _, node in iter_flat("", cumsize_node)
+    ]
+
     flat_construction_structs = [
-        (key,) + flat_constraint_from_construction(
-            cons, tuple(child.value for child in size_node.values())
-        )
-        for (key, cons), (_, size_node)
-        in zip(iter_flat("", construction), iter_flat("", cumsize_node))
+        (key,) + flat_constraint_from_construction(cons, child_sizes)
+        for (key, cons), child_sizes
+        in zip(iter_flat("", construction), flat_child_sizes)
     ]
 
     return unflatten(flat_construction_structs)[0]
