@@ -446,10 +446,7 @@ def generate_construction_type_node(
     return Node((cons_type_children, aux_data), children)
 
 
-def generate_constraint(
-    ConstructionType: type[TCons],
-    construction_output_size: Optional[Node[int]] = None,
-):
+def generate_constraint(ConstructionType: type[TCons]):
 
     class DerivedConstraint(ConstructionType):
 
@@ -463,6 +460,23 @@ def generate_constraint(
     DerivedConstraint.__name__ = ConstructionType.__name__
 
     return DerivedConstraint
+
+
+def generate_constraint_from_instance(construction: TCons):
+    # Tree of construction output sizes
+    size_node = node_map(lambda value: value[-1]["RES_SIZE"], construction)
+    cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
+
+    flat_construction_structs = [
+        (key,) + flat_constraint_from_construction(
+            cons, tuple(child.value for child in size_node.values())
+        )
+        for (key, cons), (_, size_node)
+        in zip(iter_flat("", construction), iter_flat("", cumsize_node))
+    ]
+
+    return unflatten(flat_construction_structs)[0]
+
 
 T = TypeVar('T')
 
@@ -522,7 +536,7 @@ def flat_constraint_from_construction(
 
         def derived_assem(prims, derived_params):
             *params, value = derived_params
-            return np.array([])
+            return np.array(())
 
     elif isinstance(construction, LeafConstruction):
 
@@ -546,24 +560,6 @@ def flat_constraint_from_construction(
 
     derived_value = (CHILD_PRIM_KEYS, derived_child_params, derived_aux_data)
     return DerivedConstraint, derived_value, CHILD_KEYS
-
-
-def generate_constraint_from_instance(
-    construction: TCons
-):
-    # Tree of construction output sizes
-    size_node = node_map(lambda value: value[-1]["RES_SIZE"], construction)
-    cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
-
-    flat_construction_structs = [
-        (key,) + flat_constraint_from_construction(
-            cons, tuple(child.value for child in size_node)
-        )
-        for (key, cons), (_, size_node)
-        in zip(iter_flat("", construction), iter_flat("", cumsize_node))
-    ]
-
-    return unflatten(flat_construction_structs)[0]
 
 
 def map(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
