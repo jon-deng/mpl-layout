@@ -566,57 +566,60 @@ def flat_constraint_from_construction(
 
 
 def map(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
-    N = len(PrimTypes)
 
-    class MapConstruction(CompoundConstruction):
+    class MapConstruction(ConstructionNode):
 
-        @classmethod
-        def init_children(cls, **kwargs):
-            num_prims = len(ConstructionType.init_aux_data(**kwargs)["RES_ARG_TYPES"])
-            num_params = len(
-                ConstructionType.init_aux_data(**kwargs)["RES_PARAMS_TYPE"]
-            )
-            num_constr = max(N - num_prims + 1, 0)
+        def __new__(cls, **kwargs):
+            construction = ConstructionType(**kwargs)
+            return map_from_instance(construction, PrimTypes)
 
-            ch_keys = tuple(f"MAP{n}" for n in range(num_constr))
-            ch_cons_types = num_constr * (ConstructionType,)
-            ch_cons_type_kwargs = num_constr * (kwargs,)
-            ch_prim_keys = tuple(
-                tuple(f"arg{ii}" for ii in range(n, n + num_prims))
-                for n in range(num_constr)
-            )
-            def child_params(map_params):
-                return tuple(
-                    map_params[n * num_params : (n + 1) * num_params]
-                    for n in range(num_constr)
-                )
-
-            return (
-                ch_keys,
-                ch_cons_types,
-                ch_cons_type_kwargs,
-                ch_prim_keys,
-                child_params,
-            )
-
-        @classmethod
-        def init_aux_data(cls, **kwargs):
-            aux_data = ConstructionType.init_aux_data(**kwargs)
-            derived_aux_data = {
-                "RES_ARG_TYPES": N * aux_data["RES_ARG_TYPES"],
-                "RES_PARAMS_TYPE": N * aux_data["RES_PARAMS_TYPE"],
-                "RES_SIZE": aux_data["RES_SIZE"],
-            }
-            return derived_aux_data
-
-        @classmethod
-        def assem(cls, prims, *map_params):
-            return np.array(())
+        def __init__(self, **kwargs):
+            pass
 
     MapConstruction.__name__ = f"Map{ConstructionType.__name__}"
 
     return MapConstruction
 
+
+def map_from_instance(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
+    PRIM_KEYS, CHILD_PRIMS, AUX_DATA = construction.value
+    N = len(PrimTypes)
+    num_prims = len(AUX_DATA["RES_ARG_TYPES"])
+    num_params = len(AUX_DATA["RES_PARAMS_TYPE"])
+    num_constr = max(N - num_prims + 1, 0)
+
+    child_keys = tuple(
+        f"{type(construction).__name__}{n}" for n in range(num_constr)
+    )
+    child_constraints = num_constr*(construction,)
+    child_prim_keys = tuple(
+        tuple(f"arg{ii}" for ii in range(n, n + num_prims))
+        for n in range(num_constr)
+    )
+    def child_params(map_params):
+        return tuple(
+            map_params[n * num_params : (n + 1) * num_params]
+            for n in range(num_constr)
+        )
+
+    map_aux_data = {
+        "RES_ARG_TYPES": N * AUX_DATA["RES_ARG_TYPES"],
+        "RES_PARAMS_TYPE": N * AUX_DATA["RES_PARAMS_TYPE"],
+        "RES_SIZE": 0,
+    }
+
+    class MapConstruction(ConstructionNode):
+
+        def __init__(self):
+            super().__init__(child_keys, child_constraints, child_prim_keys, child_params, map_aux_data)
+
+        @classmethod
+        def assem(cls, prims, *map_params):
+            return np.array(())
+
+    MapConstruction.__name__ = f"Map{type(construction).__name__}"
+
+    return MapConstruction()
 
 # TODO: Add `relative` constraint to derive a relative constraint?
 
