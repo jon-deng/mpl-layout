@@ -482,7 +482,7 @@ T = TypeVar('T')
 
 def chunk(array: list[T], chunk_sizes: list[int]) -> Iterable[list[T]]:
 
-    slice_bounds = [0] + list(itertools.accumulate(chunk_sizes, initial=0))
+    slice_bounds = list(itertools.accumulate(chunk_sizes, initial=0))
     # cum_chunk_size = slice_bounds[-1]
 
     return (
