@@ -425,7 +425,6 @@ class LeafConstruction(Construction):
 
 # These functions accept one or more `Construction` class instances
 
-
 def generate_constraint(ConstructionType: type[TCons]):
 
     class DerivedConstraint(ConstructionType):
@@ -459,19 +458,6 @@ def generate_constraint_from_instance(construction: TCons):
     ]
 
     return unflatten(flat_construction_structs)[0]
-
-
-T = TypeVar('T')
-
-def chunk(array: list[T], chunk_sizes: list[int]) -> Iterable[list[T]]:
-
-    slice_bounds = list(itertools.accumulate(chunk_sizes, initial=0))
-    # cum_chunk_size = slice_bounds[-1]
-
-    return (
-        array[start:stop]
-        for start, stop in zip(slice_bounds[:-1], slice_bounds[1:])
-    )
 
 
 def flat_constraint_from_construction(
@@ -602,6 +588,18 @@ def map_from_instance(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
     return MapConstruction()
 
 # TODO: Add `relative` constraint to derive a relative constraint?
+
+T = TypeVar('T')
+
+def chunk(array: list[T], chunk_sizes: list[int]) -> Iterable[list[T]]:
+
+    slice_bounds = list(itertools.accumulate(chunk_sizes, initial=0))
+    # cum_chunk_size = slice_bounds[-1]
+
+    return (
+        array[start:stop]
+        for start, stop in zip(slice_bounds[:-1], slice_bounds[1:])
+    )
 
 ## Construction signatures
 
