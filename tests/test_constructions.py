@@ -61,6 +61,28 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(res_a, res_b))
 
+    def test_transform_scalar_mul(self):
+        construction = con.Coordinate()
+
+        prims = (self.make_point(np.random.rand(2)),)
+        cons_params = ()
+        scalar = np.random.rand()
+        res_a = scalar * construction(prims, *cons_params)
+
+        # Test constant version
+        mul_construction = con.transform_scalar_mul(construction, scalar)
+        params = cons_params + ()
+        res_b = mul_construction(prims, *params)
+
+        assert np.all(np.isclose(res_a, res_b))
+
+        # Test non constant version
+        mul_construction = con.transform_scalar_mul(construction, None)
+        params = cons_params + (scalar,)
+        res_b = mul_construction(prims, *params)
+
+        assert np.all(np.isclose(res_a, res_b))
+
 
 class TestPoint(GeometryFixtures):
     """

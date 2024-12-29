@@ -710,6 +710,70 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
     return unflatten(flat_sum_constructions)[0]
 
 
+def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> ConstructionNode:
+    """
+    Return a construction representing a construction multiplied by a scalar
+    """
+    # If `scalar=None` a new scalar parameter is added
+    # If `scalar` is a float, then the scalar float is used to multiply the construction
+    # and no additional parameter is added
+
+    def transform_ScalarMultiple(
+        cons_a: TCons, scalar: float | None
+    ) -> ConstructionNode:
+        child_keys = cons_a.keys()
+        child_prim_keys, child_params, signature = cons_a.value
+
+        if scalar is None:
+            class ScalarMultipleConstruction(ConstructionNode):
+
+                @classmethod
+                def assem(cls, prims: Prims, *params: Params) -> NDArray:
+                    *_params, scalar = params
+                    return scalar * cons_a.assem(prims, *_params)
+
+            def mul_child_params(params: Params) -> tuple[Params, ...]:
+                *_params, scalar = params
+                return tuple(
+                    (*_child_params, scalar)
+                    for _child_params in child_params(_params)
+                )
+            mul_signature = {
+                'RES_SIZE': signature['RES_SIZE'],
+                'RES_ARG_TYPES': signature['RES_ARG_TYPES'],
+                'RES_PARAMS_TYPE': signature['RES_PARAMS_TYPE'] + (float,)
+            }
+        elif isinstance(scalar, (float, int)):
+            class ScalarMultipleConstruction(ConstructionNode):
+
+                @classmethod
+                def assem(cls, prims: Prims, *params: Params) -> NDArray:
+                    return scalar * cons_a.assem(prims, *params)
+
+            def mul_child_params(params: Params) -> tuple[Params, ...]:
+                return child_params(params)
+
+            mul_signature = {
+                'RES_SIZE': signature['RES_SIZE'],
+                'RES_ARG_TYPES': signature['RES_ARG_TYPES'],
+                'RES_PARAMS_TYPE': signature['RES_PARAMS_TYPE']
+            }
+        else:
+            raise TypeError(
+                "`scalar` must be `float | int` not `{type(scalar)}`"
+            )
+
+
+        node_value = (child_prim_keys, mul_child_params, mul_signature)
+        return ScalarMultipleConstruction, node_value, child_keys
+
+    flat_a = [a for a in iter_flat("", cons_a)]
+    flat_sum_constructions = [
+        (key, *transform_ScalarMultiple(a, scalar)) for key, a in flat_a
+    ]
+
+    return unflatten(flat_sum_constructions)[0]
+
 # TODO: Add `relative` constraint to derive a relative constraint?
 
 T = TypeVar('T')
