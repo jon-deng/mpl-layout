@@ -674,6 +674,42 @@ def transform_map(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
 
     return MapConstruction()
 
+
+def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
+    """
+    Return a construction representing the sum of two input constructions
+    """
+    # Check that the two constructions (and all children) have the same signature
+    # signatures_a = {key: node.signature for _, node in iter_flat("", a)}
+    # signatures_b = {key: node.signature for _, node in iter_flat("", b)}
+    # assert len(signatures_a) == len(signatures_b)
+    # assert all(sig_a == sig_b for sig_a, sig_b in zip(signatures_a.values(), signatures_b.values))
+    # assert all(keya == keyb for keya, keyb in zip(signatures_a.keys(), signatures_b.keys()))
+
+    # The way each constraint splits child primitives, child parameters, and signatures must be the same
+    # assert all(a.value == b.value for a, b in zip(iter_flat(cons_a), iter_flat(cons_b)))
+
+    # Check the constructions have same child prim keys!
+
+    def transform_SumConstruction(a: TCons, b: TCons) -> ConstructionNode:
+        class SumConstruction(ConstructionNode):
+
+            @classmethod
+            def assem(cls, prims: Prims, *params: Params) -> NDArray:
+                return a.assem(prims, *params) + b.assem(prims, *params)
+
+        return SumConstruction
+
+    flat_a = [a for a in iter_flat("", cons_a)]
+    flat_b = [b for b in iter_flat("", cons_b)]
+    flat_sum_constructions = [
+        (key, transform_SumConstruction(a, b), a.value, a.keys())
+        for (key, a), (_, b) in zip(flat_a, flat_b)
+    ]
+
+    return unflatten(flat_sum_constructions)[0]
+
+
 # TODO: Add `relative` constraint to derive a relative constraint?
 
 T = TypeVar('T')

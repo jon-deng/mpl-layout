@@ -49,6 +49,18 @@ class TestConstructionFunctions(GeometryFixtures):
         res = constraint(prims, value)
         assert np.all(np.isclose(res, 0))
 
+    def test_transform_sum(self):
+        construction = con.Coordinate()
+        sum_construction = con.transform_sum(construction, construction)
+
+        prims = (self.make_point(np.random.rand(2)),)
+        params = ()
+
+        res_a = construction(prims, *params) + construction(prims, *params)
+        res_b = sum_construction(prims, *params)
+
+        assert np.all(np.isclose(res_a, res_b))
+
 
 class TestPoint(GeometryFixtures):
     """
