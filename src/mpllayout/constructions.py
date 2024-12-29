@@ -810,7 +810,6 @@ def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> Constru
 
     return unflatten(flat_sum_constructions)[0]
 
-# TODO: Add `relative` constraint to derive a relative constraint?
 
 T = TypeVar('T')
 

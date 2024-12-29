@@ -114,7 +114,7 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
 
 # Argument type: tuple[Line, Line]
 
-class RelativeLength(con.LeafConstruction, con._LineLineSignature):
+class RelativeLength(con.ConstructionNode):
     """
     Constrain the length of a line relative to another line
 
@@ -128,20 +128,13 @@ class RelativeLength(con.LeafConstruction, con._LineLineSignature):
         The relative length
     """
 
-    @classmethod
-    def init_signature(cls):
-        return cls.aux_data(1, (float,))
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Line, pr.Line], length: float):
-        """
-        Return the length error of line `prims[0]` relative to line `prims[1]`
-        """
-        # This sets the length of a line
-        line0, line1 = prims
-        vec_a = con.LineVector.assem((line0,))
-        vec_b = con.LineVector.assem((line1,))
-        return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
+    def __new__(cls):
+        return con.transform_sum(
+            con.Length(),
+            con.transform_scalar_mul(
+                con.transform_scalar_mul(con.Length(), -1), None
+            )
+        )
 
 MidpointXDistance = con.transform_ConstraintType(con.MidpointXDistance)
 
