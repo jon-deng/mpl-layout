@@ -690,8 +690,8 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
         child_prim_keys_a, child_params_a, signature_a = cons_a.value
         child_prim_keys_b, child_params_b, signature_b = cons_b.value
 
-        size_a = signature_a["RES_PARAMS_TYPE"]
-        size_b = signature_b["RES_PARAMS_TYPE"]
+        size_a = signature_a["RES_SIZE"]
+        size_b = signature_b["RES_SIZE"]
 
         assert size_a == size_b
 
