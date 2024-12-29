@@ -310,8 +310,10 @@ class TestLineArray(GeometryFixtures):
 
     def test_RelativeLengthArray(self, linea, lines_relative, relative_lengths):
 
-        constraint = co.RelativeLengthArray(len(relative_lengths))
-        res = constraint(tuple(lines_relative) + (linea,), relative_lengths)
+        constraint = con.transform_map(
+            co.RelativeLength(), (len(lines_relative)+1)*(pr.Line,)
+        )
+        res = constraint(tuple(lines_relative) + (linea,), *relative_lengths)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()

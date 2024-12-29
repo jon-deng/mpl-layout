@@ -252,43 +252,6 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 
 # Argument type: tuple[Line, ...]
 
-class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
-    """
-    Constrain the lengths of a set of lines relative to the last
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-
-        The length of the lines are measured relative to the last line
-    lengths: NDArray
-        The relative lengths
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-
-        keys = tuple(f"RelativeLength{n}" for n in range(size))
-        constraints = size * (RelativeLength(),)
-        prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
-
-        def child_params(params: Params) -> tuple[Params, ...]:
-            lengths, = params
-            return tuple((length,) for length in lengths)
-        return keys, constraints, prim_keys, child_params
-
-    @classmethod
-    def init_signature(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Line,) + (pr.Line,),
-            'RES_PARAMS_TYPE': size * (float,),
-            'RES_SIZE': 0
-        }
-
-
 ## Point and Line constraints
 
 # TODO: class BoundPointsByLine(DynamicConstraint)
@@ -644,14 +607,10 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
         )
         constraints = (
             RectilinearGrid(shape=shape),
-            RelativeLengthArray(shape=(num_col-1,)),
-            RelativeLengthArray(shape=(num_row-1,)),
-            con.transform_map(
-                OuterMargin(side='right'), num_col*(pr.Quadrilateral,)
-            ),
-            con.transform_map(
-                OuterMargin(side='bottom'), num_row*(pr.Quadrilateral,)
-            )
+            con.transform_map(RelativeLength(), num_col*(pr.Line,)),
+            con.transform_map(RelativeLength(), num_row*(pr.Line,)),
+            con.transform_map(OuterMargin(side='right'), num_col*(pr.Quadrilateral,)),
+            con.transform_map(OuterMargin(side='bottom'), num_row*(pr.Quadrilateral,))
         )
 
         def idx(i, j):
@@ -681,7 +640,7 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
 
         def child_params(params: Params) -> tuple[Params, ...]:
             col_widths, row_heights, col_margins, row_margins = params
-            return ((), (col_widths,), (row_heights,), col_margins, row_margins)
+            return ((), tuple(col_widths), tuple(row_heights), tuple(col_margins), tuple(row_margins))
 
         return keys, constraints, prim_keys, child_params
 
