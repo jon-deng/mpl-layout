@@ -301,12 +301,14 @@ class ConstructionNode(Node[ConstructionValue]):
         -------
         NDArray
         """
+        # NOTE: Both *params and **kwargs affect construction outputs but are
+        # used for different reasons.
+        # Generally, `*params` involves direct changes to construction `assem`
+        # methods while `**kwargs` involve changes to the tree structure of
+        # child constraints.
+        # Some changes to constructions can be implemented using either approach
+        # so there is some overlap.
         raise NotImplementedError()
-
-
-# TODO: Refine design of *params and **kwargs for controlling construction behaviour
-# It's not nice that there are two similar ways to change constructions
-# Should clearly distinguish how they are different
 
 
 class Construction(ConstructionNode):
