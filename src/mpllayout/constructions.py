@@ -728,8 +728,8 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
 
         sum_signature = {
             'RES_SIZE': signature_a['RES_SIZE'],
-            'RES_ARG_TYPES': param_types_a + param_types_b,
-            'RES_PARAMS_TYPE': prim_types_a + prim_types_b
+            'RES_ARG_TYPES': prim_types_a + prim_types_b,
+            'RES_PARAMS_TYPE': param_types_a + param_types_b
         }
 
         def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
