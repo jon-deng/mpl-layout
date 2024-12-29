@@ -83,6 +83,24 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(res_a, res_b))
 
+    def test_transform_dummy_params(self):
+
+        construction = con.Coordinate()
+
+        prims = (self.make_point(np.random.rand(2)),)
+        cons_params = ()
+        res_a = construction(prims, *cons_params)
+
+        # Test adding random set of dummy parameters
+        n_dummy_params = 5
+        dummy_param_types = n_dummy_params*(float,)
+        dummy_params = tuple(np.random.rand(n_dummy_params))
+
+        trans_construction = con.transform_dummy_params(construction, dummy_param_types)
+        res_b = trans_construction(prims, *(cons_params + dummy_params))
+
+        assert np.all(np.isclose(res_a, res_b))
+
 
 class TestPoint(GeometryFixtures):
     """

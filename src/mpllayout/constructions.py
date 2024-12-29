@@ -774,6 +774,56 @@ def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> Constru
 
     return unflatten(flat_sum_constructions)[0]
 
+
+def transform_dummy_params(
+    cons_a: TCons, dummy_param_types: tuple[type[Any], ...]=()
+) -> ConstructionNode:
+    """
+    Return a construction with additional dummy parameters
+    """
+    # Transform a construction so it accepts a set of new dummy parameters
+    # These parameter don't affect the output at all
+    # This is needed if you want to sum two construction with different parameters
+
+    num_dummy_params = len(dummy_param_types)
+
+    def transform_DummyParams(
+        cons_a: TCons, dummy_param_types: tuple[type[Any], ...]
+    ) -> ConstructionNode:
+        child_prim_keys, child_params, signature = cons_a.value
+        child_keys = cons_a.keys()
+
+        class DummyParamsConstruction(ConstructionNode):
+
+            @classmethod
+            def assem(cls, prims: Prims, *dummy_params: Params) -> NDArray:
+                params = dummy_params[:-num_dummy_params]
+                _extra_params = dummy_params[-num_dummy_params:]
+                return cons_a.assem(prims, *params)
+
+        def dummy_child_params(dummy_params: Params) -> tuple[Params, ...]:
+            params = dummy_params[:-num_dummy_params]
+            extra_params = dummy_params[-num_dummy_params:]
+            return tuple(
+                (*_params, *extra_params) for _params in child_params(params)
+            )
+
+        signature = {
+            'RES_SIZE': signature['RES_SIZE'],
+            'RES_ARG_TYPES': signature['RES_ARG_TYPES'],
+            'RES_PARAMS_TYPE': signature['RES_PARAMS_TYPE'] + dummy_param_types
+        }
+
+        node_value = (child_prim_keys, dummy_child_params, signature)
+        return DummyParamsConstruction, node_value, child_keys
+
+    flat_a = [a for a in iter_flat("", cons_a)]
+    flat_constructions = [
+        (key, *transform_DummyParams(a, dummy_param_types)) for key, a in flat_a
+    ]
+
+    return unflatten(flat_constructions)[0]
+
 # TODO: Add `relative` constraint to derive a relative constraint?
 
 T = TypeVar('T')
