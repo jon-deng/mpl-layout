@@ -680,30 +680,66 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
     Return a construction representing the sum of two input constructions
     """
     # Check that the two constructions (and all children) have the same signature
-    # signatures_a = {key: node.signature for _, node in iter_flat("", a)}
-    # signatures_b = {key: node.signature for _, node in iter_flat("", b)}
-    # assert len(signatures_a) == len(signatures_b)
-    # assert all(sig_a == sig_b for sig_a, sig_b in zip(signatures_a.values(), signatures_b.values))
-    # assert all(keya == keyb for keya, keyb in zip(signatures_a.keys(), signatures_b.keys()))
-
-    # The way each constraint splits child primitives, child parameters, and signatures must be the same
-    # assert all(a.value == b.value for a, b in zip(iter_flat(cons_a), iter_flat(cons_b)))
-
-    # Check the constructions have same child prim keys!
+    # Two constructions can be added if their output size nodes are the same
 
     def transform_SumConstruction(a: TCons, b: TCons) -> ConstructionNode:
+
+        child_keys_a = cons_a.keys()
+        child_keys_b = cons_b.keys()
+
+        child_prim_keys_a, child_params_a, signature_a = cons_a.value
+        child_prim_keys_b, child_params_b, signature_b = cons_b.value
+
+        size_a = signature_a["RES_PARAMS_TYPE"]
+        size_b = signature_b["RES_PARAMS_TYPE"]
+
+        assert size_a == size_b
+
+        assert child_prim_keys_a == child_prim_keys_b
+        sum_child_prim_keys = child_prim_keys_a
+
+        assert child_keys_a == child_keys_b
+        sum_child_keys = child_keys_a
+
+        param_types_a = signature_a["RES_PARAMS_TYPE"]
+        param_types_b = signature_b["RES_PARAMS_TYPE"]
+
+        prim_types_a = signature_a["RES_ARG_TYPES"]
+        prim_types_b = signature_b["RES_ARG_TYPES"]
+
+        sum_signature = {
+            'RES_SIZE': signature_a['RES_SIZE'],
+            'RES_ARG_TYPES': param_types_a + param_types_b,
+            'RES_PARAMS_TYPE': prim_types_a + prim_types_b
+        }
+
+        def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
+            param_chunks = (len(param_types_a), len(param_types_b))
+            params_a, params_b = tuple(chunk(sum_params, param_chunks))
+            return (
+                (ca, cb) for ca, cb
+                in zip(child_params_a(params_a), child_params_b(params_b))
+            )
+
+        node_value = (sum_child_prim_keys, sum_child_params, sum_signature)
+
         class SumConstruction(ConstructionNode):
 
             @classmethod
-            def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                return a.assem(prims, *params) + b.assem(prims, *params)
+            def assem(cls, sum_prims: Prims, *sum_params: Params) -> NDArray:
+                prim_chunks = (len(prim_types_a), len(prim_types_b))
+                prims_a, prims_b = tuple(chunk(sum_prims, prim_chunks))
 
-        return SumConstruction
+                param_chunks = (len(param_types_a), len(param_types_b))
+                params_a, params_b = tuple(chunk(sum_params, param_chunks))
+                return a.assem(prims_a, *params_a) + b.assem(prims_b, *params_b)
+
+        return SumConstruction, node_value, sum_child_keys
 
     flat_a = [a for a in iter_flat("", cons_a)]
     flat_b = [b for b in iter_flat("", cons_b)]
     flat_sum_constructions = [
-        (key, transform_SumConstruction(a, b), a.value, a.keys())
+        (key, *transform_SumConstruction(a, b))
         for (key, a), (_, b) in zip(flat_a, flat_b)
     ]
 

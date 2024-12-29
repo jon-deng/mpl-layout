@@ -53,11 +53,13 @@ class TestConstructionFunctions(GeometryFixtures):
         construction = con.Coordinate()
         sum_construction = con.transform_sum(construction, construction)
 
-        prims = (self.make_point(np.random.rand(2)),)
-        params = ()
+        prims_a = (self.make_point(np.random.rand(2)),)
+        prims_b = (self.make_point(np.random.rand(2)),)
+        params_a = ()
+        params_b = ()
 
-        res_a = construction(prims, *params) + construction(prims, *params)
-        res_b = sum_construction(prims, *params)
+        res_a = construction(prims_a, *params_a) + construction(prims_b, *params_b)
+        res_b = sum_construction(prims_a + prims_b, *(params_a + params_b))
 
         assert np.all(np.isclose(res_a, res_b))
 
