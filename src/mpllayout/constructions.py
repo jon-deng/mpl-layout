@@ -617,11 +617,26 @@ def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Pri
     return MapConstruction
 
 
-def transform_map(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
+def transform_map(
+    construction: TCons,
+    PrimTypes: list[type[pr.Primitive]]
+):
     """
     Return a derived construction that maps over an array of primitives
 
-    See `transform_map` for more details.
+    This works in the typical way if `construction` accepts a single primitive.
+
+    If `construction` accepts more than one primitive, all additional primitives
+    are treated as `frozen`.
+    These primitives are always taken from the last primitive in the
+    map construction's primitive input array.
+
+    For example, consider a `construction` with signature
+    `Callable[[PrimA, PrimB1, ..., PrimBM], NDArray]`
+    where M is the number of additional primitives.
+    The map construction over prims `prims = [PrimA1, ... PrimAN]` returns a
+    tree of child constraints
+    `[construction(prims[0], prims[-M:]), ..., construction(prims[N-M-1], prims[N-M:])]`
 
     Parameters
     ----------
@@ -637,17 +652,21 @@ def transform_map(construction: TCons, PrimTypes: list[type[pr.Primitive]]):
     """
     PRIM_KEYS, CHILD_PRIMS, AUX_DATA = construction.value
     N = len(PrimTypes)
-    num_prims = len(AUX_DATA["RES_ARG_TYPES"])
+    # `M` is the number of additional arguments past one for the construction
+    M = len(AUX_DATA["RES_ARG_TYPES"])-1
     num_params = len(AUX_DATA["RES_PARAMS_TYPE"])
-    num_constr = max(N - num_prims + 1, 0)
+    num_constr = max(N - M, 0)
 
     child_keys = tuple(
         f"{type(construction).__name__}{n}" for n in range(num_constr)
     )
     child_constraints = num_constr*(construction,)
+
+    constant_prim_keys = tuple(
+        f"arg{ii}" for ii in range(N-M, N)
+    )
     child_prim_keys = tuple(
-        tuple(f"arg{ii}" for ii in range(n, n + num_prims))
-        for n in range(num_constr)
+        (f"arg{n}", *constant_prim_keys) for n in range(num_constr)
     )
     def child_params(map_params):
         return tuple(
