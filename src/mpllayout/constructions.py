@@ -25,6 +25,18 @@ Prims = tuple[pr.Primitive, ...]
 PrimKeys = tuple[str, ...]
 PrimTypes = tuple[type[pr.Primitive], ...]
 
+TCons = TypeVar("TCons", bound="ConstructionNode")
+
+# TODO: Refine construction signature type/representation
+ConstructionSignature = dict[str, Any]
+
+ChildParams = Callable[[Params], list[Params]]
+
+ConstructionValue = tuple[
+    list[PrimKeys],
+    ChildParams,
+    ConstructionSignature
+]
 
 class PrimKeysNode(Node[PrimKeys]):
     """
@@ -48,7 +60,7 @@ class ParamsNode(Node[Params]):
     pass
 
 
-class ConstructionNode(Node[tuple[PrimKeys, ...]]):
+class ConstructionNode(Node[ConstructionValue]):
     """
     The base geometric construction class
 
@@ -77,7 +89,7 @@ class ConstructionNode(Node[tuple[PrimKeys, ...]]):
         Keys for any child constructions
     child_constructions: list[TCons]
         Child constructions
-    child_prim_keys: tuple[PrimKeys, ...]
+    child_prim_keys: list[PrimKeys]
         `prims` argument representation for each child construction
 
         This is stored as the "value" of the tree structure and encodes how to
@@ -109,23 +121,23 @@ class ConstructionNode(Node[tuple[PrimKeys, ...]]):
 
         This function should return `params` for each child construction given
         the parent `params`.
-    aux_data: Mapping[str, Any]
-        Any auxiliary data
+    signature: ConstructionSignature
+        The construction signature
 
-        This is usually for type checking/validation of inputs
+        This describes the construction input and output types.
     """
 
-    # TODO: Implement `assem` type checking using `aux_data`
+    # TODO: Implement `assem` type checking using `signature`
     def __init__(
         self,
         child_keys: list[str],
-        child_constructions: list["ConstructionNode"],
+        child_constructions: list[TCons],
         child_prim_keys: list[PrimKeys],
-        child_params: Callable[[Params], list[Params]],
-        aux_data: Optional[dict[str, Any]] = None,
+        child_params: ChildParams,
+        signature: ConstructionSignature,
     ):
         children = {key: child for key, child in zip(child_keys, child_constructions)}
-        super().__init__((child_prim_keys, child_params, aux_data), children)
+        super().__init__((child_prim_keys, child_params, signature), children)
 
     def root_params(self, params: Params) -> ParamsNode:
         """
@@ -238,7 +250,7 @@ class ConstructionNode(Node[tuple[PrimKeys, ...]]):
     def child_params(self, params: Params) -> tuple[Params, ...]:
         return self.value[1](params)
 
-    def __call__(self, prims: Prims, *params):
+    def __call__(self, prims: Prims, *params: Params) -> NDArray:
         prim_keys = tuple(f"arg{n}" for n, _ in enumerate(prims))
         root_prim = self.root_prim(prim_keys, prims)
         root_prim_keys = self.root_prim_keys(prim_keys)
@@ -250,7 +262,7 @@ class ConstructionNode(Node[tuple[PrimKeys, ...]]):
         root_prim: pr.PrimitiveNode,
         root_prim_keys: PrimKeysNode,
         root_params: ParamsNode,
-    ):
+    ) -> NDArray:
         flat_constructions = [x for _, x in iter_flat("", self)]
         flat_prim_keys = [x.value for _, x in iter_flat("", root_prim_keys)]
         flat_params = [x.value for _, x in iter_flat("", root_params)]
@@ -292,8 +304,6 @@ class ConstructionNode(Node[tuple[PrimKeys, ...]]):
         raise NotImplementedError()
 
 
-TCons = TypeVar("TConstruction", bound="Construction")
-
 # TODO: Refine design of *params and **kwargs for controlling construction behaviour
 # It's not nice that there are two similar ways to change constructions
 # Should clearly distinguish how they are different
@@ -303,15 +313,7 @@ class Construction(ConstructionNode):
     """
     Construction with parameterized primitive argument types and child constructions
 
-    To specify a `ParameterizedConstraint`:
-    - define `init_aux_data`,
-    - and optionally define, `init_children` and `split_children_params`.
-
-    If `init_children` is undefined the construction will have no child
-    constructions by default.
-
-    If `split_children_params` is undefined, all child constructions will be passed
-    empty parameters, and therefore use default values.
+    To specify a `Construction`, define `init_children` and `init_signature`.
 
     Parameters
     ----------
@@ -322,47 +324,29 @@ class Construction(ConstructionNode):
     """
 
     def __init__(self, **kwargs):
-        (
-            c_keys,
-            c_construction_types,
-            c_construction_type_kwargs,
-            c_prim_keys,
-            c_params,
-        ) = self.init_children(**kwargs)
-        c_constructions = tuple(
-            ConstructionType(**kwargs)
-            for ConstructionType, kwargs in zip(
-                c_construction_types, c_construction_type_kwargs
-            )
-        )
         super().__init__(
-            c_keys, c_constructions, c_prim_keys, c_params, self.init_aux_data(**kwargs)
+            *self.init_children(**kwargs), self.init_signature(**kwargs)
         )
 
     @classmethod
     def init_children(cls, **kwargs) -> tuple[
         list[str],
-        list[type[TCons]],
-        list[dict[str, any]],
+        list[TCons],
         list[PrimKeys],
-        Callable[[Params], list[Params]],
+        ChildParams,
     ]:
         raise NotImplementedError()
 
     @classmethod
-    def init_aux_data(cls, **kwargs) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    @classmethod
-    def assem(cls, prims: Prims, *params):
+    def init_signature(cls, **kwargs) -> ConstructionSignature:
         raise NotImplementedError()
 
 
 class CompoundConstruction(Construction):
 
     @classmethod
-    def assem(cls, prims: Prims, *params):
-        return np.array([])
+    def assem(cls, prims: Prims, *params: Params) -> NDArray:
+        return np.array(())
 
 
 class ArrayCompoundConstruction(CompoundConstruction):
@@ -399,23 +383,22 @@ class LeafConstruction(Construction):
     """
     Construction without any child constructions
 
-    To specify a `LeafConstruction`, define `assem` and `init_aux_data`
+    To specify a `LeafConstruction`, define `assem` and `init_signature`
     """
 
     def __init__(self):
         super().__init__()
 
     @classmethod
-    def init_children(
-        cls,
-    ) -> tuple[
+    def init_children(cls, **kwargs) -> tuple[
         list[str],
-        list[type[TCons]],
-        list[dict[str, any]],
+        list[TCons],
         list[PrimKeys],
-        Callable[[Params], list[Params]],
+        ChildParams,
     ]:
-        return (), (), {}, (), lambda x: ()
+        def child_params(params: Params) -> Params:
+            return ()
+        return (), (), (), child_params
 
 
 ## Construction transform functions
@@ -763,7 +746,7 @@ class Coordinate(LeafConstruction, _PointSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2)
 
     @classmethod
@@ -793,7 +776,7 @@ class DirectedDistance(LeafConstruction, _PointPointSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (np.ndarray,))
 
     @classmethod
@@ -815,7 +798,7 @@ class XDistance(LeafConstruction, _PointPointSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, ())
 
     @classmethod
@@ -836,7 +819,7 @@ class YDistance(LeafConstruction, _PointPointSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, ())
 
     @classmethod
@@ -860,7 +843,7 @@ class LineVector(LeafConstruction, _LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2)
 
     @classmethod
@@ -884,7 +867,7 @@ class UnitLineVector(LeafConstruction, _LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2)
 
     @classmethod
@@ -904,7 +887,7 @@ class Length(LeafConstruction, _LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -926,7 +909,7 @@ class DirectedLength(LeafConstruction, _LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (np.ndarray,))
 
     @classmethod
@@ -946,7 +929,7 @@ class XLength(LeafConstruction, _LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -965,7 +948,7 @@ class YLength(LeafConstruction, _LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -975,7 +958,7 @@ class YLength(LeafConstruction, _LineSignature):
 
 class Midpoint(LeafConstruction, _LineSignature):
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2)
 
     @classmethod
@@ -1002,7 +985,7 @@ class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (np.ndarray,))
 
     @classmethod
@@ -1027,7 +1010,7 @@ class MidpointXDistance(LeafConstruction, _LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -1048,7 +1031,7 @@ class MidpointYDistance(LeafConstruction, _LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -1070,7 +1053,7 @@ class Angle(LeafConstruction, _LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -1106,7 +1089,7 @@ class PointOnLineDistance(LeafConstruction, _PointLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (bool,))
 
     @classmethod
@@ -1142,7 +1125,7 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (bool,))
 
     @classmethod
@@ -1180,7 +1163,7 @@ class AspectRatio(LeafConstruction, _QuadrilateralSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -1210,39 +1193,31 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
     @classmethod
     def init_children(cls, side: str = "left"):
         if side == "left":
-            c_keys = ("LeftMargin",)
-            c_construction_types = (MidpointXDistance,)
-            c_prim_keys = (("arg1/Line1", "arg0/Line3"),)
+            keys = ("LeftMargin",)
+            constructions = (MidpointXDistance(),)
+            prim_keys = (("arg1/Line1", "arg0/Line3"),)
         elif side == "right":
-            c_keys = ("RightMargin",)
-            c_construction_types = (MidpointXDistance,)
-            c_prim_keys = (("arg0/Line1", "arg1/Line3"),)
+            keys = ("RightMargin",)
+            constructions = (MidpointXDistance(),)
+            prim_keys = (("arg0/Line1", "arg1/Line3"),)
         elif side == "bottom":
-            c_keys = ("BottomMargin",)
-            c_construction_types = (MidpointYDistance,)
-            c_prim_keys = (("arg1/Line2", "arg0/Line0"),)
+            keys = ("BottomMargin",)
+            constructions = (MidpointYDistance(),)
+            prim_keys = (("arg1/Line2", "arg0/Line0"),)
         elif side == "top":
-            c_keys = ("TopMargin",)
-            c_construction_types = (MidpointYDistance,)
-            c_prim_keys = (("arg0/Line2", "arg1/Line0"),)
+            keys = ("TopMargin",)
+            constructions = (MidpointYDistance(),)
+            prim_keys = (("arg0/Line2", "arg1/Line0"),)
         else:
             raise ValueError()
 
-        c_construction_type_kwargs = ({},)
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((),)
 
-        def c_params(params):
-            return [()]
-
-        return (
-            c_keys,
-            c_construction_types,
-            c_construction_type_kwargs,
-            c_prim_keys,
-            c_params,
-        )
+        return (keys, constructions, prim_keys, child_params)
 
     @classmethod
-    def init_aux_data(cls, side: str = "left"):
+    def init_signature(cls, side: str = "left"):
         return cls.aux_data(0, ())
 
 
@@ -1262,39 +1237,31 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
     @classmethod
     def init_children(cls, side: str = "left"):
         if side == "left":
-            c_keys = ("LeftMargin",)
-            c_construction_types = (MidpointXDistance,)
-            c_prim_keys = (("arg1/Line3", "arg0/Line3"),)
+            keys = ("LeftMargin",)
+            constructions = (MidpointXDistance(),)
+            prim_keys = (("arg1/Line3", "arg0/Line3"),)
         elif side == "right":
-            c_keys = ("RightMargin",)
-            c_construction_types = (MidpointXDistance,)
-            c_prim_keys = (("arg0/Line1", "arg1/Line1"),)
+            keys = ("RightMargin",)
+            constructions = (MidpointXDistance(),)
+            prim_keys = (("arg0/Line1", "arg1/Line1"),)
         elif side == "bottom":
-            c_keys = ("BottomMargin",)
-            c_construction_types = (MidpointYDistance,)
-            c_prim_keys = (("arg1/Line0", "arg0/Line0"),)
+            keys = ("BottomMargin",)
+            constructions = (MidpointYDistance(),)
+            prim_keys = (("arg1/Line0", "arg0/Line0"),)
         elif side == "top":
-            c_keys = ("TopMargin",)
-            c_construction_types = (MidpointYDistance,)
-            c_prim_keys = (("arg0/Line2", "arg1/Line2"),)
+            keys = ("TopMargin",)
+            constructions = (MidpointYDistance(),)
+            prim_keys = (("arg0/Line2", "arg1/Line2"),)
         else:
             raise ValueError()
 
-        c_construction_type_kwargs = ({},)
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((),)
 
-        def c_params(params):
-            return [()]
-
-        return (
-            c_keys,
-            c_construction_types,
-            c_construction_type_kwargs,
-            c_prim_keys,
-            c_params,
-        )
+        return (keys, constructions, prim_keys, child_params)
 
     @classmethod
-    def init_aux_data(cls, side: str = "left"):
+    def init_signature(cls, side: str = "left"):
         return cls.aux_data(0, ())
 
 

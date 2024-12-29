@@ -49,7 +49,7 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2)
 
     @classmethod
@@ -85,7 +85,7 @@ class Vertical(con.LeafConstruction, con._LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -104,7 +104,7 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -129,7 +129,7 @@ class RelativeLength(con.LeafConstruction, con._LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (float,))
 
     @classmethod
@@ -158,7 +158,7 @@ class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -183,7 +183,7 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1)
 
     @classmethod
@@ -211,7 +211,7 @@ class Collinear(con.LeafConstruction, con._LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2)
 
     @classmethod
@@ -240,7 +240,7 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(2, (bool,))
 
     @classmethod
@@ -277,20 +277,17 @@ class RelativeLengthArray(ArrayConstraint, con._LinesSignature):
     def init_children(cls, shape: tuple[int, ...]):
         size = np.prod(shape)
 
-        child_keys = tuple(f"RelativeLength{n}" for n in range(size))
-        child_constraint_types = size * (RelativeLength,)
-        child_constraint_kwargs = size * ({},)
-        child_prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
+        keys = tuple(f"RelativeLength{n}" for n in range(size))
+        constraints = size * (RelativeLength(),)
+        prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
 
-        def child_params(parameters):
-            lengths, = parameters
-            return tuple(
-                (length,) for length in lengths
-            )
-        return child_keys, child_constraint_types, child_constraint_kwargs, child_prim_keys, child_params
+        def child_params(params: Params) -> tuple[Params, ...]:
+            lengths, = params
+            return tuple((length,) for length in lengths)
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
+    def init_signature(cls, shape: tuple[int, ...]):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Line,) + (pr.Line,),
@@ -325,17 +322,17 @@ class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature)
     ----------
     prims: tuple[pr.Point, pr.Line]
         The point and line
-    distance: float
     reverse: bool
         A boolean indicating whether to reverse the line direction
 
         The distance of the point on the line is measured either from the start or end
         point of the line based on `reverse`. If `reverse=False` then the start point is
         used.
+    distance: float
     """
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(1, (bool, float))
 
     @classmethod
@@ -377,16 +374,20 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_children(cls):
-        child_keys = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
-        child_constraint_types = (Horizontal, Horizontal, Vertical, Vertical)
-        child_constraint_type_kwargs = ({}, {}, {}, {})
-        child_prim_keys = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
-        def child_params(params):
-            return [(), (), (), ()]
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        keys = (
+            "HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight"
+        )
+        constraints = (Horizontal(), Horizontal(), Vertical(), Vertical())
+        prim_keys = (
+            ("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",)
+        )
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((), (), (), ())
+
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0)
 
 
@@ -441,23 +442,21 @@ class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_children(cls):
-        child_keys = ("Height",)
-        child_constraint_types = (YDistance,)
-        child_constraint_type_kwargs = ({},)
-        child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
+        keys = ("Height",)
+        constraints = (YDistance(),)
+        prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
 
-        def child_params(parameters):
-            xaxis: XAxis | None
-            xaxis, = parameters
+        def child_params(params: Params) -> tuple[Params, ...]:
+            xaxis: XAxis | None = params[0]
             if xaxis is None:
-                return [(0,)]
+                return ((0,),)
             else:
-                return [(cls.get_xaxis_height(xaxis),)]
+                return ((cls.get_xaxis_height(xaxis),),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0, (XAxis,))
 
 
@@ -479,23 +478,21 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_children(cls):
-        child_keys = ("Width",)
-        child_constraint_types = (XDistance,)
-        child_constraint_type_kwargs = ({},)
-        child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
+        keys = ("Width",)
+        constraints = (XDistance(),)
+        prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
 
-        def child_params(parameters):
-            yaxis: YAxis | None
-            yaxis, = parameters
+        def child_params(params: Params) -> tuple[Params, ...]:
+            yaxis: YAxis | None = params[0]
             if yaxis is None:
-                return [(0,)]
+                return ((0,),)
             else:
-                return [(cls.get_yaxis_width(yaxis),)]
+                return ((cls.get_yaxis_width(yaxis),),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0, (YAxis,))
 
 
@@ -517,18 +514,17 @@ class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSi
 
     @classmethod
     def init_children(cls):
-        child_keys = ("AlignBottom", "AlignTop")
-        child_constraint_types = (Collinear, Collinear)
-        child_constraint_type_kwargs = ({}, {})
-        child_prim_keys = (("arg0/Line0", "arg1/Line0"), ("arg0/Line2", "arg1/Line2"))
+        keys = ("AlignBottom", "AlignTop")
+        constraints = (Collinear(), Collinear())
+        prim_keys = (("arg0/Line0", "arg1/Line0"), ("arg0/Line2", "arg1/Line2"))
 
-        def child_params(parameters):
+        def child_params(params: Params) -> tuple[Params, ...]:
             return 2*((),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0)
 
 class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
@@ -543,18 +539,17 @@ class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilatera
 
     @classmethod
     def init_children(cls):
-        child_keys = ("AlignLeft", "AlignRight")
-        child_constraint_types = (Collinear, Collinear)
-        child_constraint_type_kwargs = ({}, {})
-        child_prim_keys = (("arg0/Line3", "arg1/Line3"), ("arg0/Line1", "arg1/Line1"))
+        keys = ("AlignLeft", "AlignRight")
+        constraints = (Collinear(), Collinear())
+        prim_keys = (("arg0/Line3", "arg1/Line3"), ("arg0/Line1", "arg1/Line1"))
 
-        def child_params(parameters):
+        def child_params(params: Params) -> tuple[Params, ...]:
             return 2*((),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0)
 
 # Argument type: tuple[Quadrilateral, ...]
@@ -584,36 +579,39 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         def idx(i, j):
             return idx_1d((i, j), shape)
 
-        # Specify child constraints given the grid shape
-        # Line up bottom/top and left/right
-        child_constraint_types = (
-            num_row * (con.transform_MapType(AlignRow, num_col*(pr.Quadrilateral,)),)
-            + num_col * (con.transform_MapType(AlignColumn, num_row*(pr.Quadrilateral,)),)
-        )
-        child_constraint_type_kwargs = (
-            num_row * ({},)
-            + num_col * ({},)
-        )
-        align_rows = [
-            tuple(f"arg{idx(nrow, ncol)}" for ncol in range(num_col))
-            for nrow in range(num_row)
-        ]
-        align_cols = [
-            tuple(f"arg{idx(nrow, ncol)}" for nrow in range(num_row))
-            for ncol in range(num_col)
-        ]
+        # There are 4 child constraints that line up bottoms, tops, left sides
+        # , and right sides respectively.
 
-        child_prim_keys = align_rows + align_cols
-        child_keys = (
+        keys = tuple(
             [f"AlignRow{nrow}" for nrow in range(num_row)]
             + [f"AlignColumn{ncol}" for ncol in range(num_col)]
         )
-        def child_params(params):
-            return len(child_keys)*[()]
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+
+        # TODO: Refactor this to map two times over rows then columns
+        align_rows = num_row * [
+            con.transform_map(AlignRow(), num_col*(pr.Quadrilateral,))
+        ]
+        align_cols = num_col * [
+            con.transform_map(AlignColumn(), num_row*(pr.Quadrilateral,)),
+        ]
+        constraints = tuple(align_rows + align_cols)
+
+        align_row_args = [
+            tuple(f"arg{idx(nrow, ncol)}" for ncol in range(num_col))
+            for nrow in range(num_row)
+        ]
+        align_col_args = [
+            tuple(f"arg{idx(nrow, ncol)}" for nrow in range(num_row))
+            for ncol in range(num_col)
+        ]
+        prim_keys = tuple(align_row_args + align_col_args)
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return 4 * size * ((),)
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
+    def init_signature(cls, shape: tuple[int, ...]):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Quadrilateral,),
@@ -642,69 +640,63 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
 
     @classmethod
     def init_children(cls, shape: tuple[int, ...]):
-        num_args = np.prod(shape)
         num_row, num_col = shape
+        size = np.prod(shape)
 
         # Children constraints do:
         # 1. Align all quads in a grid
         # 2. Set relative column widths relative to column 0
         # 3. Set relative row heights relative to row 0
-        child_keys = (
-            "RectilinearGrid",
-            "ColumnWidths",
-            "RowHeights",
-            "ColumnMargins",
-            "RowMargins",
+        # 4. Set margins between columns
+        # 5. Set margins between rows
+        keys = (
+            "RectilinearGrid", "ColWidths", "RowHeights", "ColMargins", "RowMargins"
         )
-        child_constraint_types = (
-            RectilinearGrid,
-            RelativeLengthArray,
-            RelativeLengthArray,
-            con.transform_MapType(OuterMargin, num_col*(pr.Quadrilateral,)),
-            con.transform_MapType(OuterMargin, num_row*(pr.Quadrilateral,))
-        )
-        child_constraint_type_kwargs = (
-            {'shape': shape},
-            {'shape': num_col-1},
-            {'shape': num_row-1},
-            {'side': 'right'},
-            {'side': 'bottom'},
+        constraints = (
+            RectilinearGrid(shape=shape),
+            RelativeLengthArray(shape=(num_col-1,)),
+            RelativeLengthArray(shape=(num_row-1,)),
+            con.transform_map(
+                OuterMargin(side='right'), num_col*(pr.Quadrilateral,)
+            ),
+            con.transform_map(
+                OuterMargin(side='bottom'), num_row*(pr.Quadrilateral,)
+            )
         )
 
         def idx(i, j):
             return idx_1d((i, j), shape)
-        rows, cols = list(range(shape[0])), list(range(shape[1]))
+        rows = list(range(shape[0]))
+        cols = list(range(shape[1]))
 
-        rectilineargrid_args = tuple(f"arg{n}" for n in range(num_args))
+        rect_grid_args = tuple(f"arg{n}" for n in range(size))
 
-        colwidth_args = tuple(
-            f"arg{idx(row, col)}/Line0"
-            for row, col in itertools.product([0], cols[1:] + cols[:1])
+        col_width_args = tuple(
+            f"arg{idx(0, col)}/Line0" for col in cols[1:] + cols[:1]
         )
-        rowheight_args = tuple(
-            f"arg{idx(row, col)}/Line1"
-            for row, col in itertools.product(rows[1:] + rows[:1], [0])
+        row_height_args = tuple(
+            f"arg{idx(row, 0)}/Line1" for row in rows[1:] + rows[:1]
         )
+
         col_margin_args = tuple(f"arg{idx(0, col)}" for col in cols)
         row_margin_args = tuple(f"arg{idx(row, 0)}" for row in rows)
 
-        child_prim_keys = (
-            rectilineargrid_args,
-            colwidth_args,
-            rowheight_args,
-            tuple(col_margin_args),
-            tuple(row_margin_args),
+        prim_keys = (
+            rect_grid_args,
+            col_width_args,
+            row_height_args,
+            col_margin_args,
+            row_margin_args,
         )
 
-        def child_params(params):
+        def child_params(params: Params) -> tuple[Params, ...]:
             col_widths, row_heights, col_margins, row_margins = params
-            return ((),) + ((col_widths,), (row_heights,)) + (col_margins, row_margins)
+            return ((), (col_widths,), (row_heights,), col_margins, row_margins)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
-
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
+    def init_signature(cls, shape: tuple[int, ...]):
         size = np.prod(shape)
         return {
             'RES_ARG_TYPES': size * (pr.Quadrilateral,),
@@ -736,25 +728,24 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     @classmethod
     def init_children(cls, bottom: bool, top: bool):
 
-        child_keys = ('CoincidentLines',)
-        child_constraint_types = (CoincidentLines,)
-        child_constraint_type_kwargs = ({},)
+        keys = ('CoincidentLines',)
+        constraints = (CoincidentLines(),)
         if bottom:
-            child_prim_keys = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
+            prim_keys = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
         elif top:
-            child_prim_keys = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
+            prim_keys = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
         else:
             raise ValueError(
-                "Currently, 'bottom' and 'top' can't both be true"
+                "'bottom' and 'top' can not both be true"
             )
 
-        def child_params(params):
-            return [(True,)]
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((True,),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls, bottom: bool, top: bool):
+    def init_signature(cls, bottom: bool, top: bool):
         return cls.aux_data(0)
 
 
@@ -774,25 +765,24 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
     @classmethod
     def init_children(cls, left: bool=True, right: bool=False):
 
-        child_keys = ('CoincidentLines',)
-        child_constraint_types = (CoincidentLines,)
-        child_constraint_type_kwargs = ({},)
+        keys = ('CoincidentLines',)
+        constraints = (CoincidentLines(),)
         if left:
-            child_prim_keys = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
+            prim_keys = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
         elif right:
-            child_prim_keys = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
+            prim_keys = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
         else:
             raise ValueError(
-                "Currently, 'left' and 'right' can't both be true"
+                "'left' and 'right' can not both be true"
             )
 
-        def child_params(params):
-            return [(True,)]
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((True,),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls, left: bool=True, right: bool=False):
+    def init_signature(cls, left: bool=True, right: bool=False):
         return cls.aux_data(0)
 
 
@@ -811,19 +801,18 @@ class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
     @classmethod
     def init_children(cls):
 
-        child_keys = ('RelativePointOnLineDistance',)
-        child_constraint_types = (RelativePointOnLineDistance,)
-        child_constraint_type_kwargs = ({},)
-        child_prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
+        keys = ('RelativePointOnLineDistance',)
+        constraints = (RelativePointOnLineDistance(),)
+        prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
 
-        def child_params(params):
+        def child_params(params: Params) -> tuple[Params, ...]:
             distance, = params
-            return [(False, distance)]
+            return ((False, distance),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0)
 
 
@@ -841,17 +830,16 @@ class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
 
     @classmethod
     def init_children(cls):
-        child_keys = ('RelativePointOnLineDistance',)
-        child_constraint_types = (RelativePointOnLineDistance,)
-        child_constraint_type_kwargs = ({},)
-        child_prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
+        keys = ('RelativePointOnLineDistance',)
+        constraints = (RelativePointOnLineDistance(),)
+        prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
 
-        def child_params(params):
+        def child_params(params: Params) -> tuple[Params, ...]:
             distance, = params
-            return [(False, distance)]
+            return ((False, distance),)
 
-        return child_keys, child_constraint_types, child_constraint_type_kwargs, child_prim_keys, child_params
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
+    def init_signature(cls):
         return cls.aux_data(0)
