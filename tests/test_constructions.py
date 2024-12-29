@@ -15,7 +15,7 @@ from tests.fixture_primitives import GeometryFixtures
 
 class TestConstructionFunctions(GeometryFixtures):
 
-    def test_map(self):
+    def test_transform_map(self):
         num_point = 2
         coords = np.random.rand(num_point, 2)
         points = tuple(pr.Point(value=coord) for coord in coords)
@@ -26,7 +26,7 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(coords_ref, coords_map))
 
-    def test_generate_constraint_from_instance(self):
+    def test_transform_constraint(self):
 
         construction = con.OuterMargin(side='right')
         quada = self.make_quad(np.zeros(2), np.diag(np.ones(2)))
