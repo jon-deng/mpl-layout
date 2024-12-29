@@ -573,41 +573,38 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
 
     @classmethod
     def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
+        # size = np.prod(shape)
         num_row, num_col = shape
 
         def idx(i, j):
             return idx_1d((i, j), shape)
 
-        # There are 4 child constraints that line up bottoms, tops, left sides
-        # , and right sides respectively.
+        # There are 2 child constraints that line up all rows and all columns
 
-        keys = tuple(
-            [f"AlignRow{nrow}" for nrow in range(num_row)]
-            + [f"AlignColumn{ncol}" for ncol in range(num_col)]
+        keys = ("AlignRows", "AlignColumns")
+
+        align_rows = con.transform_map(
+            con.transform_map(AlignRow(), num_col*(pr.Quadrilateral,)),
+            num_row*(pr.Quadrilateral,)
         )
-
-        # TODO: Refactor this to map two times over rows then columns
-        align_rows = num_row * [
-            con.transform_map(AlignRow(), num_col*(pr.Quadrilateral,))
-        ]
-        align_cols = num_col * [
+        align_cols = con.transform_map(
             con.transform_map(AlignColumn(), num_row*(pr.Quadrilateral,)),
-        ]
-        constraints = tuple(align_rows + align_cols)
+            num_col * (pr.Quadrilateral,)
+        )
+        constraints = (align_rows, align_cols)
 
-        align_row_args = [
-            tuple(f"arg{idx(nrow, ncol)}" for ncol in range(num_col))
-            for nrow in range(num_row)
-        ]
-        align_col_args = [
-            tuple(f"arg{idx(nrow, ncol)}" for nrow in range(num_row))
-            for ncol in range(num_col)
-        ]
-        prim_keys = tuple(align_row_args + align_col_args)
+        align_row_args = tuple(
+            f"arg{idx(nrow, ncol)}" for nrow, ncol in
+            itertools.product(range(num_row), range(num_col))
+        )
+        align_col_args = tuple(
+            f"arg{idx(nrow, ncol)}" for ncol, nrow in
+            itertools.product(range(num_col), range(num_row))
+        )
+        prim_keys = (align_row_args, align_col_args)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            return 4 * size * ((),)
+            return ((), ())
         return keys, constraints, prim_keys, child_params
 
     @classmethod
