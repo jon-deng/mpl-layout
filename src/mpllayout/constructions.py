@@ -172,92 +172,21 @@ class ConstructionNode(Node[ConstructionValue]):
 
         super().__init__(value, children)
 
-    def root_params(self, params: Params) -> ParamsNode:
-        """
-        Return a tree of residual kwargs for the construction and all children
-
-        The tree structure should match the tree structure of the construction.
-
-        Parameters
-        ----------
-        params: ResParams
-            Residual keyword arguments for the construction
-
-        Returns
-        -------
-        root_params: ParamsNode
-            A tree of keyword arguments for the construction and all children
-        """
-        children_params = self.child_params(params)
-        children = {
-            key: child.root_params(child_params)
-            for (key, child), child_params in zip(self.items(), children_params)
-        }
-        root_params = ParamsNode(params, children)
-        return root_params
-
-    def root_prim_keys(self, prim_keys: PrimKeys) -> PrimKeysNode:
-        """
-        Return a tree of primitive keys for the construction and all children
-
-        The tree structure should match the tree structure of the construction.
-
-        For a given construction, `c`, every key tuple in
-        `c.root_prim_keys(prim_keys)` specifies a tuple of primitives for the
-        corresponding construction by indexing from
-        `c.root_prim(prim_keys, prims)`.
-
-        Parameters
-        ----------
-        prim_keys: PrimKeys
-            Primitive keys for the construction
-
-        Returns
-        -------
-        root_prim_keys: PrimKeysNode
-            A tree of primitive keys for the construction and all children
-        """
-        children = {
-            key: child.root_prim_keys(child_prim_keys)
-            for (key, child), child_prim_keys in zip(
-                self.items(), self.child_prim_keys(prim_keys)
-            )
-        }
-        return PrimKeysNode(prim_keys, children)
-
-    def root_prim(self, prim_keys: PrimKeys, prims: Prims) -> pr.PrimitiveNode:
-        """
-        Return a root primitive containing primitives for the construction
-
-        Parameters
-        ----------
-        prim_keys: PrimKeys
-            Primitive keys for the construction
-        prims: ResPrims
-            Primitives for the construction
-
-        Returns
-        -------
-        PrimitiveNode
-            A root primitive containing primitives for the construction
-        """
-        return pr.PrimitiveNode(
-            np.array([]), {key: prim for key, prim in zip(prim_keys, prims)}
-        )
+    ## Attributes related to `value`
 
     @property
-    def _child_prim_keys_template(self) -> tuple[PrimKeys, ...]:
+    def child_prim_keys_template(self) -> tuple[PrimKeys, ...]:
         return self.value[0]
 
     def child_prim_keys(self, arg_keys: tuple[str, ...]) -> tuple[PrimKeys, ...]:
         """
         Return primitive key tuples for each child constraint
 
-        The 'arg{n}' part of the prim key is replace with the corresponding key
-        in `parent_prim_keys`.
+        The 'arg{n}' prefix of each prim key is replaced with the corresponding
+        key in `arg_keys`.
         """
         # Replace the 'arg{n}/...' component with the corresponding string
-        # in `prim_keys`
+        # in `arg_keys`
 
         def argnum_from_key(arg_prefix: str):
             if arg_prefix[:3] == "arg":
@@ -277,11 +206,91 @@ class ConstructionNode(Node[ConstructionValue]):
                 replace_prim_key_prefix(prim_key, arg_keys)
                 for prim_key in child_prim_keys
             )
-            for child_prim_keys in self._child_prim_keys_template
+            for child_prim_keys in self.child_prim_keys_template
         )
 
     def child_params(self, params: Params) -> tuple[Params, ...]:
         return self.value[1](params)
+
+    @property
+    def signature(self) -> ConstructionSignature:
+        return self.value[2]
+
+    ## Node representations for construction-related data
+
+    def root_prim(self, prim_keys: PrimKeys, prims: Prims) -> pr.PrimitiveNode:
+        """
+        Return a primitive node representing construction primitive arguments
+
+        Parameters
+        ----------
+        prim_keys: PrimKeys
+            Labels for each primitive argument
+
+            Note the 'template' to name these is 'arg0', 'arg1', ...
+        prims: Prims
+            Primitive arguments for the construction
+
+        Returns
+        -------
+        PrimitiveNode
+            A root primitive containing primitives for the construction
+        """
+        return pr.PrimitiveNode(
+            np.array([]), {key: prim for key, prim in zip(prim_keys, prims)}
+        )
+
+    def root_prim_keys(self, prim_keys: PrimKeys) -> PrimKeysNode:
+        """
+        Return a tree of `prim_keys` for all constructions
+
+        Every `prim_keys` string tuple in a node indicates primitives in
+        `self.root_prim(prim_keys, prims)` that are passed to the corresponding
+        construction node.
+
+        Parameters
+        ----------
+        prim_keys: PrimKeys
+            Primitive keys for the construction
+
+        Returns
+        -------
+        root_prim_keys: PrimKeysNode
+            A tree of primitive keys for the construction and all children
+        """
+        children = {
+            key: child.root_prim_keys(child_prim_keys)
+            for (key, child), child_prim_keys in zip(
+                self.items(), self.child_prim_keys(prim_keys)
+            )
+        }
+        return PrimKeysNode(prim_keys, children)
+
+    def root_params(self, params: Params) -> ParamsNode:
+        """
+        Return a tree of `params` for all constructions
+
+        Every `params` tuple in a node indicates parameters for the
+        corresponding construction node.
+
+        Parameters
+        ----------
+        params: Params
+            Parameters for the construction
+
+        Returns
+        -------
+        root_params: ParamsNode
+            A tree of params
+        """
+        children_params = self.child_params(params)
+        children = {
+            key: child.root_params(child_params)
+            for (key, child), child_params in zip(self.items(), children_params)
+        }
+        return ParamsNode(params, children)
+
+    ## Construction function related methods
 
     def __call__(self, prims: Prims, *params: Params) -> NDArray:
         prim_keys = tuple(f"arg{n}" for n, _ in enumerate(prims))
@@ -300,14 +309,14 @@ class ConstructionNode(Node[ConstructionValue]):
         flat_prim_keys = [x.value for _, x in iter_flat("", root_prim_keys)]
         flat_params = [x.value for _, x in iter_flat("", root_params)]
 
-        residuals = tuple(
+        residuals = [
             construction.assem_atleast_1d(
                 tuple(root_prim[arg_key] for arg_key in argkeys), *params
             )
             for construction, argkeys, params in zip(
                 flat_constructions, flat_prim_keys, flat_params
             )
-        )
+        ]
         return jnp.concatenate(residuals)
 
     def assem_atleast_1d(self, prims: Prims, *params: Params) -> NDArray:
@@ -316,30 +325,31 @@ class ConstructionNode(Node[ConstructionValue]):
     @classmethod
     def assem(cls, prims: Prims, *params: Params) -> NDArray:
         """
-        Return the (local) construction output
+        Return the (local) construction output array
 
         The full construction output consists of recursively stacking all
-        construction outputs together in the tree.
+        construction outputs in a tree.
 
         Parameters
         ----------
-        prims: ResPrims
+        prims: Prims
             A tuple of primitives the construction applies to
         *params: Params
             A set of parameters for the residual
 
-            These are things like length, distance, angle, etc.
+            These are things like a direction vector, boolean flag, etc.
 
         Returns
         -------
-        NDArray
+        res: NDArray
+            The result array of the construction
         """
-        # NOTE: Both *params and **kwargs affect construction outputs but are
-        # used for different reasons.
-        # Generally, `*params` involves direct changes to construction `assem`
-        # methods while `**kwargs` involve changes to the tree structure of
-        # child constraints.
-        # Some changes to constructions can be implemented using either approach
+        # NOTE: Some `Construction` instances have `**kwargs` that affect
+        # construction outputs which has some overlap with `*params`.
+        # Generally, `*params` involves direct changes to the (local)
+        # construction function while `**kwargs` involve changes to the tree
+        # structure of child construction.
+        # Some changes can be implemented using either `*params` or `**kwargs`
         # so there is some overlap.
         raise NotImplementedError()
 
