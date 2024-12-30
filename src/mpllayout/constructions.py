@@ -70,83 +70,90 @@ class ParamsNode(Node[Params]):
 
 class ConstructionNode(Node[ConstructionValue]):
     """
-    The base geometric construction class
+    Node representation of a geometric construction
 
-    A geometric construction is a function returning a vector from geometric
-    primitives.
-    A construction has a tree structure.
-    The return vector consists of recursively stacking constructions from all
-    child constructions.
+    A construction is defined by two components:
+    1. A function that maps from input primitives and parameters to an array
+    2. A specification of any child constructions
 
-    The construction function is implemented through the method
-        `assem(self, prims, *params)`
-    where `prims` are the geometric primitives to construction and `*params` are
-    additional parameters for the residual.
-    This should be implemented using `jax` functions.
+    (1) The construction function is implemented through a class method
+        ``
+        ConstructionNode.assem(cls, prims: Prims, *params: Params) -> NDArray
+        ``
+    where `prims` are geometric primitives and `*params` are additional
+    parameters. Note that `assem` should be implemented with `jax` for
+    algorithmic differentiation.
 
-    Constructions must specify how to create `(prims, *params)` for each child
-    construction.
-    This is done through `child_prim_keys` and `child_params`.
+    (2) Child constructions are specified using `ConstructionNode` instances as
+    well as two objects that represent how `child_prims` and `child_params` are
+    created for each child construction from the parent `prims` and `params`.
 
-    You must subclass `LeafConstruction` and/or `CompoundConstruction` to create
-    specific construction implementations.
+    Information for both these components are stored in the `value` and
+    `children` structures of a `Node`. See 'Parameters' for more details.
+
+    To create specific construction classes subclass one of
+    `LeafConstruction` or `CompoundConstruction`.
 
     Parameters
     ----------
-    child_keys: list[str]
-        Keys for any child constructions
-    child_constructions: list[TCons]
+    value: ConstructionValue
+        Tuple representing the construction children and signature
+
+        A construction value is a tuple of three objects describing how child
+        constructions are evaluated and the signature of the construction
+            ``child_prim_keys, child_params, signature = value``
+        These are further described below.
+
+        child_prim_keys: list[PrimKeys]
+            Specifies how `child_prims` are created from `prims`
+
+            This is a list of `PrimKeys` string tuples where each list element
+            corresponds to one child constraint. Every `PrimKeys` string tuple
+            has the format
+                ``('arg{i1}/child_key1', ..., 'arg{iM}/child_keyM')``,
+            where 'i1, ..., iM' are integers indicating argument numbers in
+            `prims`. Each 'child_key1, ..., child_keyM' are child keys
+            for that the primitive argument.
+
+            For example, consider `N` child constructions
+                ``children = {1: cnode1, ..., N: cnodeN}``
+            and
+                ``child_prim_keys[n] = ('arg0/Point0', 'arg1/Line0/Point1')``,
+            for the `n`th child construction with signature
+                ``cnoden.assem(cls, child_prims, *child_params)``
+            Then the input primitive for `cnoden` will be
+                ``child_prims = (prims[0]['Point0'], prims[1]['Line0/Point'])``.
+        child_params: Callable[[Params], list[Params]]
+            Specifies how `child_params` are created from `params`
+
+            This function should return a list of `child_params` for each child
+            construction from `params`.
+        signature: ConstructionSignature
+            A tuple describing types for `assem`
+
+            This a tuple of the format
+                ``(prim_types, param_types), value_size = signature``
+            where
+            `prim_types` is a tuple of primitive types for `prims`,
+            `param_types` is a tuple of parameter types for `params,
+            and `value_size` is the array size returned by `assem`.
+    children: dict[str, TCons]
         Child constructions
-    child_prim_keys: list[PrimKeys]
-        `prims` argument representation for each child construction
-
-        This is stored as the "value" of the tree structure and encodes how to
-        create primitives for each child construction from the parent construction's
-        `prims` (in `assem(self, prims, *params)`).
-        For each child construction, a tuple of primitive keys indicates a
-        subset of parent primitives to form child construction primitive
-        arguments.
-
-        To illustrate this, consider a parent construction with residual
-
-        ```
-        Parent.assem(self, prims, *params)
-        ```
-
-        and the n'th child construction with primitive key tuple
-
-        ```
-        child_prim_keys[n] == ('arg0', 'arg3/Line2')
-        ```.
-
-        This indicates the n'th child construction should be evaluated with
-
-        ```
-        child_prims = (prims[0], prims[3]['Line2'])
-        ```
-    child_params: Callable[[Params], list[Params]]
-        `*params` argument representation for each child construction
-
-        This function should return `params` for each child construction given
-        the parent `params`.
-    signature: ConstructionSignature
-        A tuple describing input (`prims`, `params`) and output (array) types
     """
 
-    # TODO: Implement `assem` type checking using `signature`
-    # TODO: Make `ConstructionNode` have the same `__init__` call as `Node` for
-    # consistency? It could potentially just have type checks that ensure
-    # the input value has the right type (i.e. has prim keys, params, and signature)
-    def __init__(
-        self,
-        child_keys: list[str],
-        child_constructions: list[TCons],
-        child_prim_keys: list[PrimKeys],
-        child_params: ChildParams,
-        signature: ConstructionSignature,
-    ):
-        children = {key: child for key, child in zip(child_keys, child_constructions)}
-        super().__init__((child_prim_keys, child_params, signature), children)
+    def __init__(self, value: ConstructionValue, children: dict[str, TCons]):
+
+        assert isinstance(value, tuple)
+        assert len(value) == 3
+        assert all(
+            isinstance(child, ConstructionNode)
+            for _, child in children.items()
+        )
+
+        # TODO: Type check all of these
+        child_prim_keys, child_params, signature = value
+
+        super().__init__(value, children)
 
     def root_params(self, params: Params) -> ParamsNode:
         """
@@ -335,9 +342,16 @@ class Construction(ConstructionNode):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(
-            *self.init_children(**kwargs), self.init_signature(**kwargs)
-        )
+        (
+            child_keys, child_constructions, child_prim_keys, child_params
+        ) = self.init_children(**kwargs)
+        signature = self.init_signature(**kwargs)
+
+        value = (child_prim_keys, child_params, signature)
+        children = {
+            key: child for key, child in zip(child_keys, child_constructions)
+        }
+        super().__init__(value, children)
 
     @classmethod
     def init_children(cls, **kwargs) -> tuple[
@@ -669,7 +683,7 @@ def transform_map(
     child_keys = tuple(
         f"{type(construction).__name__}{n}" for n in range(num_constr)
     )
-    child_constraints = num_constr*(construction,)
+    child_constructions = num_constr*(construction,)
 
     constant_prim_keys = tuple(
         f"arg{ii}" for ii in range(N-M, N)
@@ -689,7 +703,11 @@ def transform_map(
     class MapConstruction(ConstructionNode):
 
         def __init__(self):
-            super().__init__(child_keys, child_constraints, child_prim_keys, child_params, map_signature)
+            value = (child_prim_keys, child_params, map_signature)
+            children = {
+                key: child for key, child in zip(child_keys, child_constructions)
+            }
+            super().__init__(value, children)
 
         @classmethod
         def assem(cls, prims, *map_params):
