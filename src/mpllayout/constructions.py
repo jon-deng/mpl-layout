@@ -715,7 +715,9 @@ def transform_map(
             for n in range(num_constr)
         )
 
-    map_signature = ((N*PRIM_TYPES, N*PARAM_TYPES), 0)
+    map_signature = (
+        (num_constr*PRIM_TYPES[:1] + PRIM_TYPES[1:], num_constr*PARAM_TYPES), 0
+    )
 
     class MapConstruction(ConstructionNode):
 
