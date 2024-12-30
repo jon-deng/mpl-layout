@@ -143,6 +143,8 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def __init__(self, value: ConstructionValue, children: dict[str, TCons]):
 
+        # TODO: Refine/organize these type checks
+
         assert isinstance(value, tuple)
         assert len(value) == 3
         assert all(
@@ -150,8 +152,23 @@ class ConstructionNode(Node[ConstructionValue]):
             for _, child in children.items()
         )
 
-        # TODO: Type check all of these
         child_prim_keys, child_params, signature = value
+        (prim_types, param_types), value_size = signature
+
+        # Check `child_prim_keys` type
+        assert isinstance(child_prim_keys, (tuple, list))
+        # Check there's one prim keys tuple for each child
+        assert len(child_prim_keys) == len(children)
+        child_signatures = [child.value[-1] for _, child in children.items()]
+        # Check each prim keys tuple produces the right number of child prim
+        # arguments
+        assert all(
+            len(child_key_tuple) == len(child_prim_types)
+            for child_key_tuple, ((child_prim_types, _), _)
+            in zip(child_prim_keys, child_signatures)
+        )
+
+        assert isinstance(child_params, Callable)
 
         super().__init__(value, children)
 
