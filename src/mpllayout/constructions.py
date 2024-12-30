@@ -108,7 +108,7 @@ class ConstructionNode(Node[ConstructionValue]):
             Specifies how `child_prims` are created from `prims`
 
             This is a list of `PrimKeys` string tuples where each list element
-            corresponds to one child constraint. Every `PrimKeys` string tuple
+            corresponds to one child construction. Every `PrimKeys` string tuple
             has the format
                 ``('arg{i1}/child_key1', ..., 'arg{iM}/child_keyM')``,
             where 'i1, ..., iM' are integers indicating argument numbers in
@@ -180,7 +180,7 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def child_prim_keys(self, arg_keys: tuple[str, ...]) -> tuple[PrimKeys, ...]:
         """
-        Return primitive key tuples for each child constraint
+        Return primitive key tuples for each child construction
 
         The 'arg{n}' prefix of each prim key is replaced with the corresponding
         key in `arg_keys`.
@@ -403,7 +403,7 @@ class CompoundConstruction(Construction):
 
 class ArrayCompoundConstruction(CompoundConstruction):
     """
-    Constraint representing an array of child constraints
+    Construction representing an array of child constructions
     """
 
     def __init__(self, shape: tuple[int, ...] = (0,)):
@@ -684,7 +684,7 @@ def transform_map(
     `Callable[[PrimA, PrimB1, ..., PrimBM], NDArray]`
     where M is the number of additional primitives.
     The map construction over prims `prims = [PrimA1, ... PrimAN]` returns a
-    tree of child constraints
+    tree of child constructions
     `[construction(prims[0], prims[-M:]), ..., construction(prims[N-M-1], prims[N-M:])]`
 
     Parameters
@@ -922,7 +922,7 @@ _AxesSignature = make_signature_class((pr.Axes,))
 
 
 ## Point constructions
-# NOTE: These are actual constraint classes that can be called so class docstrings
+# NOTE: These are actual construction classes that can be called so class docstrings
 # document there `assem_res` function.
 
 # Argument type: tuple[Point,]
@@ -1260,7 +1260,7 @@ class Angle(LeafConstruction, _LineLineSignature):
 # Argument type: tuple[Line, ...]
 
 
-## Point and Line constraints
+## Point and Line constructions
 
 # Argument type: tuple[Point, Line]
 
