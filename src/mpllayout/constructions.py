@@ -950,9 +950,6 @@ class Coordinate(LeafConstruction, _PointSignature):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point]):
-        """
-        Return the location error for a point
-        """
         (point,) = prims
         return point.value
 
@@ -1033,7 +1030,7 @@ class YDistance(LeafConstruction, _PointPointSignature):
 
 class LineVector(LeafConstruction, _LineSignature):
     """
-    Return the line vector
+    Return the vector of a line
 
     Parameters
     ----------
@@ -1047,9 +1044,6 @@ class LineVector(LeafConstruction, _LineSignature):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
-        """
-        Return the length error of a line
-        """
         (line,) = prims
         pointa, pointb = line.values()
         return pointb.value - pointa.value
@@ -1057,7 +1051,7 @@ class LineVector(LeafConstruction, _LineSignature):
 
 class UnitLineVector(LeafConstruction, _LineSignature):
     """
-    Return the unit line vector
+    Return the unit vector of a line
 
     Parameters
     ----------
@@ -1097,7 +1091,7 @@ class Length(LeafConstruction, _LineSignature):
 
 class DirectedLength(LeafConstruction, _LineSignature):
     """
-    Return the length of a line along a vector
+    Return the length of a line along a direction
 
     Parameters
     ----------
@@ -1119,7 +1113,7 @@ class DirectedLength(LeafConstruction, _LineSignature):
 
 class XLength(LeafConstruction, _LineSignature):
     """
-    Constrain the length of a line projected along the x direction
+    Return the length of a line along the x direction
 
     Parameters
     ----------
@@ -1138,7 +1132,7 @@ class XLength(LeafConstruction, _LineSignature):
 
 class YLength(LeafConstruction, _LineSignature):
     """
-    Constrain the length of a line projected along the y direction
+    Return the length of a line along the y direction
 
     Parameters
     ----------
@@ -1156,6 +1150,14 @@ class YLength(LeafConstruction, _LineSignature):
 
 
 class Midpoint(LeafConstruction, _LineSignature):
+    """
+    Return the midpoint coordinate of a line
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line]
+        The line
+    """
     @classmethod
     def init_signature(cls):
         return cls.make_signature(2)
@@ -1163,7 +1165,10 @@ class Midpoint(LeafConstruction, _LineSignature):
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
         (line,) = prims
-        return 1 / 2 * (line["Point0"].value + line["Point1"].value)
+        return 1 / 2 * (
+            Coordinate.assem((line["Point0"],))
+            + Coordinate.assem((line["Point1"],))
+        )
 
 
 # Argument type: tuple[Line, Line]
@@ -1171,7 +1176,7 @@ class Midpoint(LeafConstruction, _LineSignature):
 
 class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
     """
-    Return the directed distance between two line midpoints
+    Return the distance between two line midpoints along a direction
 
     Parameters
     ----------
@@ -1189,11 +1194,10 @@ class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], direction: NDArray):
-        """
-        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
-        """
         line0, line1 = prims
-        return jnp.dot(Midpoint.assem((line1,)) - Midpoint.assem((line0,)), direction)
+        return jnp.dot(
+            Midpoint.assem((line1,)) - Midpoint.assem((line0,)), direction
+        )
 
 
 class MidpointXDistance(LeafConstruction, _LineLineSignature):
@@ -1235,9 +1239,6 @@ class MidpointYDistance(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
-        """
-        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
-        """
         return MidpointDirectedDistance.assem(prims, np.array([0, 1]))
 
 
@@ -1273,7 +1274,7 @@ class Angle(LeafConstruction, _LineLineSignature):
 
 class PointOnLineDistance(LeafConstruction, _PointLineSignature):
     """
-    Return the projected distance of a point along a line
+    Return the distance of a point along a line
 
     Parameters
     ----------
@@ -1282,9 +1283,9 @@ class PointOnLineDistance(LeafConstruction, _PointLineSignature):
     reverse: bool
         A boolean indicating whether to reverse the line direction
 
-        The distance of the point on the line is measured either from the start or end
-        point of the line based on `reverse`. If `reverse=False` then the start point is
-        used.
+        The distance of the point on the line is measured either from the start
+        or end point of the line based on `reverse`. If `reverse=False` then the
+        start point is used.
     """
 
     @classmethod
@@ -1293,9 +1294,6 @@ class PointOnLineDistance(LeafConstruction, _PointLineSignature):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Line], reverse: bool):
-        """
-        Return the projected distance error of a point along a line
-        """
         point, line = prims
         if reverse:
             origin = line["Point1"].value
@@ -1318,9 +1316,9 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
     reverse: NDArray
         Whether to reverse the line direction for measuring the orthogonal
 
-        By convention the orthogonal direction points to the left of the line relative
-        to the line direction. If `reverse=True` then the orthogonal direction points to
-        the right of the line.
+        By convention the orthogonal direction rotates the unit line vector 90
+        degrees counter-clockwise. If `reverse=True` then the orthogonal
+        vector rotates clockwise.
     """
 
     @classmethod
@@ -1329,9 +1327,6 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Line], reverse: bool):
-        """
-        Return the projected distance error of a point to a line
-        """
         point, line = prims
 
         line_vec = UnitLineVector.assem((line,))
@@ -1355,10 +1350,12 @@ class AspectRatio(LeafConstruction, _QuadrilateralSignature):
     """
     Return the aspect ratio of a quadrilateral
 
+    This is ratio of the bottom width over the side height
+
     Parameters
     ----------
     prims: tuple[pr.Quadrilateral]
-        The quad
+        The quadrilateral
     """
 
     @classmethod
@@ -1380,10 +1377,27 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
     """
     Return the outer margin between two quadrilaterals
 
+    The is the distance between outside faces of the quadrilaterals.
+
+    Class Parameters
+    ----------------
+    side: str
+        The side of the quadrilateral to return a margin
+
+        The returned margin depends on `side`.
+        - If `side` is 'left', the margin is measured from the left face to the
+        right face of the first and second quad, respectively.
+        - If `side` is 'right', the margin is measured from the right face to the
+        left face of the first and second quad, respectively.
+        - If `side` is 'bottom', the margin is measured from the bottom face to the
+        top face of the first and second quad, respectively.
+        - If `side` is 'top', the margin is measured from the top face to the
+        bottom face of the first and second quad, respectively.
+
     Parameters
     ----------
     prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
+        The quadrilaterals
     """
 
     def __init__(self, side: str = "left"):
@@ -1424,10 +1438,27 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
     """
     Return the inner margin between two quadrilaterals
 
+    The is the distance between inside faces of the quadrilaterals.
+
+    Class Parameters
+    ----------------
+    side: str
+        The side of the quadrilateral to return an inner margin
+
+        The returned margin depends on `side`.
+        - If `side` is 'left', the margin is measured from the left face to the
+        left face of the first and second quad, respectively.
+        - If `side` is 'right', the margin is measured from the right face to the
+        right face of the first and second quad, respectively.
+        - If `side` is 'bottom', the margin is measured from the bottom face to the
+        bottom face of the first and second quad, respectively.
+        - If `side` is 'top', the margin is measured from the top face to the
+        top face of the first and second quad, respectively.
+
     Parameters
     ----------
     prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
+        The quadrilaterals
     """
 
     def __init__(self, side: str = "left"):
