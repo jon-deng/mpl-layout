@@ -50,7 +50,7 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2)
+        return cls.make_signature(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Point]):
@@ -86,7 +86,7 @@ class Vertical(con.LeafConstruction, con._LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -105,7 +105,7 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -152,7 +152,7 @@ class Orthogonal(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -177,7 +177,7 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -205,7 +205,7 @@ class Collinear(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2)
+        return cls.make_signature(2)
 
     @classmethod
     def assem(self, prims: tuple[pr.Line, pr.Line]):
@@ -234,7 +234,7 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2, (bool,))
+        return cls.make_signature(2, (bool,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], reverse: bool):
@@ -289,7 +289,7 @@ class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature)
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, (bool, float))
+        return cls.make_signature(1, (bool, float))
 
     @classmethod
     def assem(
@@ -344,7 +344,7 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0)
+        return cls.make_signature(0)
 
 
 AspectRatio = con.transform_ConstraintType(con.AspectRatio)
@@ -413,7 +413,7 @@ class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0, (XAxis,))
+        return cls.make_signature(0, (XAxis,))
 
 
 class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
@@ -449,7 +449,7 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0, (YAxis,))
+        return cls.make_signature(0, (YAxis,))
 
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
@@ -481,7 +481,7 @@ class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSi
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0)
+        return cls.make_signature(0)
 
 class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
     """
@@ -506,7 +506,7 @@ class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilatera
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0)
+        return cls.make_signature(0)
 
 # Argument type: tuple[Quadrilateral, ...]
 
@@ -566,12 +566,10 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
 
     @classmethod
     def init_signature(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': (),
-            'RES_SIZE': 0
-        }
+        prim_types = np.prod(shape) * (pr.Quadrilateral,)
+        param_types = ()
+        value_size = 0
+        return ((prim_types, param_types), value_size)
 
 
 class Grid(ArrayConstraint, con._QuadrilateralsSignature):
@@ -647,12 +645,10 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
 
     @classmethod
     def init_signature(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': (np.ndarray, np.ndarray, np.ndarray, np.ndarray),
-            'RES_SIZE': 0
-        }
+        prim_types = np.prod(shape) * (pr.Quadrilateral,)
+        param_types = (np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+        value_size = 0
+        return ((prim_types, param_types), value_size)
 
 
 ## Axes constraints
@@ -696,7 +692,7 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
 
     @classmethod
     def init_signature(cls, bottom: bool, top: bool):
-        return cls.aux_data(0)
+        return cls.make_signature(0)
 
 
 class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
@@ -733,7 +729,7 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
 
     @classmethod
     def init_signature(cls, left: bool=True, right: bool=False):
-        return cls.aux_data(0)
+        return cls.make_signature(0)
 
 
 class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
@@ -763,7 +759,7 @@ class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0)
+        return cls.make_signature(0)
 
 
 class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
@@ -792,4 +788,4 @@ class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(0)
+        return cls.make_signature(0)

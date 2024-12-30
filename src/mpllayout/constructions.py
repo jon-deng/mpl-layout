@@ -19,16 +19,22 @@ from . import primitives as pr
 from .containers import Node, iter_flat, flatten, unflatten
 from .containers import map as node_map, accumulate as node_accumulate
 
-Params = tuple[Any, ...]
 
-Prims = tuple[pr.Primitive, ...]
+
+Param = float | int | NDArray | bool
+Params = tuple[Param, ...]
+ParamTypes = tuple[type[Param]]
+
 PrimKeys = tuple[str, ...]
+Prims = tuple[pr.Primitive, ...]
 PrimTypes = tuple[type[pr.Primitive], ...]
 
-TCons = TypeVar("TCons", bound="ConstructionNode")
+# NOTE: An `ArraySize` specifies the size of array returned by a construction
+# but more generally it could be some `NDArray` that encodes the
+# datatype, shape etc.
+ArraySize = int
 
-# TODO: Refine construction signature type/representation
-ConstructionSignature = dict[str, Any]
+ConstructionSignature = tuple[tuple[PrimTypes, ParamTypes], ArraySize]
 
 ChildParams = Callable[[Params], list[Params]]
 
@@ -37,6 +43,8 @@ ConstructionValue = tuple[
     ChildParams,
     ConstructionSignature
 ]
+
+TCons = TypeVar("TCons", bound="ConstructionNode")
 
 class PrimKeysNode(Node[PrimKeys]):
     """
@@ -122,12 +130,13 @@ class ConstructionNode(Node[ConstructionValue]):
         This function should return `params` for each child construction given
         the parent `params`.
     signature: ConstructionSignature
-        The construction signature
-
-        This describes the construction input and output types.
+        A tuple describing input (`prims`, `params`) and output (array) types
     """
 
     # TODO: Implement `assem` type checking using `signature`
+    # TODO: Make `ConstructionNode` have the same `__init__` call as `Node` for
+    # consistency? It could potentially just have type checks that ensure
+    # the input value has the right type (i.e. has prim keys, params, and signature)
     def __init__(
         self,
         child_keys: list[str],
@@ -367,7 +376,7 @@ class StaticCompoundConstruction(CompoundConstruction):
     Construction with static primitive argument types and child constructions
 
     To specify a `StaticConstraint`:
-    - define `init_aux_data`,
+    - define `init_signature`,
     - and optionally define, `init_children` and `split_children_params`.
 
     If `init_children` is undefined the construction will have no child
@@ -460,7 +469,12 @@ def transform_constraint(construction: TCons):
     """
 
     # Tree of construction output sizes
-    size_node = node_map(lambda value: value[-1]["RES_SIZE"], construction)
+    def value_size(node_value: ConstructionValue) -> int:
+        *_, signature = node_value
+        (_prim_types, _param_types), value_size = signature
+        return value_size
+
+    size_node = node_map(value_size, construction)
     cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
 
     flat_child_sizes = [
@@ -508,12 +522,9 @@ def transform_flat_constraint(
     derived_value
         The derived constraint 'value'
 
-        This is a tuple of:
-        - primitive keys,
-        - a method to split parameters into child parameters
-        - and auxiliary data describing the construction.
-
-        See `ConstraintNode` for more details.
+        This is a tuple of: primitive keys, a function to create child
+        parameters, and a construction signature. See `ConstraintNode` for more
+        details.
     CHILD_KEYS
         Keys for each child constraint
     """
@@ -530,7 +541,7 @@ def transform_flat_constraint(
     CHILD_KEYS = tuple(construction.keys())
 
     # The new construction has the same `CHILD_PRIM_KEYS`
-    CHILD_PRIM_KEYS, CHILD_PARAMS, AUX_DATA = construction.value
+    CHILD_PRIM_KEYS, CHILD_PARAMS, SIGNATURE = construction.value
 
     # Define derived `child_params` function
     def child_value(value):
@@ -546,12 +557,9 @@ def transform_flat_constraint(
             for params, value in zip(CHILD_PARAMS(params), child_value(value))
         )
 
-    # Define derived `aux_data`
-    derived_aux_data = {
-        "RES_ARG_TYPES": AUX_DATA["RES_ARG_TYPES"],
-        "RES_PARAMS_TYPE": AUX_DATA["RES_PARAMS_TYPE"] + (np.ndarray,),
-        "RES_SIZE": AUX_DATA["RES_SIZE"],
-    }
+    # Define derived `signature`
+    (prim_types, param_types), value_size = SIGNATURE
+    derived_signature = ((prim_types, param_types + (np.ndarray,)), value_size)
 
     # Define derived `assem behaviour`
     if isinstance(construction, CompoundConstruction):
@@ -580,7 +588,7 @@ def transform_flat_constraint(
 
     DerivedConstraint.__name__ = type(construction).__name__
 
-    derived_value = (CHILD_PRIM_KEYS, derived_child_params, derived_aux_data)
+    derived_value = (CHILD_PRIM_KEYS, derived_child_params, derived_signature)
     return DerivedConstraint, derived_value, CHILD_KEYS
 
 
@@ -650,11 +658,12 @@ def transform_map(
     MapConstruction
         The transformed map construction
     """
-    PRIM_KEYS, CHILD_PRIMS, AUX_DATA = construction.value
+    PRIM_KEYS, CHILD_PRIMS, SIGNATURE = construction.value
     N = len(PrimTypes)
     # `M` is the number of additional arguments past one for the construction
-    M = len(AUX_DATA["RES_ARG_TYPES"])-1
-    num_params = len(AUX_DATA["RES_PARAMS_TYPE"])
+    (PRIM_TYPES, PARAM_TYPES), value_size = SIGNATURE
+    M = len(PRIM_TYPES)-1
+
     num_constr = max(N - M, 0)
 
     child_keys = tuple(
@@ -669,21 +678,18 @@ def transform_map(
         (f"arg{n}", *constant_prim_keys) for n in range(num_constr)
     )
     def child_params(map_params):
+        num_params = len(PARAM_TYPES)
         return tuple(
             map_params[n * num_params : (n + 1) * num_params]
             for n in range(num_constr)
         )
 
-    map_aux_data = {
-        "RES_ARG_TYPES": N * AUX_DATA["RES_ARG_TYPES"],
-        "RES_PARAMS_TYPE": N * AUX_DATA["RES_PARAMS_TYPE"],
-        "RES_SIZE": 0,
-    }
+    map_signature = ((N*PRIM_TYPES, N*PARAM_TYPES), 0)
 
     class MapConstruction(ConstructionNode):
 
         def __init__(self):
-            super().__init__(child_keys, child_constraints, child_prim_keys, child_params, map_aux_data)
+            super().__init__(child_keys, child_constraints, child_prim_keys, child_params, map_signature)
 
         @classmethod
         def assem(cls, prims, *map_params):
@@ -709,8 +715,8 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
         child_prim_keys_a, child_params_a, signature_a = cons_a.value
         child_prim_keys_b, child_params_b, signature_b = cons_b.value
 
-        size_a = signature_a["RES_SIZE"]
-        size_b = signature_b["RES_SIZE"]
+        (prim_types_a, param_types_a), size_a = signature_a
+        (prim_types_b, param_types_b), size_b = signature_b
 
         assert size_a == size_b
 
@@ -720,17 +726,10 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
         assert child_keys_a == child_keys_b
         sum_child_keys = child_keys_a
 
-        param_types_a = signature_a["RES_PARAMS_TYPE"]
-        param_types_b = signature_b["RES_PARAMS_TYPE"]
-
-        prim_types_a = signature_a["RES_ARG_TYPES"]
-        prim_types_b = signature_b["RES_ARG_TYPES"]
-
-        sum_signature = {
-            'RES_SIZE': signature_a['RES_SIZE'],
-            'RES_ARG_TYPES': prim_types_a + prim_types_b,
-            'RES_PARAMS_TYPE': param_types_a + param_types_b
-        }
+        sum_signature = (
+            (prim_types_a + prim_types_b, param_types_a + param_types_b),
+            size_a
+        )
 
         def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
             param_chunks = (len(param_types_a), len(param_types_b))
@@ -793,11 +792,10 @@ def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> Constru
                     (*_child_params, scalar)
                     for _child_params in child_params(_params)
                 )
-            mul_signature = {
-                'RES_SIZE': signature['RES_SIZE'],
-                'RES_ARG_TYPES': signature['RES_ARG_TYPES'],
-                'RES_PARAMS_TYPE': signature['RES_PARAMS_TYPE'] + (float,)
-            }
+
+            (prim_types, param_types), value_size = signature
+            mul_signature = ((prim_types, param_types+(float,)), value_size)
+
         elif isinstance(scalar, (float, int)):
             class ScalarMultipleConstruction(ConstructionNode):
 
@@ -808,11 +806,7 @@ def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> Constru
             def mul_child_params(params: Params) -> tuple[Params, ...]:
                 return child_params(params)
 
-            mul_signature = {
-                'RES_SIZE': signature['RES_SIZE'],
-                'RES_ARG_TYPES': signature['RES_ARG_TYPES'],
-                'RES_PARAMS_TYPE': signature['RES_PARAMS_TYPE']
-            }
+            mul_signature = signature
         else:
             raise TypeError(
                 "`scalar` must be `float | int` not `{type(scalar)}`"
@@ -849,14 +843,10 @@ def make_signature_class(arg_types: tuple[type[pr.Primitive], ...]):
 
     class PrimsSignature:
         @staticmethod
-        def aux_data(
-            value_size: int, params: tuple[any] = ()
+        def make_signature(
+            value_size: ArraySize, param_types: ParamTypes = ()
         ):
-            return {
-                "RES_ARG_TYPES": arg_types,
-                "RES_SIZE": value_size,
-                "RES_PARAMS_TYPE": params,
-            }
+            return ((arg_types, param_types), value_size)
 
     return PrimsSignature
 
@@ -903,7 +893,7 @@ class Coordinate(LeafConstruction, _PointSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2)
+        return cls.make_signature(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point]):
@@ -933,7 +923,7 @@ class DirectedDistance(LeafConstruction, _PointPointSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, (np.ndarray,))
+        return cls.make_signature(1, (np.ndarray,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Point], direction: NDArray):
@@ -955,7 +945,7 @@ class XDistance(LeafConstruction, _PointPointSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, ())
+        return cls.make_signature(1, ())
 
     @classmethod
     def assem(self, prims: tuple[pr.Point, pr.Point]):
@@ -976,7 +966,7 @@ class YDistance(LeafConstruction, _PointPointSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, ())
+        return cls.make_signature(1, ())
 
     @classmethod
     def assem(self, prims: tuple[pr.Point, pr.Point]):
@@ -1000,7 +990,7 @@ class LineVector(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2)
+        return cls.make_signature(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -1024,7 +1014,7 @@ class UnitLineVector(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2)
+        return cls.make_signature(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -1044,7 +1034,7 @@ class Length(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -1066,7 +1056,7 @@ class DirectedLength(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, (np.ndarray,))
+        return cls.make_signature(1, (np.ndarray,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line], direction: NDArray):
@@ -1086,7 +1076,7 @@ class XLength(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -1105,7 +1095,7 @@ class YLength(LeafConstruction, _LineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -1115,7 +1105,7 @@ class YLength(LeafConstruction, _LineSignature):
 class Midpoint(LeafConstruction, _LineSignature):
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(2)
+        return cls.make_signature(2)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line]):
@@ -1142,7 +1132,7 @@ class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, (np.ndarray,))
+        return cls.make_signature(1, (np.ndarray,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line], direction: NDArray):
@@ -1167,7 +1157,7 @@ class MidpointXDistance(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -1188,7 +1178,7 @@ class MidpointYDistance(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -1210,7 +1200,7 @@ class Angle(LeafConstruction, _LineLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Line, pr.Line]):
@@ -1246,7 +1236,7 @@ class PointOnLineDistance(LeafConstruction, _PointLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, (bool,))
+        return cls.make_signature(1, (bool,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Line], reverse: bool):
@@ -1282,7 +1272,7 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1, (bool,))
+        return cls.make_signature(1, (bool,))
 
     @classmethod
     def assem(cls, prims: tuple[pr.Point, pr.Line], reverse: bool):
@@ -1320,7 +1310,7 @@ class AspectRatio(LeafConstruction, _QuadrilateralSignature):
 
     @classmethod
     def init_signature(cls):
-        return cls.aux_data(1)
+        return cls.make_signature(1)
 
     @classmethod
     def assem(cls, prims: tuple[pr.Quadrilateral]):
@@ -1374,7 +1364,7 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
 
     @classmethod
     def init_signature(cls, side: str = "left"):
-        return cls.aux_data(0, ())
+        return cls.make_signature(0, ())
 
 
 class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
@@ -1418,7 +1408,7 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
 
     @classmethod
     def init_signature(cls, side: str = "left"):
-        return cls.aux_data(0, ())
+        return cls.make_signature(0, ())
 
 
 # Argument type: tuple[Quadrilateral, ...]
