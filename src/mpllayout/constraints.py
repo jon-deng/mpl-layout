@@ -537,30 +537,31 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
 
         # There are 2 child constraints that line up all rows and all columns
 
-        keys = ("AlignRows", "AlignColumns")
-
-        align_rows = con.transform_map(
-            con.transform_map(AlignRow(), num_col*(pr.Quadrilateral,)),
-            num_row*(pr.Quadrilateral,)
+        keys = tuple(
+            [f"AlignRow{nrow}" for nrow in range(num_row)]
+            + [f"AlignColumn{ncol}" for ncol in range(num_col)]
         )
-        align_cols = con.transform_map(
+
+        align_rows = num_row * [
+            con.transform_map(AlignRow(), num_col*(pr.Quadrilateral,))
+        ]
+        align_cols = num_col * [
             con.transform_map(AlignColumn(), num_row*(pr.Quadrilateral,)),
-            num_col * (pr.Quadrilateral,)
-        )
-        constraints = (align_rows, align_cols)
+        ]
+        constraints = tuple(align_rows + align_cols)
 
-        align_row_args = tuple(
-            f"arg{idx(nrow, ncol)}" for nrow, ncol in
-            itertools.product(range(num_row), range(num_col))
-        )
-        align_col_args = tuple(
-            f"arg{idx(nrow, ncol)}" for ncol, nrow in
-            itertools.product(range(num_col), range(num_row))
-        )
-        prim_keys = (align_row_args, align_col_args)
+        align_row_args = [
+            tuple(f"arg{idx(nrow, ncol)}" for ncol in range(num_col))
+            for nrow in range(num_row)
+        ]
+        align_col_args = [
+            tuple(f"arg{idx(nrow, ncol)}" for nrow in range(num_row))
+            for ncol in range(num_col)
+        ]
+        prim_keys = tuple(align_row_args + align_col_args)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            return ((), ())
+            return 4 * num_row*num_col * ((),)
         return keys, constraints, prim_keys, child_params
 
     @classmethod
