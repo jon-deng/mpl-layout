@@ -353,6 +353,8 @@ class ConstructionNode(Node[ConstructionValue]):
         # so there is some overlap.
         raise NotImplementedError()
 
+    ## TODO: Add construction `prims`, `params` (output?) validation methods
+
 
 class Construction(ConstructionNode):
     """
@@ -456,6 +458,10 @@ class LeafConstruction(Construction):
 ## Construction transform functions
 
 # These functions transform constructions into new ones
+
+# TODO: Add 'ConstantArray' construction and transform to represent the 'value'
+# parameter in constraints. You could then refactor a constraint as
+# 'construction - constarray'
 
 def transform_ConstraintType(ConstructionType: type[TCons]):
     """
