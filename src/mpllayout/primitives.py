@@ -16,25 +16,29 @@ import mpllayout.containers as cn
 # You can create specific primitive definitions by inheriting from these and
 # defining appropriate class attributes
 
+TPrim = TypeVar("TPrim", bound="PrimitiveNode")
+PrimValue = NDArray[np.float64]
+
 class PrimitiveNode(cn.Node[NDArray[np.float64]]):
     """
-    The base geometric primitive class
+    Node representation of a geometric primitive
 
-    A `Primitive` is represented by a parameter vector and child primitives.
-    For example in 2D:
-    - a point has a size 2 parameter vector representing (x, y) coordinates and
-    no child primitives,
-    - a straight line segment has an empty parameter vector with two point
-    child primitives representing the start point and end point.
+    A geometric primitive (prim for short) is represented by a parameter vector
+    and child primitives. For example, in 2D, a point has a 2 element parameter
+    vector representing (x, y) coordinates and no child prims. A straight
+    line segment has an empty parameter vector with two point child prims
+    representing the start and end points.
 
-    This class shouldn't be used to create geometric primitives directly.
-    Subclasses that represent specific geometric primitives should
-    be defined instead (for example, see `Point` or `Line` below).
-    Subclasses `StaticPrimitive` and `DynamicPrimitive` are intermediate
-    sub-classes that can be used to define these subclasses.
+    Parameters
+    ----------
+    value: PrimValue
+        Parameter vector for the prim
+    children: dict[str, TPrim]
+        Child prims
     """
 
-TPrim = TypeVar("TPrim", bound="Primitive")
+    def __init__(self, value: PrimValue, children: dict[str, TPrim]):
+        super().__init__(value, children)
 
 class Primitive(PrimitiveNode):
 
