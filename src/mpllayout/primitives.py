@@ -18,6 +18,57 @@ import mpllayout.containers as cn
 
 TPrim = TypeVar("TPrim", bound="PrimitiveNode")
 PrimValue = NDArray[np.float64]
+PrimTypes = tuple[type[TPrim] | None, ...]
+PrimTypesSignature = PrimTypes | set[PrimTypes]
+PrimNodeSignature = tuple[int, PrimTypesSignature]
+
+def validate_prims(
+    prims: list[TPrim], prim_types: PrimTypes
+) -> tuple[bool, str]:
+    """
+    Return whether input primitives are valid
+
+    Parameters
+    ----------
+    prims: list[TPrim]
+        Primitives to validate
+    prim_types: PrimTypes
+        A tuple of primitive types that `prims` must match
+
+    Raises
+    -------
+    ValueError
+    """
+    ## Pre-process `prim_types` into a simple tuple of primitive types
+    # Expand any `ellipsis` in `prim_types` by treating types before the ...
+    # as repeating units
+    if len(prim_types) > 0:
+       if prim_types[-1] == Ellipsis:
+            repeat_prim_types = prim_types[:-1]
+            n_repeat = len(prims) // len(repeat_prim_types)
+            prim_types = n_repeat * repeat_prim_types
+
+    # Replace any `None` primitive types with `PrimitiveNode`
+    prim_types = [
+        PrimitiveNode if prim_type is None else prim_type
+        for prim_type in prim_types
+    ]
+
+    ## Check `prims` has the right length
+    if len(prims) != len(prim_types):
+        raise ValueError(
+            f"Invalid `prims` must be {len(prim_types)} not {len(prims)}"
+        )
+
+    ## Check `prims` are the right types
+    _prim_types = [type(prim) for prim in prims]
+    if not all(
+        issubclass(_prim_type, prim_type)
+        for _prim_type, prim_type in zip(_prim_types, prim_types)
+    ):
+        raise ValueError(
+            f"Invalid `prims` types must be {prim_types} not {_prim_types}"
+        )
 
 class PrimitiveNode(cn.Node[NDArray[np.float64]]):
     """
@@ -35,10 +86,58 @@ class PrimitiveNode(cn.Node[NDArray[np.float64]]):
         Parameter vector for the prim
     children: dict[str, TPrim]
         Child prims
+
+    Attributes
+    ----------
+    signature: PrimNodeSignature
+        A tuple specifying valid parameter vector and child types
+
+        A signature has two components
+            ``(param_size, prim_types) = signature``,
+        where `param_size` is the size of the parameter vector and `prim_types`
+        indicates valid child primitives.
     """
 
+    # NOTE: `None` indicates `PrimitiveNode` but the name isn't available within
+    # the class itself
+    signature: PrimNodeSignature = (0, (None, ...))
+
     def __init__(self, value: PrimValue, children: dict[str, TPrim]):
+
+        # Type checks that value is an array and children are prims
+        assert isinstance(value, np.ndarray)
+        assert all(
+            isinstance(cprim, PrimitiveNode) for _, cprim in children.items()
+        )
+        param_size, prim_type_sig = self.signature
+
+        assert len(value) == param_size
+
+        prims = [cprim for _, cprim in children.items()]
+        if isinstance(prim_type_sig, tuple):
+            prim_types = prim_type_sig
+            try:
+                validate_prims(prims, prim_types)
+            except ValueError as err:
+                raise err
+        elif isinstance(prim_type_sig, set):
+            def match(prims, prim_types):
+                try:
+                    validate_prims(prims, prim_types)
+                except ValueError as err:
+                    return False
+                else:
+                    return True
+
+            if not any(
+                match(prims, prim_types) for prim_types in prim_type_sig
+            ):
+                raise ValueError(
+                    f"No matching signatures for `prims` in {prim_type_sig}"
+                )
+
         super().__init__(value, children)
+
 
 class Primitive(PrimitiveNode):
 
@@ -52,9 +151,6 @@ class Primitive(PrimitiveNode):
         super().__init__(value, children)
 
 
-# TODO: Add type checking for `StaticPrimitive` and `ParameterizedPrimitive`
-# Both the classes have requirements on the types of `value` and `prims` but
-# these aren't validated
 class StaticPrimitive(Primitive):
     """
     A "static" geometric primitive
@@ -239,6 +335,8 @@ class Point(StaticPrimitive):
         An empty set of primitives
     """
 
+    signature = (2, ())
+
     def default_value(self):
         return np.array([0, 0])
 
@@ -265,8 +363,10 @@ class Line(StaticPrimitive):
         The start and end point
     """
 
+    signature = (0, (Point, Point))
+
     def default_value(self):
-        return np.array([0, 0])
+        return np.array(())
 
     def default_prims(self):
         return (Point([0, 0]), Point([0, 1]))
@@ -299,8 +399,10 @@ class Polygon(ParameterizedPrimitive):
         The number of points in the polygon
     """
 
+    signature = (0, (Line, ...))
+
     def default_value(self, size: int=3):
-        return np.array([])
+        return np.array(())
 
     def default_prims(self, size: int=3):
         # Generate points around circle
@@ -346,8 +448,10 @@ class Quadrilateral(Polygon):
         A list of 4 vertices the quadrilateral passes through
     """
 
+    signature = (0, (Line, Line, Line, Line))
+
     def default_value(self, size: int=4):
-        return np.array([])
+        return np.array(())
 
     def default_prims(self, size: int=4):
         # Generate a unit square
@@ -391,8 +495,17 @@ class Axes(ParameterizedPrimitive):
         be present.
     """
 
+    signature = (
+        0,
+        {
+            (Quadrilateral,),
+            (Quadrilateral, Quadrilateral, Point),
+            (Quadrilateral, Quadrilateral, Point, Quadrilateral, Point)
+        }
+    )
+
     def default_value(self, xaxis: bool=False, yaxis: bool=False):
-        return np.array([])
+        return np.array(())
 
     def default_prims(self, xaxis: bool=False, yaxis: bool=False):
         if xaxis:
