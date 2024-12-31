@@ -428,7 +428,6 @@ def iter_flat(root_key: str, root_node: TNode) -> Iterable[tuple[str, TNode]]:
         An iterable over all nodes in the root node
     """
     # TODO: mypy says there's something wrong with the typing here?
-    # TODO: Rewrite this in a tail-call form?
 
     # The flattened node consists of the root node tuple...
     flat_root_node = [(root_key, root_node)]
