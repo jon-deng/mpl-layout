@@ -14,7 +14,7 @@ from matplotlib.axes import Axes
 from . import primitives as pr
 from . import constraints as cr
 
-# TODO: Use special primitive classes rather than keys to determine figure and axes?
+# NOTE: Use special primitive classes rather than keys to determine figure/axes?
 # If you do, this should be done for both `subplots` and `update_subplots`
 def subplots(
     root_prim: pr.Primitive,

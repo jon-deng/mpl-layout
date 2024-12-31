@@ -13,7 +13,7 @@ from mpllayout import containers as cn
 
 class TestNode:
 
-    # TODO: Add randomly generated `Node`?
+    # NOTE: Test using randomly generated `Node`?
     @pytest.fixture()
     def node(self):
         childd = cn.Node.from_tree(99, {})
@@ -88,7 +88,7 @@ class TestFunctions:
         assert np.all(np.isclose(new_node_values, test_node_values))
 
     def test_accumulate(self):
-        # TODO: Think of how to test this properly?
+        # TODO: Think of how to test this properly
         # Could have two tests to check that recursion works + iterating over different numbers of children works?
         def fun(x, y):
             return x + y

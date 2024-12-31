@@ -342,7 +342,7 @@ class Polygon(Primitive):
     size: int
         The number of polygon vertices
 
-        TODO: Replace this based on `len(prims)`?
+        NOTE: Replace this based on `len(prims)`?
     """
 
     signature = (0, (Line, ...))

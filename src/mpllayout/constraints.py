@@ -655,8 +655,8 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
 
 # Argument type: tuple[Axes]
 
-# TODO: Handle more specialized x/y axes combos? (i.e. twin x/y axes)
-# The below axis constraints are made for single x and y axises
+# TODO: Handle more specialized x/y axes combos (i.e. twin x/y axes)
+# The below axis constraints are made for a single x and y axis
 
 class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     """

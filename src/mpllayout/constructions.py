@@ -143,7 +143,7 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def __init__(self, value: ConstructionValue, children: dict[str, TCons]):
 
-        # TODO: Refine/organize these type checks
+        # TODO: Refine/organize these type checks; raise errors instead
 
         assert isinstance(value, tuple)
         assert len(value) == 3
@@ -353,7 +353,7 @@ class ConstructionNode(Node[ConstructionValue]):
         # so there is some overlap.
         raise NotImplementedError()
 
-    ## TODO: Add construction `prims`, `params` (output?) validation methods
+    # TODO: Add construction `prims`, `params` (output?) validation methods
 
 
 class Construction(ConstructionNode):
