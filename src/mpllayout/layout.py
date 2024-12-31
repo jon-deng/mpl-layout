@@ -184,8 +184,6 @@ class Layout:
         self.root_prim_keys.add_child(key, constraint.root_prim_keys(prim_keys))
         self.root_param.add_child(key, constraint.root_params(param))
 
-# TODO: Return an actual new `Layout` object here
-# don't just implicity modify the layout?
 def update_layout_constraints(
     layout: Layout,
     axs: dict[str, Axes]
@@ -231,13 +229,18 @@ def update_layout_constraints(
                 axes_key = axis_key.split("/", 1)[0]
                 constraintkey_to_param[key] = (axs[axes_key].yaxis,)
 
-    update_root_param(
+    new_root_param = update_root_param(
         layout.root_constraint,
         layout.root_param,
         constraintkey_to_param
     )
 
-    return layout
+    return Layout(
+        layout.root_prim,
+        layout.root_constraint,
+        layout.root_prim_keys,
+        new_root_param
+    )
 
 def update_root_param(
     root_constraint: cr.ConstraintNode,
@@ -259,8 +262,9 @@ def update_root_param(
         Each constraint key should indicate a node in `root_constraint` and
         `root_param`.
     """
+    new_root_param = root_param.copy()
     for key, param in constraintkey_to_param.items():
         constraint = root_constraint[key]
-        root_param[key] = constraint.root_params(param)
+        new_root_param[key] = constraint.root_params(param)
 
-    return root_param
+    return new_root_param
