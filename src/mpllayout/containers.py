@@ -141,6 +141,11 @@ class Node(Generic[TValue]):
         else:
             self.children[key] = child
 
+    def copy(self):
+        def identity(value: TValue) -> TValue:
+            return value
+        return map(identity, self)
+
     ## String methods
 
     def __repr__(self) -> str:
