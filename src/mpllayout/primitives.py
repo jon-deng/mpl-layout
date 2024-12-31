@@ -2,7 +2,7 @@
 Geometric primitive definitions
 """
 
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, Any
 from numpy.typing import NDArray
 
 import numpy as np
@@ -140,84 +140,37 @@ class PrimitiveNode(cn.Node[NDArray[np.float64]]):
 
 
 class Primitive(PrimitiveNode):
-
-    def __init__(
-        self,
-        value: NDArray,
-        child_keys: list[str],
-        child_prims: list[TPrim],
-    ):
-        children = {key: prim for key, prim in zip(child_keys, child_prims)}
-        super().__init__(value, children)
-
-
-class StaticPrimitive(Primitive):
     """
-    A "static" geometric primitive
+    Primitive parameterized by a value, primitives and keyword arguments
 
-    Static primitives have fixed (see `Parameters`):
-    - parameter vector shape
-    - and child primitive types
-
-    To define a static primitive, create a subclass and define
-    `default_value`, `default_prims` and `init_children`.
+    To define a primitive, subclass `Primitive` and define the class methods
+    `init_children`, `default_value` and `default_prims`.
 
     Parameters
     ----------
-    value: NDArray, optional
-        A parameter vector
-
-        The parameter vector should match a known shape.
-
-        If not supplied, `default_value` will be used to generate a default.
-    prims: list[TPrim], optional
+    value: Optional[PrimValue]
+        Parameter vector for the primitive
+    prims: Optional[list[TPrim]]
         Parameterizing primitives
 
-        The parameterizing primitives must match the known primitive types.
+        Note that these are often the same as child primitives but this isn't
+        always
+    **kwargs: dict[str, Any]
+        Additional keyword arguments
 
-        Note that in many cases parameterizing primitives are child primitives
-        ; however, this depends on `init_children`.
+    Attributes
+    ----------
+    see `PrimitiveNode`
     """
-
-    def default_value(self) -> NDArray:
-        """
-        Return a default parameter vector
-        """
-        raise NotImplementedError()
-
-    def default_prims(self) -> list[TPrim]:
-        """
-        Return default parameterizing primitives
-        """
-        raise NotImplementedError()
-
-    def init_children(
-        self, prims: list[TPrim]
-    ) -> tuple[list[str], list[TPrim]]:
-        """
-        Return child primitives from parameterizing primitives
-
-        Parameters
-        ----------
-        prims: list[TPrim]
-            Parameterizing primitives
-
-        Returns
-        -------
-        List[str]
-            Child primitive keys
-        List[TPrim]
-            Child primitives
-        """
-        raise NotImplementedError()
 
     def __init__(
         self,
         value: Optional[NDArray] = None,
         prims: Optional[list[TPrim]] = None,
+        **kwargs: dict[str, Any]
     ):
         if value is None:
-            value = self.default_value()
+            value = self.default_value(**kwargs)
         elif isinstance(value, (list, tuple)):
             value = np.array(value)
         elif isinstance(value, (np.ndarray, jax.numpy.ndarray)):
@@ -226,61 +179,17 @@ class StaticPrimitive(Primitive):
             raise TypeError()
 
         if prims is None:
-            prims = self.default_prims()
+            prims = self.default_prims(**kwargs)
 
-        super().__init__(value, *self.init_children(prims))
+        child_keys, child_prims = self.init_children(prims, **kwargs)
 
+        super().__init__(
+            value, {key: prim for key, prim in zip(child_keys, child_prims)}
+        )
 
-class ParameterizedPrimitive(Primitive):
-    """
-    A "parameterized" geometric primitive
-
-    Parameterized primitives have variable (see `Parameters`):
-    - parameter vector shape
-    - and child primitive types
-    based on additional keyword arguments.
-
-    To define a parameterized primitive, create a subclass and define
-    `default_value`, `default_prims` and `init_children`.
-
-    Parameters
-    ----------
-    value: NDArray, optional
-        A parameter vector
-
-        The parameter vector should match a known shape.
-
-        If not supplied, `default_value` will be used to generate a default.
-    prims: list[TPrim], optional
-        Parameterizing primitives
-
-        The parameterizing primitives should match known primitive types.
-
-        Note that in many cases parameterizing primitives are child primitives
-        ; however, this depends on `init_children`.
-    **kwargs
-        Arbitrary additional keyword arguments
-
-        Subclasses should define what these arguments are and how they affect
-        the primitive.
-        For example, a `size` keyword argument could specify the length of
-        `prims` (see `Polygon`).
-    """
-
-    def default_value(self, **kwargs) -> NDArray:
-        """
-        Return a default parameter vector
-        """
-        raise NotImplementedError()
-
-    def default_prims(self, **kwargs) -> list[TPrim]:
-        """
-        Return default parameterizing primitives
-        """
-        raise NotImplementedError()
-
+    @classmethod
     def init_children(
-        self, prims: list[TPrim], **kwargs
+        cls, prims: list[TPrim], **kwargs: dict[str, Any]
     ) -> tuple[list[str], list[TPrim]]:
         """
         Return child primitives from parameterizing primitives
@@ -299,24 +208,62 @@ class ParameterizedPrimitive(Primitive):
         """
         raise NotImplementedError()
 
+    @classmethod
+    def default_value(cls, **kwargs: dict[str, Any]) -> NDArray:
+        """
+        Return a default parameter vector
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def default_prims(cls, **kwargs: dict[str, Any]) -> list[TPrim]:
+        """
+        Return default parameterizing primitives
+        """
+        raise NotImplementedError()
+
+
+class StaticPrimitive(Primitive):
+    """
+    A `Primitive` with no additional keyword arguments
+
+    Static primitives have a static parameter vector shape and child primitive
+    types.
+
+    Parameters
+    ----------
+    See `Primitive`
+    """
+
     def __init__(
         self,
         value: Optional[NDArray] = None,
         prims: Optional[list[TPrim]] = None,
-        **kwargs
     ):
-        if value is None:
-            value = self.default_value(**kwargs)
-        elif isinstance(value, (list, tuple)):
-            value = np.array(value)
-        else:
-            raise TypeError()
+        super().__init__(value=value, prims=prims)
 
-        if prims is None:
-            prims = self.default_prims(**kwargs)
+    @classmethod
+    def init_children(
+        cls, prims: list[TPrim]
+    ) -> tuple[list[str], list[TPrim]]:
+        """
+        See `Primitive`
+        """
+        raise NotImplementedError()
 
-        super().__init__(value, *self.init_children(prims, **kwargs))
+    @classmethod
+    def default_value(cls) -> NDArray:
+        """
+        See `Primitive`
+        """
+        raise NotImplementedError()
 
+    @classmethod
+    def default_prims(cls) -> list[TPrim]:
+        """
+        See `Primitive`
+        """
+        raise NotImplementedError()
 
 ## Primitive definitions
 
@@ -337,14 +284,17 @@ class Point(StaticPrimitive):
 
     signature = (2, ())
 
-    def default_value(self):
+    @classmethod
+    def init_children(cls, prims):
+        return (), ()
+
+    @classmethod
+    def default_value(cls):
         return np.array([0, 0])
 
-    def default_prims(self):
+    @classmethod
+    def default_prims(cls):
         return ()
-
-    def init_children(self, prims):
-        return (), ()
 
 
 class Line(StaticPrimitive):
@@ -365,17 +315,20 @@ class Line(StaticPrimitive):
 
     signature = (0, (Point, Point))
 
-    def default_value(self):
-        return np.array(())
-
-    def default_prims(self):
-        return (Point([0, 0]), Point([0, 1]))
-
-    def init_children(self, prims: tuple[Point, Point]):
+    @classmethod
+    def init_children(cls, prims: tuple[Point, Point]):
         return ("Point0", "Point1"), prims
 
+    @classmethod
+    def default_value(cls):
+        return np.array(())
 
-class Polygon(ParameterizedPrimitive):
+    @classmethod
+    def default_prims(cls):
+        return (Point([0, 0]), Point([0, 1]))
+
+
+class Polygon(Primitive):
     """
     A polygon through a given set of points
 
@@ -401,18 +354,17 @@ class Polygon(ParameterizedPrimitive):
 
     signature = (0, (Line, ...))
 
-    def default_value(self, size: int=3):
-        return np.array(())
+    def __init__(
+        self,
+        value: Optional[NDArray] = None,
+        prims: Optional[list[TPrim]] = None,
+        size: int = 3
+    ):
+        return super().__init__(value=value, prims=prims, size=size)
 
-    def default_prims(self, size: int=3):
-        # Generate points around circle
-        ii = np.arange(size)
-        xs = np.cos(2*np.pi/size * ii)
-        ys = np.sin(2*np.pi/size * ii)
-        return [Point((x, y)) for x, y in zip(xs, ys)]
-
+    @classmethod
     def init_children(
-        self, prims: list[Point], size: int=3
+        cls, prims: list[Point], size: int=3
     ):
         points = prims
         child_prims = [
@@ -421,6 +373,18 @@ class Polygon(ParameterizedPrimitive):
         ]
         child_keys = [f"Line{n}" for n, _ in enumerate(child_prims)]
         return child_keys, child_prims
+
+    @classmethod
+    def default_value(cls, size: int=3):
+        return np.array(())
+
+    @classmethod
+    def default_prims(cls, size: int=3):
+        # Generate points around circle
+        ii = np.arange(size)
+        xs = np.cos(2*np.pi/size * ii)
+        ys = np.sin(2*np.pi/size * ii)
+        return [Point((x, y)) for x, y in zip(xs, ys)]
 
 
 class Quadrilateral(Polygon):
@@ -450,15 +414,6 @@ class Quadrilateral(Polygon):
 
     signature = (0, (Line, Line, Line, Line))
 
-    def default_value(self, size: int=4):
-        return np.array(())
-
-    def default_prims(self, size: int=4):
-        # Generate a unit square
-        xs = [0, 1, 1, 0]
-        ys = [0, 0, 1, 1]
-        return [Point((x, y)) for x, y in zip(xs, ys)]
-
     def __init__(
         self,
         value: Optional[NDArray] = None,
@@ -466,9 +421,24 @@ class Quadrilateral(Polygon):
     ):
         super().__init__(value, children, size=4)
 
+    @classmethod
+    def default_value(cls, size: int=4):
+        return np.array(())
 
-AxesChildPrims = tuple[Quadrilateral, Quadrilateral, Point, Quadrilateral, Point]
-class Axes(ParameterizedPrimitive):
+    @classmethod
+    def default_prims(cls, size: int=4):
+        # Generate a unit square
+        xs = [0, 1, 1, 0]
+        ys = [0, 0, 1, 1]
+        return [Point((x, y)) for x, y in zip(xs, ys)]
+
+AxesChildPrims = (
+    tuple[Quadrilateral]
+    | tuple[Quadrilateral, Quadrilateral, Point]
+    | tuple[Quadrilateral, Quadrilateral, Point, Quadrilateral, Point]
+)
+
+class Axes(Primitive):
     """
     A collection of quadrilaterals and points representing an axes
 
@@ -504,23 +474,18 @@ class Axes(ParameterizedPrimitive):
         }
     )
 
-    def default_value(self, xaxis: bool=False, yaxis: bool=False):
-        return np.array(())
+    def __init__(
+            self,
+            value: Optional[NDArray]=None,
+            prims: Optional[AxesChildPrims]=None,
+            xaxis: bool=False,
+            yaxis: bool=False
+        ):
+        super().__init__(value, prims, xaxis=xaxis, yaxis=yaxis)
 
-    def default_prims(self, xaxis: bool=False, yaxis: bool=False):
-        if xaxis:
-            xaxis_prims = (Quadrilateral(), Point())
-        else:
-            xaxis_prims = ()
-
-        if yaxis:
-            yaxis_prims = (Quadrilateral(), Point())
-        else:
-            yaxis_prims = ()
-        return (Quadrilateral(),) + xaxis_prims + yaxis_prims
-
+    @classmethod
     def init_children(
-        self,
+        cls,
         prims: AxesChildPrims,
         xaxis: bool=False,
         yaxis: bool=False
@@ -537,14 +502,22 @@ class Axes(ParameterizedPrimitive):
             yaxis_keys = ()
         return ("Frame",) + xaxis_keys + yaxis_keys, prims
 
-    def __init__(
-            self,
-            value: Optional[NDArray]=None,
-            prims: Optional[AxesChildPrims]=None,
-            xaxis: bool=False,
-            yaxis: bool=False
-        ):
-        super().__init__(value, prims, xaxis=xaxis, yaxis=yaxis)
+    @classmethod
+    def default_value(cls, xaxis: bool=False, yaxis: bool=False):
+        return np.array(())
+
+    @classmethod
+    def default_prims(cls, xaxis: bool=False, yaxis: bool=False):
+        if xaxis:
+            xaxis_prims = (Quadrilateral(), Point())
+        else:
+            xaxis_prims = ()
+
+        if yaxis:
+            yaxis_prims = (Quadrilateral(), Point())
+        else:
+            yaxis_prims = ()
+        return (Quadrilateral(),) + xaxis_prims + yaxis_prims
 
 
 ## Register `Primitive` classes as `jax.pytree`
