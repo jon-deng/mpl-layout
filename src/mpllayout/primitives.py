@@ -154,7 +154,7 @@ class Primitive(PrimitiveNode):
         Parameterizing primitives
 
         Note that these are often the same as child primitives but this isn't
-        always
+        always the case.
     **kwargs: dict[str, Any]
         Additional keyword arguments
 
@@ -271,15 +271,12 @@ class Point(StaticPrimitive):
     """
     A point
 
-    Child primitives are:
-    - no child primitives
-
     Parameters
     ----------
-    value: NDArray (2,), optional
-        The point coordinates
-    prims: tuple[]
-        An empty set of primitives
+    value: Optional[NDArray] with shape (2,)
+        The point coordinate
+    prims: Optional[tuple[]]
+        An empty tuple
     """
 
     signature = (2, ())
@@ -301,16 +298,12 @@ class Line(StaticPrimitive):
     """
     A straight line segment between two points
 
-    Child primitives are:
-    - `line['Point0']` : start point
-    - `line['Point1']` : end point
-
     Parameters
     ----------
-    value: NDArray (), optional
-        An empty array
-    prims: Tuple[Point, Point]
-        The start and end point
+    value: Optional[NDArray] with shape ()
+        An empty vector
+    prims: Optional[tuple[Point, Point]]
+        A tuple containing the line start and end point
     """
 
     signature = (0, (Point, Point))
@@ -330,26 +323,26 @@ class Line(StaticPrimitive):
 
 class Polygon(Primitive):
     """
-    A polygon through a given set of points
+    A polygon with straight-line edges through a set of points
 
-    Child primitives are:
-    - `Polygon[f'Line{n}']` : the n'th line in the polygon
-
-    The end point of a line joins the start point of the next line to form a
-    closed loop.
+    The polygon tree structure contains a sequence of lines where ehe end point
+    of each line joins the start point of the next line forming a closed loop.
 
     Parameters
     ----------
-    value: NDArray ()
-        An empty array
-    prims: List[Point]
-        A list of vertices the polygon passes through
+    value: Optional[NDArray] with shape ()
+        An empty vector
+    prims: Optional[tuple[Point, ...]]
+        A list of points representing polygon vertices
 
-        The final point in `prims` will automatically be connected to the first
-        point in `prims`.
-        The length of `prims` should match `size`.
+        The number of resulting polygon edges (`Line` instances) is the same as
+        the number of points.
+
+        Child primitives are lines joining the given vertices.
     size: int
-        The number of points in the polygon
+        The number of polygon vertices
+
+        TODO: Replace this based on `len(prims)`?
     """
 
     signature = (0, (Line, ...))
@@ -391,12 +384,7 @@ class Quadrilateral(Polygon):
     """
     A quadrilateral (4 sided polygon)
 
-    Child primitives are:
-    - `quad['Line0']` : the first line in the quadrilateral
-    - ...
-    - `quad['Line3']` : the last line in the quadrilateral
-
-    For modelling rectangles in matplotlib (axes, bbox, etc.) the lines are
+    For modelling rectangles in matplotlib (`axes`, `bbox`, etc.) the lines
     treated as the bottom, right, top, and left of a box in a clockwise fasion.
     Specifically, the lines correspond to:
     - 'Line0' : bottom
@@ -406,10 +394,10 @@ class Quadrilateral(Polygon):
 
     Parameters
     ----------
-    value: NDArray ()
-        An empty array
-    prims: List[Point]
-        A list of 4 vertices the quadrilateral passes through
+    value: Optional[NDArray] with shape ()
+        An empty vector
+    prims: Optional[tuple[Point, Point, Point, Point]]
+        A tuple of 4 vertices for the quadrilateral
     """
 
     signature = (0, (Line, Line, Line, Line))
@@ -451,15 +439,15 @@ class Axes(Primitive):
 
     Parameters
     ----------
-    value: NDArray ()
-        An empty array
-    prims: tuple[Quadrilateral, Quadrilateral, Point, Quadrilateral, Point]
+    value: Optional[NDArray] with shape ()
+        An empty vector
+    prims: Optional[AxesChildPrims]
         A tuple of quadrilateral and points
 
-        The the number of quadrilaterals and points to supply depends on
-        where an x/y axis is included.
+        The number of quadrilaterals and points in `prims` depends on whether an
+        x/y axis is included.
     xaxis, yaxis: bool
-        Whether to include an x/y axis and corresponding label
+        Whether to include an x/y axis and the corresponding label
 
         If false for a given axis, the corresponding child primitives will not
         be present.
