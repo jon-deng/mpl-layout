@@ -933,6 +933,8 @@ def make_signature_class(arg_types: tuple[type[pr.Primitive], ...]):
     return PrimsSignature
 
 
+_NullSignature = make_signature_class(())
+
 _PointSignature = make_signature_class((pr.Point,))
 
 _PointPointSignature = make_signature_class((pr.Point, pr.Point))
@@ -954,6 +956,50 @@ _QuadrilateralQuadrilateralSignature = make_signature_class(
 _QuadrilateralsSignature = make_signature_class((pr.Quadrilateral, ...))
 
 _AxesSignature = make_signature_class((pr.Axes,))
+
+## Constant constructions
+
+class Vector(Construction, _NullSignature):
+
+    def __init__(self, size_node: Optional[Node[int]]=None):
+
+        super().__init__(size_node=size_node)
+
+    @classmethod
+    def init_children(cls, size_node: Optional[Node[int]]=None):
+        cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
+        num_child = len(size_node)
+
+        child_size_nodes = [node for _, node in size_node.items()]
+
+        keys = tuple(f"Vector{n}" for n in range(num_child))
+        constructions = tuple(
+            Vector(size_node=node) for node in child_size_nodes
+        )
+        prim_keys = num_child*((),)
+
+        child_cumsizes = tuple(node.value for _, node in cumsize_node.items())
+        child_sizes = tuple(node.value for _, node in size_node.items())
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            value, = params
+
+            return tuple(
+                (child_value[:size],)
+                for child_value, size
+                in zip(chunk(value, child_cumsizes), child_sizes)
+            )
+
+        return (keys, constructions, prim_keys, child_params)
+
+    @classmethod
+    def init_signature(cls, size_node: Optional[Node[int]]=None):
+        return cls.make_signature(size_node.value, (np.ndarray,))
+
+    @classmethod
+    def assem(cls, prims, value):
+        assert prims == ()
+        return value
 
 
 ## Point constructions

@@ -10,6 +10,7 @@ import numpy as np
 
 from mpllayout import primitives as pr
 from mpllayout import constructions as con
+from mpllayout.containers import Node, accumulate
 
 from tests.fixture_primitives import GeometryFixtures
 
@@ -85,6 +86,34 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(res_a, res_b))
 
+class TestNull:
+
+    @pytest.fixture()
+    def size_node(self):
+        node = Node(
+            0,
+            {
+                'Vec1': Node(1, {}),
+                'Vec2': Node(2, {}),
+                'Vec3': Node(
+                    0,
+                    {'Vec4': Node(1, {})}
+                )
+            }
+        )
+        return node
+
+    @pytest.fixture()
+    def vector(self, size_node: Node[int]):
+        cumsize_node = accumulate(lambda x, y: x + y, size_node, 0)
+        return np.random.rand(cumsize_node.value)
+
+    def test_Vector(self, size_node: Node[int], vector: NDArray):
+        vec = con.Vector(size_node)
+        vector_test = vec.assem((), vector)
+        print(vector_test, vector)
+
+        assert np.all(np.isclose(vector_test, vector))
 
 class TestPoint(GeometryFixtures):
     """
