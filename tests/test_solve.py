@@ -165,8 +165,19 @@ class TestPrimitiveTree:
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
 
-    def test_solve(self, layout: lay.Layout):
-        prim_tree_n, solve_info = solver.solve(layout)
+    @pytest.fixture(
+        params=('newton', 'minimize')
+    )
+    def method(self, request):
+        return request.param
+
+    def test_solve(self, layout: lay.Layout, method: str):
+        t0 = time.time()
+        prim_tree_n, solve_info = solver.solve(
+            layout, method=method, max_iter=100
+        )
+        t1 = time.time()
+        print(f"Solve took {t1-t0:.2e} s")
 
         prim_keys_to_value = {
             key: prim.value for key, prim in cn.iter_flat("", prim_tree_n)

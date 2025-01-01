@@ -10,6 +10,7 @@ import warnings
 import jax
 from jax import numpy as jnp
 import numpy as np
+from scipy.optimize import minimize, OptimizeResult
 
 from . import primitives as pr
 from . import constraints as cr
@@ -21,18 +22,18 @@ StrGraph = list[tuple[str, ...]]
 
 SolverInfo = dict[str, Any]
 
-# TODO: Add optimization solver possibilities
 def solve(
     layout: lay.Layout,
     abs_tol: float = 1e-10,
     rel_tol: float = 1e-7,
     max_iter: int = 10,
+    method: str='newton'
 ) -> tuple[pr.PrimitiveNode, SolverInfo]:
     """
     Return geometric primitives that satisfy constraints
 
-    This solves a set of, potentially non-linear, geoemtric constraints with an
-    iterative Newton method.
+    This solves a set of, potentially non-linear, geometric constraints with an
+    iterative method.
 
     Parameters
     ----------
@@ -42,6 +43,8 @@ def solve(
         The absolute and relative tolerance for the iterative solution
     max_iter: int
         The maximum number of iterations for the iterative solution
+    method: Optional[str]
+        A solver method (one of 'newton', 'minimize')
 
     Returns
     -------
@@ -58,6 +61,33 @@ def solve(
                 A list of relative errors for each solver iteration.
                 This is the absolute error at each iteration, relative to the
                 initial absolute error.
+    """
+    if method == 'newton':
+        return solve_newton(layout, abs_tol, rel_tol, max_iter)
+    elif method == 'minimize':
+        return solve_minimize(layout, abs_tol, rel_tol, max_iter)
+    else:
+        raise ValueError(f"Invalid `method` {method}")
+
+
+def solve_newton(
+    layout: lay.Layout,
+    abs_tol: float = 1e-10,
+    rel_tol: float = 1e-7,
+    max_iter: int = 10,
+) -> tuple[pr.PrimitiveNode, SolverInfo]:
+    """
+    Return geometric primitives that satisfy constraints using a newton method
+
+    Parameters
+    ----------
+    Parameters match those for `solve` except for `method`
+
+    See `solve` for more details.
+
+    Returns
+    -------
+    Returns match those for `solve`
     """
 
     ## Set-up assembly function for the global residual as a function of a global
@@ -122,6 +152,99 @@ def solve(
         for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
     ]
     root_prim_n = pr.build_prim_from_unique_values(flat_prim, prim_graph, prim_params_n)
+
+    return root_prim_n, nonlinear_solve_info
+
+
+def solve_minimize(
+    layout: lay.Layout,
+    abs_tol: float = 1e-10,
+    rel_tol: float = 1e-7,
+    max_iter: int = 10,
+) -> tuple[pr.PrimitiveNode, SolverInfo]:
+    """
+    Return geometric primitives that satisfy constraints using minimization (L-BFGS-B)
+
+    The minimization strategies are from `scipy`.
+
+    Parameters
+    ----------
+    Parameters match those for `solve` except for `method`
+
+    See `solve` for more details.
+
+    Returns
+    -------
+    Returns match those for `solve`
+    """
+
+    ## Set-up assembly function for the global residual as a function of a global
+    ## parameter list
+
+    # `prim_idx_bounds` stores the right/left indices for each primitive's
+    # parameter vector in the global parameter vector array
+    # For primitive with index `n`, for example,
+    # `prim_idx_bounds[n], prim_idx_bounds[n+1]` are the indices between which
+    # the parameter vectors are stored.
+    flat_prim = cn.flatten('', layout.root_prim)
+    prim_graph, prim_values = pr.filter_unique_values_from_prim(layout.root_prim)
+    prim_idx_bounds = np.cumsum([0] + [value.size for value in prim_values])
+    global_param_n = np.concatenate(prim_values)
+
+    constraints, constraint_graph, constraint_params = layout.flat_constraints()
+
+    @jax.jit
+    def assem_objective(global_param):
+        new_prim_params = [
+            global_param[idx_start:idx_end]
+            for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
+        ]
+        root_prim = pr.build_prim_from_unique_values(flat_prim, prim_graph, new_prim_params)
+        residuals = assem_constraint_residual(
+            root_prim, constraints, constraint_graph, constraint_params
+        )
+        return jnp.sum(jnp.concatenate(residuals)**2)
+
+    class MinHistory:
+
+        def __init__(self):
+            self.abs_errs = []
+            self.rel_errs = []
+
+        def callback(self, intermediate_result: OptimizeResult):
+            abs_err = intermediate_result['fun']
+            self.abs_errs.append(abs_err)
+
+            rel_err = abs_err / self.abs_errs[0]
+            self.rel_errs.append(rel_err)
+
+            if rel_err < rel_tol or abs_err < abs_tol:
+                raise StopIteration()
+
+    min_hist = MinHistory()
+
+    ## Iteratively minimize the global residual as function of the global parameter vector
+
+    # NOTE: Could use other optimization solvers besides 'L-BFGS-B'
+    res = minimize(
+        jax.value_and_grad(assem_objective),
+        global_param_n,
+        method='L-BFGS-B',
+        jac=True,
+        callback=min_hist.callback,
+        options={'maxiter': max_iter}
+    )
+    global_param_n = res['x']
+
+    prim_params_n = [
+        np.array(global_param_n[idx_start:idx_end])
+        for idx_start, idx_end in zip(prim_idx_bounds[:-1], prim_idx_bounds[1:])
+    ]
+    root_prim_n = pr.build_prim_from_unique_values(flat_prim, prim_graph, prim_params_n)
+
+    nonlinear_solve_info = {
+        "abs_errs": min_hist.abs_errs, "rel_errs": min_hist.rel_errs
+    }
 
     return root_prim_n, nonlinear_solve_info
 
