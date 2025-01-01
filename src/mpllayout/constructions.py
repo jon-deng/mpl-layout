@@ -143,32 +143,61 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def __init__(self, value: ConstructionValue, children: dict[str, TCons]):
 
-        # TODO: Refine/organize these type checks; raise errors instead
+        ## Check `value`
 
-        assert isinstance(value, tuple)
-        assert len(value) == 3
-        assert all(
-            isinstance(child, ConstructionNode)
-            for _, child in children.items()
-        )
+        # Check that `value` is a size 3 tuple
+        if not isinstance(value, tuple):
+            raise TypeError(f"`value` must be a tuple not {type(value)}")
+        elif len(value) != 3:
+            raise ValueError(f"`value` must have 3 items not {len(value)}")
 
+        # Check each component of `value`
         child_prim_keys, child_params, signature = value
         (prim_types, param_types), value_size = signature
 
-        # Check `child_prim_keys` type
-        assert isinstance(child_prim_keys, (tuple, list))
-        # Check there's one prim keys tuple for each child
-        assert len(child_prim_keys) == len(children)
-        child_signatures = [child.value[-1] for _, child in children.items()]
-        # Check each prim keys tuple produces the right number of child prim
-        # arguments
-        assert all(
-            len(child_key_tuple) == len(child_prim_types)
-            for child_key_tuple, ((child_prim_types, _), _)
-            in zip(child_prim_keys, child_signatures)
-        )
+        # Check `child_prim_keys` has one `PrimKeys` tuple for each child
+        if not isinstance(child_prim_keys, (tuple, list)):
+            raise TypeError(f"`value[0]` must be a tuple or list of `PrimKeys`")
+        elif len(child_prim_keys) != len(children):
+            raise ValueError(
+                f"`value[0]` must have length {len(children)}, matching the number of children"
+            )
 
-        assert isinstance(child_params, Callable)
+        # Check each `child_prim_keys` tuple indexes the right number of child
+        # prims for the corresponding child construction
+        child_signatures = {
+            key: child.value[-1] for key, child in children.items()
+        }
+        child_prim_types = {
+            key: prim_types
+            for key, ((prim_types, _), _) in child_signatures.items()
+        }
+        valid_child_prim_keys = {
+            key: len(prim_types) == len(key_tuple)
+            for (key, prim_types), key_tuple
+            in zip(child_prim_types.items(), child_prim_keys)
+        }
+        if not all(valid_child_prim_keys):
+            invalid_cons_keys = {
+                key for key, valid in valid_child_prim_keys.items() if not valid
+            }
+            raise ValueError(
+                "`value` indexes wrong number of child primitives for"
+                f" construction keys {invalid_cons_keys}"
+            )
+
+        # Check `child_params` is callable
+        if not isinstance(child_params, Callable):
+            raise TypeError(f"value[1] must be `Callable`")
+
+        ## Check `children`
+
+        # Check that all children are constructions
+        if not all(
+            isinstance(child, ConstructionNode)
+            for _, child in children.items()
+        ):
+            raise TypeError("`children` must be a dictionary of constructions")
 
         super().__init__(value, children)
 
