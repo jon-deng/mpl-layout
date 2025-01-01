@@ -972,7 +972,7 @@ class Vector(Construction, _NullSignature):
 
         child_size_nodes = [node for _, node in size_node.items()]
 
-        keys = tuple(f"Vector{n}" for n in range(num_child))
+        keys = tuple(size_node.keys())
         constructions = tuple(
             Vector(size_node=node) for node in child_size_nodes
         )
