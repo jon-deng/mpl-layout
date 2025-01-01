@@ -553,18 +553,8 @@ def transform_constraint(construction: TCons):
     size_node = node_map(value_size, construction)
     cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
 
-    flat_child_sizes = [
-        tuple(child.value for child in node.values())
-        for _, node in iter_flat("", cumsize_node)
-    ]
-
-    flat_construction_structs = [
-        (key,) + transform_flat_constraint(cons, child_sizes)
-        for (key, cons), child_sizes
-        in zip(iter_flat("", construction), flat_child_sizes)
-    ]
-
-    return unflatten(flat_construction_structs)[0]
+    vector = Vector(size_node)
+    return transform_sum(construction, transform_scalar_mul(vector, -1))
 
 
 def transform_flat_constraint(
