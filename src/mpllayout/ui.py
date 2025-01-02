@@ -12,7 +12,6 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import Colormap
 import numpy as np
 
-from .containers import iter_flat
 from . import primitives as pr
 from . import constraints as cr
 from . import constructions as cn
@@ -119,7 +118,13 @@ def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwa
 def plot_generic_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs):
     pass
 
-def plot_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, max_label_depth: int = 99, **kwargs):
+def plot_prim(
+    ax: Axes,
+    prim: pr.Primitive,
+    prim_key: str='',
+    max_label_depth: int = 99,
+    **kwargs
+):
     """
     Recursively plot all child primitives of a generic primitive
 
@@ -134,33 +139,42 @@ def plot_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, max_label
     **kwargs
         Additional keyword arguments for plotting
     """
-    prim_height = prim.node_height()
-    for child_key, child_prim in iter_flat(label, prim):
-        plot = make_plot(child_prim)
-        split_child_key = child_key.split("/")
+    split_key = prim_key.split("/")
 
-        # Use the height of the child prim to increase the transparency
-        # The root primitive has zero transparency while child primitives
-        # have lower transparency
-        depth = len(split_child_key) - 1
+    # The primitive heigth is the maximum primitive depth for all child
+    # primitives.
+    prim_height = prim.node_height() + len(split_key) - 1
 
-        # Only add labels for primitives that aren't too deep from the root node
-        if depth > max_label_depth:
-            label = None
-        else:
-            # This is the height of a node relative to the tree height
-            # The root node has relative height 1 and the deepest child has relative
-            # height 0
-            if prim_height == 0:
-                s = 1
-            else:
-                s = (prim_height - depth)/prim_height
-            alpha = 1*s + 0.2*(1-s)
+    # The primitive depth is how far away from the root node the primitive is.
+    depth = len(split_key) - 1
 
-            parent_key = depth*"."
-            label = f"{parent_key}/{split_child_key[-1]}"
+    # Add labels for primitives before a maximum depth
+    if depth > max_label_depth or prim_key == '':
+        label = None
+    else:
+        parent_key = depth*"."
+        label = f"{parent_key}/{split_key[-1]}"
 
-        plot(ax, child_prim, label=label, alpha=alpha, **kwargs)
+    # Use the prim height to control opacity.
+    # The root primitive has 100% opacity while deeper child primitives
+    # have lower opacity.
+    if prim_height == 0:
+        s = 1
+    else:
+        s = (prim_height - depth)/prim_height
+    alpha = 1*s + 0.2*(1-s)
+
+    plot = make_plot(prim)
+    plot(ax, prim, label=label, alpha=alpha, **kwargs)
+
+    for child_key, child_prim in prim.items():
+        plot_prim(
+            ax,
+            child_prim,
+            prim_key=f'{prim_key}/{child_key}',
+            max_label_depth=max_label_depth,
+            **kwargs
+        )
 
 
 ## Functions for plotting arbitrary geometric primitives
@@ -205,9 +219,9 @@ def plot_prims(ax: Axes, root_prim: pr.Primitive, cmap: Colormap=mpl.colormaps['
         The primitive to plot
     """
     num_prims = len(root_prim)
-    for ii, (label, prim) in enumerate(root_prim.items()):
+    for ii, (key, prim) in enumerate(root_prim.items()):
         color = cmap(ii / num_prims)
-        plot_prim(ax, prim, label=label, color=color)
+        plot_prim(ax, prim, prim_key=key, color=color)
 
 
 def figure_prims(
