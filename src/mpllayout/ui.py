@@ -67,14 +67,16 @@ def plot_line(ax: Axes, line: pr.Line, label: Optional[str]=None, **kwargs):
     **kwargs
         Additional keyword arguments for plotting
     """
-    xs = np.array([point.value[0] for point in line.values()])
-    ys = np.array([point.value[1] for point in line.values()])
-    ax.plot(xs, ys, **kwargs)
+    # Don't plot zero length lines
+    if cn.Length.assem((line,)) != 0:
+        xs = np.array([point.value[0] for point in line.values()])
+        ys = np.array([point.value[1] for point in line.values()])
+        ax.plot(xs, ys, **kwargs)
 
-    xmid = 1/2*xs.sum()
-    ymid = 1/2*ys.sum()
-    theta = rotation_from_line(line)
-    ax.annotate(label, (xmid, ymid), ha='center', va='baseline', rotation=theta, **kwargs)
+        xmid = 1/2*xs.sum()
+        ymid = 1/2*ys.sum()
+        theta = rotation_from_line(line)
+        ax.annotate(label, (xmid, ymid), ha='center', va='baseline', rotation=theta, **kwargs)
 
 def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwargs):
     """
