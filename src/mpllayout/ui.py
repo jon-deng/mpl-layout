@@ -105,7 +105,7 @@ def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwa
         # Place the label at the first point
         ax.annotate(
             label,
-            (origin[0:1], origin[0:1]),
+            origin,
             xycoords="data",
             xytext=(2.0, 2.0),
             textcoords="offset points",
