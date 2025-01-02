@@ -810,7 +810,7 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
             param_chunks = (len(param_types_a), len(param_types_b))
             params_a, params_b = tuple(chunk(sum_params, param_chunks))
             return (
-                (ca, cb) for ca, cb
+                ca + cb for ca, cb
                 in zip(child_params_a(params_a), child_params_b(params_b))
             )
 
@@ -952,6 +952,8 @@ _QuadrilateralsSignature = make_signature_class((pr.Quadrilateral, ...))
 _AxesSignature = make_signature_class((pr.Axes,))
 
 ## Constant constructions
+
+# TODO: Need to handle scalar value input (just pass on right vector size to each node?)
 
 class Vector(Construction, _NullSignature):
 
