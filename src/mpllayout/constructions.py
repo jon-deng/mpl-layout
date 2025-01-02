@@ -1271,6 +1271,12 @@ def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Pri
     return MapConstruction
 
 
+# NOTE: Refactor `transform_map` to accept `*PrimTypes`?
+# This would be a tuple of `PrimTypes` lists for each primitive in the
+# construction `prims` parameter.
+# This would allow you to treat constructions with multiple `prims` as
+# single unary functions rather than the special treatment used now.
+
 def transform_map(
     construction: TCons,
     PrimTypes: list[type[pr.Primitive]]
