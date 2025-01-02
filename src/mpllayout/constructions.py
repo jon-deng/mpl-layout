@@ -742,24 +742,28 @@ def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> Constru
     # If `scalar` is a float, then the scalar float is used to multiply the construction
     # and no additional parameter is added
 
+    if scalar is None:
+        scalar = Scalar()
+
     def transform_ScalarMultiple(
         cons_a: TCons, scalar: float | None
     ) -> ConstructionNode:
         child_keys = cons_a.keys()
         child_prim_keys, child_params, signature = cons_a.value
 
-        if scalar is None:
+        if isinstance(scalar, Scalar):
+            scalar_child_prim_keys, scalar_child_params, scalar_signature = scalar.value
             class ScalarMultipleConstruction(ConstructionNode):
 
                 @classmethod
                 def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                    *_params, scalar = params
-                    return scalar * cons_a.assem(prims, *_params)
+                    *_params, value = params
+                    return scalar.assem((), value) * cons_a.assem(prims, *_params)
 
             def mul_child_params(params: Params) -> tuple[Params, ...]:
-                *_params, scalar = params
+                *_params, value = params
                 return tuple(
-                    (*_child_params, scalar)
+                    (*_child_params, value)
                     for _child_params in child_params(_params)
                 )
 
@@ -893,6 +897,16 @@ class Vector(Construction, _NullSignature):
         assert prims == ()
         return value
 
+
+class Scalar(LeafConstruction, _NullSignature):
+
+    @classmethod
+    def init_signature(cls):
+        return cls.make_signature(1, (float,))
+
+    @classmethod
+    def assem(cls, prims, value: float):
+        return value
 
 ## Point constructions
 # NOTE: These are actual construction classes that can be called so class docstrings
