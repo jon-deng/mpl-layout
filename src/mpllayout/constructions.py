@@ -488,10 +488,6 @@ class LeafConstruction(Construction):
 
 # These functions transform constructions into new ones
 
-# TODO: Add 'ConstantArray' construction and transform to represent the 'value'
-# parameter in constraints. You could then refactor a constraint as
-# 'construction - constarray'
-
 def transform_ConstraintType(ConstructionType: type[TCons]):
     """
     Return a constraint from a construction type
@@ -551,111 +547,9 @@ def transform_constraint(construction: TCons):
         return value_size
 
     size_node = node_map(value_size, construction)
-    cumsize_node = node_accumulate(lambda x, y: x + y, size_node, 0)
 
     vector = Vector(size_node)
     return transform_sum(construction, transform_scalar_mul(vector, -1))
-
-
-def transform_flat_constraint(
-    construction: TCons,
-    child_value_sizes: tuple[int, ...]
-):
-    """
-    Return a constraint structure from a construction
-
-    This transforms all constructions in a node to have an additional `value`
-    parameter.
-    Each transformed constraint has a local output
-    ```construction.assem(prims, *params, value) - value```
-    where `value` is recursively chunked into sizes matching each construction
-    size.
-
-    Parameters
-    ----------
-    construction: TCons
-        The construction to transform
-    child_values_sizes: tuple[int, ...]
-        The sizes of child construction outputs
-
-        This is used to chunk the input `value` into `value` parameters for each
-        child.
-
-    Returns
-    -------
-    DerivedConstraint
-        The derived constraint type with transformed `assem`
-    derived_value
-        The derived constraint 'value'
-
-        This is a tuple of: primitive keys, a function to create child
-        parameters, and a construction signature. See `ConstraintNode` for more
-        details.
-    CHILD_KEYS
-        Keys for each child constraint
-    """
-    # Return a (nonrecursive) constraint from a construction
-    # Every constraint modifies the construction by:
-    # split_child_params = split_child_params + value_split
-    #   Should return chunk of values corresponding to each construction value size
-    #   e.g. ConA has children (ConB, ConC) with values sizes (2,) (4,)
-    #   ConA must split an input value of size (6,) into two arrays of size (2,) and (4,)
-    # prims = prims
-    # params = params, value
-    # assem = assem - value
-
-    CHILD_KEYS = tuple(construction.keys())
-
-    # The new construction has the same `CHILD_PRIM_KEYS`
-    CHILD_PRIM_KEYS, CHILD_PARAMS, SIGNATURE = construction.value
-
-    # Define derived `child_params` function
-    def child_value(value):
-        if isinstance(value, (float, int)):
-            return len(CHILD_KEYS) * (value,)
-        else:
-            return tuple(chunk(value, child_value_sizes))
-
-    def derived_child_params(derived_params):
-        *params, value = derived_params
-        return tuple(
-            (*params, value)
-            for params, value in zip(CHILD_PARAMS(params), child_value(value))
-        )
-
-    # Define derived `signature`
-    (prim_types, param_types), value_size = SIGNATURE
-    derived_signature = ((prim_types, param_types + (np.ndarray,)), value_size)
-
-    # Define derived `assem behaviour`
-    if isinstance(construction, CompoundConstruction):
-
-        def derived_assem(prims, derived_params):
-            *params, value = derived_params
-            return np.array(())
-
-    elif isinstance(construction, LeafConstruction):
-
-        def derived_assem(prims, derived_params):
-            *params, value = derived_params
-            return type(construction).assem(prims, *params) - value
-
-    else:
-        assert False
-
-    class DerivedConstraint(ConstructionNode):
-
-        def __init__(self, **kwargs):
-            raise NotImplementedError()
-
-        @classmethod
-        def assem(cls, prims, *derived_params):
-            return derived_assem(prims, derived_params)
-
-    DerivedConstraint.__name__ = type(construction).__name__
-
-    derived_value = (CHILD_PRIM_KEYS, derived_child_params, derived_signature)
-    return DerivedConstraint, derived_value, CHILD_KEYS
 
 
 def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
@@ -952,6 +846,7 @@ _QuadrilateralsSignature = make_signature_class((pr.Quadrilateral, ...))
 _AxesSignature = make_signature_class((pr.Axes,))
 
 ## Constant constructions
+# Argument type: tuple[]
 
 class Vector(Construction, _NullSignature):
 
