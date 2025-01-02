@@ -3,567 +3,42 @@ Geometric constraints
 """
 
 from typing import Optional, Any
+from matplotlib.axis import XAxis, YAxis
 from numpy.typing import NDArray
 
-from collections import namedtuple
 import itertools
 
 import numpy as np
 import jax.numpy as jnp
 
 from . import primitives as pr
-from .containers import Node, iter_flat
+from . import constructions as con
 
-Primitive = pr.Primitive
+PrimKeys = con.PrimKeys
+Params = con.Params
 
+PrimKeysNode = con.PrimKeysNode
+ParamsNode = con.ParamsNode
 
-ResParams = dict[str, Any]
-
-ResPrims = tuple[Primitive, ...]
-ResPrimTypes = tuple[type[Primitive], ...]
-
-PrimKeys = tuple[str, ...]
-ChildPrimKeys = tuple[PrimKeys, ...]
-
-def load_named_tuple(
-        NamedTuple: namedtuple,
-        args: dict[str, Any] | tuple[Any, ...]
-    ):
-    if isinstance(args, dict):
-        args = NamedTuple(**args)
-    elif isinstance(args, tuple):
-        args = NamedTuple(*args)
-    elif isinstance(args, NamedTuple):
-        pass
-    else:
-        raise TypeError()
-    return args
-
-
-class PrimKeysNode(Node[PrimKeys, "PrimKeysNode"]):
-    """
-    A tree of primitive keys indicating primitives for a constraint
-
-    The tree structure should match the tree structure of a constraint such that
-    for each constraint node, there is a corresponding primitive keys node.
-    """
-    pass
-
-
-class ParamsNode(Node[ResParams, "ParamsNode"]):
-    """
-    A tree of residual parameters (kwargs) for a constraint
-
-    The tree structure should match the tree structure of a constraint such that
-    for each constraint node, there is a corresponding parameters node.
-    """
-    pass
-
-
-class Constraint(Node[ChildPrimKeys, "Constraint"]):
-    """
-    The base geometric constraint class
-
-    A geometric constraint represents a condition on the parameter vectors of
-    geometric primitives.
-    The condition is implemented through a residual function
-        `assem_res(self, prims, **kwargs)`
-    where
-    - `prims` are the geometric primitives to constraint
-    - and `**kwargs` are additional arguments for the residual.
-    The constraint is satisified when `assem_res(self, prims, **kwargs) == 0`.
-    To implement `assem_res`, `jax` functions should be used to return a
-    residual vector from the parameter vectors of input primitives.
-
-    Constraints have a tree-like structure.
-    A constraint can contain child constraints by passing subsets of its input
-    primitives (`prims` in `assem_res`) on to child constraints.
-    The residual of a constraint is the result of concatenating all child
-    constraint residuals.
-
-    To create a constraint, subclass `Constraint` then:
-        1. Define the residual for the constraint (`assem_res`)
-        2. Specify the parameters for `Constraint.__init__` (see `Parameters`)\
-        3. Define `Constraint.split_children_params` (see below)
-    Note that some of the `Constraint.__init__` parameters are for type checking
-    inputs to `assem_res` while the others are for specifying child constraints.
-    `StaticConstraint` and `ParameterizedConstraint` are two `Constraint`
-    subclasses that can be subclassed to create constraints.
-
-    Parameters
-    ----------
-    child_prim_keys: tuple[PrimKeys, ...]
-        Primitive key tuples for each child constraint
-
-        This is stored as the "value" of the tree structure and encodes how to
-        create primitives for each child constraint from the parent constraint's
-        `prims` (in `assem_res(self, prims, **kwargs)`).
-        For each child constraint, a tuple of primitive keys indicates a
-        subset of parent primitives to form child constraint primitive
-        arguments.
-
-        To illustrate this, consider a parent constraint with residual
-
-        ```python
-        Parent.assem_res(self, prims, **kwargs)
-        ```
-
-        and the n'th child constraint with primitive key tuple
-
-        ```python
-        child_prim_keys[n] == ('arg0', 'arg3/Line2')
-        ```.
-
-        This indicates the n'th child constraint should be evaluated with
-
-        ```
-        child_prims = (prims[0], prims[3]['Line2'])
-        ```
-    child_keys: list[str]
-        Keys for any child constraints
-    child_contraints: list[Constraint]
-        Child constraints
-    aux_data: Mapping[str, Any]
-        Any auxiliary data
-
-        This is usually for type checking/validation of inputs
-    """
-
-    # TODO: Implement type checking for aux_data??
-    def __init__(
-        self,
-        child_prim_keys: ChildPrimKeys,
-        child_keys: list[str],
-        child_constraints: list["Constraint"],
-        aux_data: Optional[dict[str, Any]] = None
-    ):
-        # TODO: Store `aux_data` in the tree structure somehow?
-        children = {
-            key: child for key, child in zip(child_keys, child_constraints)
-        }
-        super().__init__((child_prim_keys, aux_data), children)
-
-    # TODO: Make this something that's passed through __init__?
-    # That would make it harder to forget defining this?
-    def split_children_params(self, params: ResParams) -> tuple[ResParams, ...]:
-        """
-        Return children constraint parameters from parent constraint parameters
-        """
-        raise NotImplementedError()
-
-    def root_params(self, params: ResParams) -> ParamsNode:
-        """
-        Return a tree of residual kwargs for the constraint and all children
-
-        The tree structure should match the tree structure of the constraint.
-
-        Parameters
-        ----------
-        params: ResParams
-            Residual keyword arguments for the constraint
-
-        Returns
-        -------
-        root_params: ParamsNode
-            A tree of keyword arguments for the constraint and all children
-        """
-        params = load_named_tuple(self.RES_PARAMS_TYPE, params)
-
-        child_parameters = self.split_children_params(params)
-        children = {
-            key: child.root_params(child_params)
-            for (key, child), child_params in zip(self.items(), child_parameters)
-        }
-        root_params = ParamsNode(params, children)
-        return root_params
-
-    def root_prim_keys(self, prim_keys: PrimKeys) -> PrimKeysNode:
-        """
-        Return a tree of primitive keys for the constraint and all children
-
-        The tree structure should match the tree structure of the constraint.
-
-        For a given constraint, `c`, every key tuple in
-        `c.root_prim_keys(prim_keys)` specifies a tuple of primitives for the
-        corresponding constraint by indexing from
-        `c.root_prim(prim_keys, prims)`.
-
-        Parameters
-        ----------
-        prim_keys: PrimKeys
-            Primitive keys for the constraint
-
-        Returns
-        -------
-        root_prim_keys: PrimKeysNode
-            A tree of primitive keys for the constraint and all children
-        """
-        # Replace the first 'arg{n}/...' key with the appropriate parent argument keys
-
-        def parent_argnum_from_key(arg_key: str):
-            arg_number_str = arg_key.split("/", 1)[0]
-            if arg_number_str[:3] == "arg":
-                arg_number = int(arg_number_str[3:])
-            else:
-                raise ValueError(f"Argument key, {arg_key}, must contain 'arg' prefix")
-            return arg_number
-
-        def replace_prim_key_prefix(arg_key: str, parent_prim_keys):
-            split_key = arg_key.split("/", 1)
-            prefix, postfix = split_key[0], split_key[1:]
-            new_prefix = parent_prim_keys[parent_argnum_from_key(arg_key)]
-            return "/".join([new_prefix] + postfix)
-
-        # For each child, find the parent primitive part of its argument tuple
-        children_prim_keys = tuple(
-            tuple(
-                replace_prim_key_prefix(prim_key, prim_keys)
-                for prim_key in child_prim_keys
-            )
-            for child_prim_keys in self.child_prim_keys
-        )
-
-        children = {
-            key: child.root_prim_keys(child_prim_keys)
-            for (key, child), child_prim_keys
-            in zip(self.items(), children_prim_keys)
-        }
-        return PrimKeysNode(prim_keys, children)
-
-    def root_prim(self, prim_keys: PrimKeys, prims: ResPrims) -> pr.PrimitiveNode:
-        """
-        Return a root primitive containing primitives for the constraint
-
-        Parameters
-        ----------
-        prim_keys: PrimKeys
-            Primitive keys for the constraint
-        prims: ResPrims
-            Primitives for the constraint
-
-        Returns
-        -------
-        PrimitiveNode
-            A root primitive containing primitives for the constraint
-        """
-        return pr.PrimitiveNode(
-            np.array([]), {key: prim for key, prim in zip(prim_keys, prims)}
-        )
-
-    @property
-    def child_prim_keys(self):
-        return self.value[0]
-
-    @property
-    def RES_PARAMS_TYPE(self):
-        return self.value[1]['RES_PARAMS_TYPE']
-
-    def __call__(
-            self,
-            prims: ResPrims,
-            params: tuple[Any, ...] | dict[str, Any]
-        ):
-        prim_keys = tuple(f'arg{n}' for n, _ in enumerate(prims))
-        root_prim = self.root_prim(prim_keys, prims)
-        root_prim_keys = self.root_prim_keys(prim_keys)
-        root_params = self.root_params(params)
-        return self.assem_res_from_tree(root_prim, root_prim_keys, root_params)
-
-    def assem_res_from_tree(
-            self,
-            root_prim: pr.PrimitiveNode,
-            root_prim_keys: PrimKeysNode,
-            root_params: ParamsNode,
-        ):
-        flat_constraints = (x for _, x in iter_flat("", self))
-        flat_prim_keys = (x.value for _, x in iter_flat("", root_prim_keys))
-        flat_params = (x.value for _, x in iter_flat("", root_params))
-
-        residuals = tuple(
-            constraint.assem_res_atleast_1d(
-                tuple(root_prim[arg_key] for arg_key in argkeys), params
-            )
-            for constraint, argkeys, params in zip(flat_constraints, flat_prim_keys, flat_params)
-        )
-        return jnp.concatenate(residuals)
-
-    def assem_res_atleast_1d(
-            self, prims: ResPrims, params: ResParams
-        ) -> NDArray:
-        return jnp.atleast_1d(self.assem_res(prims, **params._asdict()))
-
-    def assem_res(
-            self, prims: ResPrims, **kwargs
-        ) -> NDArray:
-        """
-        Return a residual vector representing the constraint satisfaction
-
-        Parameters
-        ----------
-        prims: ResPrims
-            A tuple of primitives the constraint applies to
-        **kwargs:
-            A set of parameters for the residual
-
-            These are things like length, distance, angle, etc.
-
-        Returns
-        -------
-        NDArray
-            The residual representing whether the constraint is satisfied. The
-            constraint is satisfied when the residual is 0.
-        """
-        raise NotImplementedError()
-
-
-class ConstraintNode(Node[ChildPrimKeys, Constraint]):
-    """
-    Container tree for constraints
-    """
-    pass
-
-
-ChildKeys = tuple[str, ...]
-ChildConstraints = tuple[Constraint, ...]
-
-class StaticConstraint(Constraint):
-    """
-    Constraint with static primitive argument types and child constraints
-
-    To specify a `StaticConstraint`:
-    - define `init_aux_data`,
-    - and optionally define, `init_children` and `split_children_params`.
-
-    If `init_children` is undefined the constraint will have no child
-    constraints by default.
-
-    If `split_children_params` is undefined, all child constraints will be passed
-    empty parameters, and therefore use default values.
-    """
-
-    @classmethod
-    def init_children(
-        cls
-    ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
-        return (), ((), ())
-
-    def split_children_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self)
-
-    @classmethod
-    def init_aux_data(
-        cls
-    ) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    def __init__(self):
-        child_prim_keys, (child_keys, child_constraints) = self.init_children()
-        aux_data = self.init_aux_data()
-        super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
-
-
-class ParameterizedConstraint(Constraint):
-    """
-    Constraint with parameterized primitive argument types and child constraints
-
-    To specify a `ParameterizedConstraint`:
-    - define `init_aux_data`,
-    - and optionally define, `init_children` and `split_children_params`.
-
-    If `init_children` is undefined the constraint will have no child
-    constraints by default.
-
-    If `split_children_params` is undefined, all child constraints will be passed
-    empty parameters, and therefore use default values.
-
-    Parameters
-    ----------
-    **kwargs
-        Parameter controlling the constraint definition
-
-        Subclasses should define what these keyword arguments are.
-    """
-
-    @classmethod
-    def init_children(
-        cls, **kwargs
-    ) -> tuple[ChildPrimKeys, tuple[ChildKeys, ChildConstraints]]:
-        return (), ((), ())
-
-    def split_children_params(self, params: ResParams) -> ResParams:
-        return tuple({} for _ in self)
-
-    @classmethod
-    def init_aux_data(
-        cls, **kwargs
-    ) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    def __init__(self, **kwargs):
-        child_prim_keys, (child_keys, child_constraints) = self.init_children(**kwargs)
-        aux_data = self.init_aux_data(**kwargs)
-        super().__init__(child_prim_keys, child_keys, child_constraints, aux_data)
-
-
-class ArrayConstraint(ParameterizedConstraint):
-    """
-    Constraint representing an array of child constraints
-    """
-
-    def __init__(self, shape: tuple[int, ...]=(0,)):
-        if isinstance(shape, int):
-            shape = (shape,)
-        super().__init__(shape=shape)
-
+Constraint = con.Construction
+ConstraintNode = con.ConstructionNode
+ArrayConstraint = con.ArrayCompoundConstruction
 
 ## Point constraints
-# NOTE: These are actual constraint classes that can be called so class docstrings
-# document there `assem_res` function.
 
 # Argument type: tuple[Point,]
 
-class Fix(StaticConstraint):
-    """
-    Constrain coordinates of a point
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point]
-        The point
-    location: NDArray
-        The coordinates
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ["location"])
-        }
-
-    def assem_res(self, prims: tuple[pr.Point], location: NDArray):
-        """
-        Return the location error for a point
-        """
-        (point,) = prims
-        return point.value - location
+Fix = con.transform_ConstraintType(con.Coordinate)
 
 # Argument type: tuple[Point, Point]
 
-class DirectedDistance(StaticConstraint):
-    """
-    Constrain the distance between two points along a direction
+DirectedDistance = con.transform_ConstraintType(con.DirectedDistance)
 
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Point]
-        The two points
+XDistance = con.transform_ConstraintType(con.XDistance)
 
-        Distance is measured from the first to the second point
-    distance: float
-        The distance
-    direction: NDArray
-        The direction
-    """
+YDistance = con.transform_ConstraintType(con.YDistance)
 
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "direction"))
-        }
-
-    def assem_res(
-        self,
-        prims: tuple[pr.Point, pr.Point],
-        distance: float=0.0,
-        direction: NDArray=np.zeros(2)
-    ):
-        """
-        Return the distance error between two points along a given direction
-
-        The distance is measured from `prims[0]` to `prims[1]` along the direction.
-        """
-        point0, point1 = prims
-        proj_distance = jnp.dot(point1.value - point0.value, direction)
-        return proj_distance - distance
-
-
-class XDistance(StaticConstraint):
-    """
-    Constrain the x-distance between two points
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Point]
-        The two points
-
-        Distance is measured from the first to the second point
-    distance: float
-        The distance
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("DirectedDistance",)
-        child_constraints = (DirectedDistance(),)
-        child_prim_keys = (("arg0", "arg1"),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return ({"distance": params.distance, "direction": np.array([1, 0])},)
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem_res(
-        self, prims: tuple[pr.Point, pr.Point], distance: float=0.0
-    ):
-        return np.array([])
-
-
-class YDistance(StaticConstraint):
-    """
-    Constrain the y-distance between two points
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Point]
-        The two points
-
-        Distance is measured from the first to the second point
-    distance: float
-        The distance
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("DirectedDistance",)
-        child_constraints = (DirectedDistance(),)
-        child_prim_keys = (("arg0", "arg1"),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return ({"distance": params.distance, "direction": np.array([0, 1])},)
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem_res(
-        self, prims: tuple[pr.Point, pr.Point], distance: float=0.0
-    ):
-        return np.array([])
-
-
-class Coincident(StaticConstraint):
+class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
     Constrain two points to be coincident
 
@@ -574,54 +49,32 @@ class Coincident(StaticConstraint):
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Point),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", [])
-        }
+    def init_signature(cls):
+        return cls.make_signature(2)
 
-    def assem_res(self, prims: tuple[pr.Point, pr.Point]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Point, pr.Point]):
         """
         Return the coincident error between two points
         """
         point0, point1 = prims
-        return point0.value - point1.value
+        return con.Coordinate.assem((point1,)) - con.Coordinate.assem((point0,))
 
 
 ## Line constraints
 
 # Argument type: tuple[Line,]
 
-class Length(StaticConstraint):
-    """
-    Constrain the length of a line
+Length = con.transform_ConstraintType(con.Length)
 
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    """
+DirectedLength = con.transform_ConstraintType(con.DirectedLength)
 
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
+XLength = con.transform_ConstraintType(con.XLength)
 
-    def assem_res(self, prims: tuple[pr.Line], length: float=0):
-        """
-        Return the length error of a line
-        """
-        # This sets the length of a line
-        (line,) = prims
-        vec = line_vector(line)
-        return jnp.sum(vec**2) - length**2
+YLength = con.transform_ConstraintType(con.YLength)
 
 
-class Vertical(StaticConstraint):
+class Vertical(con.LeafConstruction, con._LineSignature):
     """
     Constrain a line to be vertical
 
@@ -632,22 +85,15 @@ class Vertical(StaticConstraint):
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+    def init_signature(cls):
+        return cls.make_signature(1)
 
-    def assem_res(self, prims: tuple[pr.Line]):
-        """
-        Return the vertical error for a line
-        """
-        (line0,) = prims
-        dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([1, 0]))
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line]):
+        return jnp.dot(con.LineVector.assem(prims), np.array([1, 0]))
 
 
-class Horizontal(StaticConstraint):
+class Horizontal(con.LeafConstruction, con._LineSignature):
     """
     Constrain a line to be horizontal
 
@@ -658,132 +104,17 @@ class Horizontal(StaticConstraint):
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    def assem_res(self, prims: tuple[pr.Line]):
-        """
-        Return the horizontal error for a line
-        """
-        (line0,) = prims
-        dir0 = line_vector(line0)
-        return jnp.dot(dir0, np.array([0, 1]))
-
-
-class DirectedLength(StaticConstraint):
-    """
-    Constrain the length of a line projected along a vector
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    direction: NDArray
-        The direction
-    """
+    def init_signature(cls):
+        return cls.make_signature(1)
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length", "direction"))
-        }
-
-    def assem_res(
-        self,
-        prims: tuple[pr.Line],
-        length: float=0,
-        direction: NDArray=np.array([1, 0])
-    ):
-        """
-        Return the length error of a line
-        """
-        # This sets the length of a line
-        (line,) = prims
-        vec = line_vector(line)
-        return jnp.dot(vec, direction) - length
-
-
-class XLength(StaticConstraint):
-    """
-    Constrain the length of a line projected along the x direction
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("DirectedLength",)
-        child_constraints = (DirectedLength(),)
-        child_prim_keys = (("arg0",),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return ({"length": params.length, "direction": np.array([1, 0])},)
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line], length: float=0):
-        """
-        Return the length error of a line
-        """
-        return np.array([])
-
-
-class YLength(StaticConstraint):
-    """
-    Constrain the length of a line projected along the y direction
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line]
-        The line
-    length: float
-        The length
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("DirectedLength",)
-        child_constraints = (DirectedLength(),)
-        child_prim_keys = (("arg0",),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return ({"length": params.length, "direction": np.array([0, 1])},)
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line], length: float=0):
-        """
-        Return the length error of a line
-        """
-        return np.array([])
+    def assem(cls, prims: tuple[pr.Line]):
+        return jnp.dot(con.LineVector.assem(prims), np.array([0, 1]))
 
 
 # Argument type: tuple[Line, Line]
 
-class RelativeLength(StaticConstraint):
+class RelativeLength(con.ConstructionNode):
     """
     Constrain the length of a line relative to another line
 
@@ -797,93 +128,19 @@ class RelativeLength(StaticConstraint):
         The relative length
     """
 
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("length",))
-        }
+    def __new__(cls):
+        return con.transform_sum(
+            con.Length(),
+            con.transform_scalar_mul(
+                con.transform_scalar_mul(con.Length(), -1), con.Scalar()
+            )
+        )
 
-    def assem_res(self, prims: tuple[pr.Line, pr.Line], length: float=1):
-        """
-        Return the length error of line `prims[0]` relative to line `prims[1]`
-        """
-        # This sets the length of a line
-        line0, line1 = prims
-        vec_a = line_vector(line0)
-        vec_b = line_vector(line1)
-        return jnp.sum(vec_a**2) - length**2 * jnp.sum(vec_b**2)
+MidpointXDistance = con.transform_ConstraintType(con.MidpointXDistance)
 
+MidpointYDistance = con.transform_ConstraintType(con.MidpointYDistance)
 
-class MidpointXDistance(StaticConstraint):
-    """
-    Constrain the x-distance between two line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-
-        The distance is measured from the first to the second line
-    distance: float
-        The distance
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, pr.Line], distance: float=0):
-        """
-        Return the x-distance error from the midpoint of line `prims[0]` to `prims[1]`
-        """
-        line0, line1 = prims
-
-        midpoint0 = 1/2*(line0["Point0"].value + line0["Point1"].value)
-        midpoint1 = 1/2*(line1["Point0"].value + line1["Point1"].value)
-
-        mid_distance = jnp.dot(midpoint1 - midpoint0, np.array([1, 0]))
-        return mid_distance - distance
-
-
-class MidpointYDistance(StaticConstraint):
-    """
-    Constrain the y-distance between two line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-
-        The distance is measured from the first to the second line
-    distance: float
-        The distance
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, pr.Line], distance: float=0):
-        """
-        Return the y-distance error from the midpoint of line `prims[0]` to `prims[1]`
-        """
-        line0, line1 = prims
-
-        midpoint0 = 1/2*(line0["Point0"].value + line0["Point1"].value)
-        midpoint1 = 1/2*(line1["Point0"].value + line1["Point1"].value)
-
-        mid_distance = jnp.dot(midpoint1 - midpoint0, np.array([0, 1]))
-        return mid_distance - distance
-
-
-class Orthogonal(StaticConstraint):
+class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
     Constrain two lines to be orthogonal
 
@@ -894,25 +151,23 @@ class Orthogonal(StaticConstraint):
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+    def init_signature(cls):
+        return cls.make_signature(1)
 
-    def assem_res(self, prims: tuple[pr.Line, pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
         """
         Return the orthogonal error between two lines
         """
         line0, line1 = prims
-        dir0 = line_vector(line0)
-        dir1 = line_vector(line1)
-        return jnp.dot(dir0, dir1)
+        return jnp.dot(
+            con.LineVector.assem((line0,)), con.LineVector.assem((line1,))
+        )
 
 
-class Parallel(StaticConstraint):
+class Parallel(con.LeafConstruction, con._LineLineSignature):
     """
-    Constrain two lines to be parallel
+    Return the parallel error between two lines
 
     Parameters
     ----------
@@ -921,269 +176,85 @@ class Parallel(StaticConstraint):
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
+    def init_signature(cls):
+        return cls.make_signature(1)
 
-    def assem_res(self, prims: tuple[pr.Line, pr.Line]):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line]):
         """
         Return the parallel error between two lines
         """
         line0, line1 = prims
-        dir0 = line_vector(line0)
-        dir1 = line_vector(line1)
-        return jnp.cross(dir0, dir1)
-
-
-class Angle(StaticConstraint):
-    """
-    Constrain the angle between two lines
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-    angle: float
-        The angle
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("angle",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, pr.Line], angle: float=0):
-        """
-        Return the angle error between two lines
-        """
-        line0, line1 = prims
-        dir0 = line_vector(line0)
-        dir1 = line_vector(line1)
-
-        dir0 = dir0 / jnp.linalg.norm(dir0)
-        dir1 = dir1 / jnp.linalg.norm(dir1)
-        return jnp.arccos(jnp.dot(dir0, dir1)) - angle
-
-
-class Collinear(StaticConstraint):
-    """
-    Constrain two lines to be collinear
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, pr.Line]):
-        """
-        Return the collinearity error between two lines
-        """
-        res_parallel = Parallel()
-        line0, line1 = prims
-        line2 = pr.Line(prims=(line1[0], line0[0]))
-        # line3 = primitives.Line(children=(line1['Point0'], line0['Point1']))
-
-        return jnp.concatenate(
-            [res_parallel((line0, line1), ()), res_parallel((line0, line2), ())]
+        return jnp.cross(
+            con.LineVector.assem((line0,)), con.LineVector.assem((line1,))
         )
 
 
-class CoincidentLines(StaticConstraint):
+Angle = con.transform_ConstraintType(con.Angle)
+
+
+class Collinear(con.LeafConstruction, con._LineLineSignature):
     """
-    Constrain two lines to be coincident
+    Return the collinear error between two lines
+
+    Parameters
+    ----------
+    prims: tuple[pr.Line, pr.Line]
+        The lines
+    """
+
+    @classmethod
+    def init_signature(cls):
+        return cls.make_signature(2)
+
+    @classmethod
+    def assem(self, prims: tuple[pr.Line, pr.Line]):
+        """
+        Return the collinearity error between two lines
+        """
+        line0, line1 = prims
+        line2 = pr.Line(prims=(line1[0], line0[0]))
+
+        return jnp.array(
+            [Parallel.assem((line0, line1)), Parallel.assem((line0, line2))]
+        )
+
+
+class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
+    """
+    Return coincident error between two lines
 
     Parameters
     ----------
     prims: tuple[pr.Line, pr.Line]
         The lines
     reverse: bool
-        A boolean indicating whether to coincide lines in the same or reverse directions
+        A boolean indicating whether lines are reversed
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("reverse",))
-        }
+    def init_signature(cls):
+        return cls.make_signature(2, (bool,))
 
-    def assem_res(self, prims: tuple[pr.Line, pr.Line], reverse=False):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Line, pr.Line], reverse: bool):
         """
         Return the coincident error between two lines
         """
         line0, line1 = prims
-        if not reverse:
-            point0_err = line1["Point0"].value - line0["Point0"].value
-            point1_err = line1["Point1"].value - line0["Point1"].value
+        if reverse:
+            point0_err = Coincident.assem((line1['Point0'], line0['Point1']))
+            point1_err = Coincident.assem((line1['Point1'], line0['Point0']))
         else:
-            point0_err = line1["Point0"].value - line0["Point1"].value
-            point1_err = line1["Point1"].value - line0["Point0"].value
+            point0_err = Coincident.assem((line1['Point0'], line0['Point0']))
+            point1_err = Coincident.assem((line1['Point1'], line0['Point1']))
         return jnp.concatenate([point0_err, point1_err])
 
 # Argument type: tuple[Line, ...]
 
-class RelativeLengthArray(ArrayConstraint):
-    """
-    Constrain the lengths of a set of lines relative to the last
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-
-        The length of the lines are measured relative to the last line
-    lengths: NDArray
-        The relative lengths
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-
-        child_keys = tuple(f"RelativeLength{n}" for n in range(size))
-        child_constraints = (size) * (RelativeLength(),)
-        child_prim_keys = tuple((f"arg{n}", f"arg{size}") for n in range(size))
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, parameters):
-        return tuple(
-            {'length': length} for length in parameters.lengths
-        )
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Line,) + (pr.Line,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("lengths",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, ...], lengths: NDArray):
-        return np.array([])
-
-
-class MidpointXDistanceArray(ArrayConstraint):
-    """
-    Constrain the x-distances between a set of line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-
-        The distances are measured from the first to the second line in pairs
-    distances: NDArray
-        The distances
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        num_child = np.prod(shape)
-
-        child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
-        child_keys = tuple(f"LineMidpointXDistance{n}" for n in range(num_child))
-        child_constraints = num_child * (MidpointXDistance(),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return tuple({"distance": distance} for distance in params.distances)
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        num_child = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, ...], distances: NDArray):
-        return np.array(())
-
-
-class MidpointYDistanceArray(ArrayConstraint):
-    """
-    Constrain the y-distances between a set of line midpoints
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-
-        The distances are measured from the first to the second line in pairs
-    distances: NDArray
-        The distances
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        num_child = np.prod(shape)
-
-        child_prim_keys = tuple((f"arg{2*n}", f"arg{2*n+1}") for n in range(num_child))
-        child_keys = tuple(f"LineMidpointYDistance{n}" for n in range(num_child))
-        child_constraints = num_child * (MidpointYDistance(),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return tuple({"distance": distance} for distance in params.distances)
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        num_child = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': num_child * (pr.Line, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distances",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, ...], distances: NDArray):
-        return np.array(())
-
-
-class CollinearArray(ArrayConstraint):
-    """
-    Constrain a set of lines to be collinear
-
-    Parameters
-    ----------
-    prims: tuple[pr.Line, ...]
-        The lines
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-
-        child_prim_keys = tuple(("arg0", f"arg{n}") for n in range(1, size))
-        child_keys = tuple(f"Collinear[0][{n}]" for n in range(1, size))
-        child_constraints = size * (Collinear(),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Line, ),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    def assem_res(self, prims: tuple[pr.Line, ...]):
-        return np.array([])
-
 ## Point and Line constraints
 
-# TODO:
-# class BoundPointsByLine(DynamicConstraint)
+# TODO: class BoundPointsByLine(DynamicConstraint)
 # A class that ensures all points have orthogonal distance to a line > offset
 # The orthogonal direction should be rotated 90 degrees from the line direction
 # (or some other convention)
@@ -1193,7 +264,13 @@ class CollinearArray(ArrayConstraint):
 # + and offset
 # This would be useful for aligning axis labels
 
-class PointOnLineDistance(StaticConstraint):
+PointOnLineDistance = con.transform_ConstraintType(con.PointOnLineDistance)
+
+
+PointToLineDistance = con.transform_ConstraintType(con.PointToLineDistance)
+
+
+class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature):
     """
     Constrain the projected distance of a point along a line
 
@@ -1201,150 +278,47 @@ class PointOnLineDistance(StaticConstraint):
     ----------
     prims: tuple[pr.Point, pr.Line]
         The point and line
-    distance: float
     reverse: bool
         A boolean indicating whether to reverse the line direction
 
         The distance of the point on the line is measured either from the start or end
         point of the line based on `reverse`. If `reverse=False` then the start point is
         used.
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
-        }
-
-    def assem_res(
-        self,
-        prims: tuple[pr.Point, pr.Line],
-        distance: float=0,
-        reverse: bool=False
-    ):
-        """
-        Return the projected distance error of a point along a line
-        """
-        point, line = prims
-        if reverse:
-            origin = line['Point1'].value
-            line_vec = -line_vector(line)
-        else:
-            origin = line['Point0'].value
-            line_vec = line_vector(line)
-        line_length = jnp.linalg.norm(line_vec)
-        unit_vec = line_vec / line_length
-
-        proj_dist = jnp.dot(point.value-origin, unit_vec)
-        return jnp.array([proj_dist - distance])
-
-
-class RelativePointOnLineDistance(StaticConstraint):
-    """
-    Constrain the projected distance of a point along a line
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Line]
-        The point and line
     distance: float
-    reverse: bool
-        A boolean indicating whether to reverse the line direction
-
-        The distance of the point on the line is measured either from the start or end
-        point of the line based on `reverse`. If `reverse=False` then the start point is
-        used.
     """
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
-        }
+    def init_signature(cls):
+        return cls.make_signature(1, (bool, float))
 
-    def assem_res(
-        self,
+    @classmethod
+    def assem(
+        cls,
         prims: tuple[pr.Point, pr.Line],
-        distance: float=0,
-        reverse: bool=False
+        reverse: bool,
+        distance: float
     ):
         """
         Return the projected distance error of a point along a line
         """
         point, line = prims
         if reverse:
-            origin = line['Point1'].value
-            line_vec = -line_vector(line)
+            origin = con.Coordinate.assem((line['Point1'],))
+            unit_vec = -con.UnitLineVector.assem((line,))
         else:
-            origin = line['Point0'].value
-            line_vec = line_vector(line)
-        line_length = jnp.linalg.norm(line_vec)
-        unit_vec = line_vec / line_length
+            origin = con.Coordinate.assem((line['Point0'],))
+            unit_vec = con.UnitLineVector.assem((line,))
+        line_length = con.Length.assem((line,))
 
         proj_dist = jnp.dot(point.value-origin, unit_vec)
         return jnp.array([proj_dist - distance*line_length])
-
-
-class PointToLineDistance(StaticConstraint):
-    """
-    Constrain the orthogonal distance of a point to a line
-
-    Parameters
-    ----------
-    prims: tuple[pr.Point, pr.Line]
-        The point and line
-    distance: float
-    reverse: NDArray
-        Whether to reverse the line direction for measuring the orthogonal
-
-        By convention the orthogonal direction points to the left of the line relative
-        to the line direction. If `reverse=True` then the orthogonal direction points to
-        the right of the line.
-    """
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Point, pr.Line),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance", "reverse"))
-        }
-
-    def assem_res(
-        self,
-        prims: tuple[pr.Point, pr.Line],
-        distance: float=0,
-        reverse: bool=False
-    ):
-        """
-        Return the projected distance error of a point to a line
-        """
-        point, line = prims
-
-        line_vec = line_vector(line)
-        line_length = jnp.linalg.norm(line_vec)
-        line_unit_vec = line_vec / line_length
-
-        zsign = 1 if reverse else -1
-        orth_unit_vec = jnp.cross(line_unit_vec, np.array([0, 0, zsign]))[:2]
-
-        origin = line['Point0'].value
-
-        proj_dist = jnp.dot(point.value-origin, orth_unit_vec)
-        return jnp.array([proj_dist - distance])
-#
-# This would constrain the projected distance of a point to a line
-# You would need a convention of which "distance" is positive by picking an orthogonal
-# to the line
-# This would be useful to constrain a point to line on a line or off set a line from a point
 
 
 ## Quad constraints
 
 # Argument type: tuple[Quadrilateral]
 
-class Box(StaticConstraint):
+class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
     Constrain a quadrilateral to be rectangular
 
@@ -1356,340 +330,25 @@ class Box(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        child_keys = ("HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight")
-        child_constraints = (Horizontal(), Horizontal(), Vertical(), Vertical())
-        child_prim_keys = (("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",))
-        return child_prim_keys, (child_keys, child_constraints)
+        keys = (
+            "HorizontalBottom", "HorizontalTop", "VerticalLeft", "VerticalRight"
+        )
+        constraints = (Horizontal(), Horizontal(), Vertical(), Vertical())
+        prim_keys = (
+            ("arg0/Line0",), ("arg0/Line2",), ("arg0/Line3",), ("arg0/Line1",)
+        )
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((), (), (), ())
+
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    def assem_res(self, prims: tuple[pr.Quadrilateral]):
-        return np.array(())
+    def init_signature(cls):
+        return cls.make_signature(0)
 
 
-class AspectRatio(StaticConstraint):
-    """
-    Constrain the aspect ratio of a quadrilateral
+AspectRatio = con.transform_ConstraintType(con.AspectRatio)
 
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral]
-        The quad
-    ar: float
-        The aspect ratio
-    """
-
-    @classmethod
-    def init_children(cls):
-        child_keys = ("RelativeLength",)
-        child_constraints = (RelativeLength(), )
-        child_prim_keys = (("arg0/Line0", "arg0/Line1"),)
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, parameters):
-        return ({'length': parameters.ar},)
-
-    @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("ar",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Quadrilateral], ar:float=1):
-        return np.array(())
-
-
-# Argument type: tuple[Quadrilateral, Quadrilateral]
-
-class OuterMargin(ParameterizedConstraint):
-    """
-    Constrain the outer margin between two quadrilaterals
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
-    margin: float
-    """
-
-    @classmethod
-    def init_children(cls, side: str="left"):
-        child_keys = ("Margin",)
-        if side == "left":
-            child_constraints = (MidpointXDistance(),)
-            child_prim_keys = (("arg1/Line1", "arg0/Line3"),)
-        elif side == "right":
-            child_constraints = (MidpointXDistance(),)
-            child_prim_keys = (("arg0/Line1", "arg1/Line3"),)
-        elif side == "bottom":
-            child_constraints = (MidpointYDistance(),)
-            child_prim_keys = (("arg1/Line2", "arg0/Line0"),)
-        elif side == "top":
-            child_constraints = (MidpointYDistance(),)
-            child_prim_keys = (("arg0/Line2", "arg1/Line0"),)
-        else:
-            raise ValueError()
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return ({"distance": params.margin},)
-
-    @classmethod
-    def init_aux_data(cls, side: str="left"):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
-        }
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
-
-    def assem_res(self, prims: tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
-        return np.array(())
-
-
-class InnerMargin(ParameterizedConstraint):
-    """
-    Constrain the inner margin between two quadrilaterals
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quad
-    margin: float
-    """
-
-    @classmethod
-    def init_children(cls, side: str="left"):
-        child_keys = ("Margin",)
-        if side == "left":
-            child_constraints = (MidpointXDistance(),)
-            child_prim_keys = (("arg1/Line3", "arg0/Line3"),)
-        elif side == "right":
-            child_constraints = (MidpointXDistance(),)
-            child_prim_keys = (("arg0/Line1", "arg1/Line1"),)
-        elif side == "bottom":
-            child_constraints = (MidpointYDistance(),)
-            child_prim_keys = (("arg1/Line0", "arg0/Line0"),)
-        elif side == "top":
-            child_constraints = (MidpointYDistance(),)
-            child_prim_keys = (("arg0/Line2", "arg1/Line2"),)
-        else:
-            raise ValueError()
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        return ({"distance": params.margin},)
-
-    @classmethod
-    def init_aux_data(cls, side: str="left"):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("margin",))
-        }
-
-    def __init__(self, side: str="left"):
-        super().__init__(side=side)
-
-    def assem_res(self, prims: tuple[pr.Quadrilateral, pr.Quadrilateral], margin: float=0):
-        return np.array(())
-
-
-# Argument type: tuple[Quadrilateral, ...]
-
-def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
-    """
-    Return a 1D array index from a multi-dimensional array index
-    """
-    strides = shape[1:] + (1,)
-    return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
-
-class RectilinearGrid(ArrayConstraint):
-    """
-    Constrain a set of quads to lie on a rectilinear grid
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral, ...]
-        The quadrilaterals
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        num_row, num_col = shape
-
-        def idx(i, j):
-            return idx_1d((i, j), shape)
-
-        # Specify child constraints given the grid shape
-        # Line up bottom/top and left/right
-        child_constraints = (
-            2 * num_row * (CollinearArray(num_col),)
-            + 2 * num_col * (CollinearArray(num_row),)
-        )
-        align_bottom = [
-            tuple(f"arg{idx(nrow, ncol)}/Line0" for ncol in range(num_col))
-            for nrow in range(num_row)
-        ]
-        align_top = [
-            tuple(f"arg{idx(nrow, ncol)}/Line2" for ncol in range(num_col))
-            for nrow in range(num_row)
-        ]
-        align_left = [
-            tuple(f"arg{idx(nrow, ncol)}/Line3" for nrow in range(num_row))
-            for ncol in range(num_col)
-        ]
-        align_right = [
-            tuple(f"arg{idx(nrow, ncol)}/Line1" for nrow in range(num_row))
-            for ncol in range(num_col)
-        ]
-        child_prim_keys = align_bottom + align_top + align_left + align_right
-        child_keys = (
-            [f"CollinearRowBottom{nrow}" for nrow in range(num_row)]
-            + [f"CollinearRowTop{nrow}" for nrow in range(num_row)]
-            + [f"CollinearColumnLeft{ncol}" for ncol in range(num_col)]
-            + [f"CollinearColumnRight{ncol}" for ncol in range(num_col)]
-        )
-        return child_prim_keys, (child_keys, child_constraints)
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
-    def assem_res(self, prims: tuple[pr.Quadrilateral, ...]):
-        return np.array(())
-
-
-class Grid(ArrayConstraint):
-    """
-    Constrain a set of quads to lie on a dimensioned rectilinear grid
-
-    Parameters
-    ----------
-    prims: tuple[pr.Quadrilateral, ...]
-        The quadrilaterals
-    col_widths: NDArray
-        Column widths (from left to right) relative to the left-most column
-    row_heights: NDArray
-        Row height (from top to bottom) relative to the top-most row
-    col_margins: NDArray
-        Absolute column margins (from left to right)
-    row_margins: NDArray
-        Absolute row margins (from top to bottom)
-    """
-
-    @classmethod
-    def init_children(cls, shape: tuple[int, ...]):
-        num_args = np.prod(shape)
-        num_row, num_col = shape
-
-        # Children constraints do:
-        # 1. Align all quads in a grid
-        # 2. Set relative column widths relative to column 0
-        # 3. Set relative row heights relative to row 0
-        child_keys = (
-            "RectilinearGrid",
-            "ColumnWidths",
-            "RowHeights",
-            "ColumnMargins",
-            "RowMargins",
-        )
-        child_constraints = (
-            RectilinearGrid(shape),
-            RelativeLengthArray(num_col-1),
-            RelativeLengthArray(num_row-1),
-            MidpointXDistanceArray(num_col-1),
-            MidpointYDistanceArray(num_row-1),
-        )
-
-        def idx(i, j):
-            return idx_1d((i, j), shape)
-        rows, cols = list(range(shape[0])), list(range(shape[1]))
-
-        rectilineargrid_args = tuple(f"arg{n}" for n in range(num_args))
-
-        colwidth_args = tuple(
-            f"arg{idx(row, col)}/Line0"
-            for row, col in itertools.product([0], cols[1:] + cols[:1])
-        )
-        rowheight_args = tuple(
-            f"arg{idx(row, col)}/Line1"
-            for row, col in itertools.product(rows[1:] + rows[:1], [0])
-        )
-        col_margin_line_labels = itertools.chain.from_iterable(
-            (f"arg{idx(0, col)}/Line1", f"arg{idx(0, col+1)}/Line3")
-            for col in cols[:-1]
-        )
-        row_margin_line_labels = itertools.chain.from_iterable(
-            (f"arg{idx(row+1, 0)}/Line2", f"arg{idx(row, 0)}/Line0")
-            for row in rows[:-1]
-        )
-
-        child_prim_keys = (
-            rectilineargrid_args,
-            colwidth_args,
-            rowheight_args,
-            tuple(col_margin_line_labels),
-            tuple(row_margin_line_labels),
-        )
-
-        return child_prim_keys, (child_keys, child_constraints)
-
-    def split_children_params(self, params):
-        values = (
-            (),
-            (params.col_widths,),
-            (params.row_heights,),
-            (params.col_margins,),
-            (params.row_margins,)
-        )
-        return tuple(
-            load_named_tuple(child.RES_PARAMS_TYPE, value)
-            for (_, child), value in zip(self.items(), values)
-        )
-
-    @classmethod
-    def init_aux_data(cls, shape: tuple[int, ...]):
-        size = np.prod(shape)
-        return {
-            'RES_ARG_TYPES': size * (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple(
-                "Parameters",
-                ("col_widths", "row_heights", "col_margins", "row_margins")
-            )
-        }
-
-    def assem_res(
-        self,
-        prims: tuple[pr.Quadrilateral, ...],
-        col_widths: NDArray,
-        row_heights: NDArray,
-        col_margins: NDArray,
-        row_margins: NDArray
-    ):
-        return np.array([])
-
-# TODO: Incorporate this into primitives?
-def line_vector(line: pr.Line):
-    return line[1].value - line[0].value
-
-
-## Axes constraints
-
-from matplotlib.axis import XAxis, YAxis
-
-# Argument type: tuple[Quadrilateral]
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
 
@@ -1721,9 +380,9 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
     return dim
 
-class XAxisHeight(StaticConstraint):
+class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
-    Constrain the x-axis height for an axes
+    Return the x-axis height for an axes
 
     Parameters
     ----------
@@ -1739,30 +398,25 @@ class XAxisHeight(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        child_keys = ("Height",)
-        child_constraints = (YDistance(),)
-        child_prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
-        return child_prim_keys, (child_keys, child_constraints)
+        keys = ("Height",)
+        constraints = (YDistance(),)
+        prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
 
-    def split_children_params(self, parameters):
-        xaxis: XAxis | None = parameters.axis
-        if xaxis is None:
-            return ({"distance": 0},)
-        else:
-            return ({"distance": self.get_xaxis_height(xaxis)},)
+        def child_params(params: Params) -> tuple[Params, ...]:
+            xaxis: XAxis | None = params[0]
+            if xaxis is None:
+                return ((0,),)
+            else:
+                return ((cls.get_xaxis_height(xaxis),),)
+
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
-        }
-
-    def assem_res(self, prims: tuple[pr.Quadrilateral], axis: XAxis):
-        return np.array([])
+    def init_signature(cls):
+        return cls.make_signature(0, (XAxis,))
 
 
-class YAxisWidth(StaticConstraint):
+class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
     Constrain the y-axis width for an axes
 
@@ -1780,31 +434,231 @@ class YAxisWidth(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        child_keys = ("Width",)
-        child_constraints = (XDistance(),)
-        child_prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
-        return child_prim_keys, (child_keys, child_constraints)
+        keys = ("Width",)
+        constraints = (XDistance(),)
+        prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
 
-    def split_children_params(self, parameters):
-        yaxis: YAxis | None = parameters.axis
-        if yaxis is None:
-            return ({"distance": 0},)
-        else:
-            return ({"distance": self.get_yaxis_width(yaxis)},)
+        def child_params(params: Params) -> tuple[Params, ...]:
+            yaxis: YAxis | None = params[0]
+            if yaxis is None:
+                return ((0,),)
+            else:
+                return ((cls.get_yaxis_width(yaxis),),)
+
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Quadrilateral,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ('axis',))
-        }
+    def init_signature(cls):
+        return cls.make_signature(0, (YAxis,))
 
-    def assem_res(self, prims: tuple[pr.Quadrilateral], axis: YAxis):
-        return np.array([])
+
+# Argument type: tuple[Quadrilateral, Quadrilateral]
+
+OuterMargin = con.transform_ConstraintType(con.OuterMargin)
+
+InnerMargin = con.transform_ConstraintType(con.InnerMargin)
+
+class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+    """
+    Constrain two quadrilaterals to lie in a row
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quadrilaterals
+    """
+
+    @classmethod
+    def init_children(cls):
+        keys = ("AlignBottom", "AlignTop")
+        constraints = (Collinear(), Collinear())
+        prim_keys = (("arg0/Line0", "arg1/Line0"), ("arg0/Line2", "arg1/Line2"))
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return 2*((),)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls):
+        return cls.make_signature(0)
+
+class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+    """
+    Constrain two quadrilaterals to lie in a column
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quadrilaterals
+    """
+
+    @classmethod
+    def init_children(cls):
+        keys = ("AlignLeft", "AlignRight")
+        constraints = (Collinear(), Collinear())
+        prim_keys = (("arg0/Line3", "arg1/Line3"), ("arg0/Line1", "arg1/Line1"))
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return 2*((),)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls):
+        return cls.make_signature(0)
+
+# Argument type: tuple[Quadrilateral, ...]
+
+def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
+    """
+    Return a 1D array index from a multi-dimensional array index
+    """
+    strides = shape[1:] + (1,)
+    return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
+
+class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
+    """
+    Constrain a set of quads to lie on a rectilinear grid
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, ...]
+        The quadrilaterals
+    """
+
+    @classmethod
+    def init_children(cls, shape: tuple[int, ...]):
+        # size = np.prod(shape)
+        num_row, num_col = shape
+
+        def idx(i, j):
+            return idx_1d((i, j), shape)
+
+        # There are 2 child constraints that line up all rows and all columns
+
+        keys = tuple(
+            [f"AlignRow{nrow}" for nrow in range(num_row)]
+            + [f"AlignColumn{ncol}" for ncol in range(num_col)]
+        )
+
+        align_rows = num_row * [
+            con.transform_map(AlignRow(), num_col*(pr.Quadrilateral,))
+        ]
+        align_cols = num_col * [
+            con.transform_map(AlignColumn(), num_row*(pr.Quadrilateral,)),
+        ]
+        constraints = tuple(align_rows + align_cols)
+
+        align_row_args = [
+            tuple(f"arg{idx(nrow, ncol)}" for ncol in range(num_col))
+            for nrow in range(num_row)
+        ]
+        align_col_args = [
+            tuple(f"arg{idx(nrow, ncol)}" for nrow in range(num_row))
+            for ncol in range(num_col)
+        ]
+        prim_keys = tuple(align_row_args + align_col_args)
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return 4 * num_row*num_col * ((),)
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls, shape: tuple[int, ...]):
+        prim_types = np.prod(shape) * (pr.Quadrilateral,)
+        param_types = ()
+        value_size = 0
+        return con.ConstructionSignature(prim_types, param_types, value_size)
+
+
+class Grid(ArrayConstraint, con._QuadrilateralsSignature):
+    """
+    Constrain a set of quads to lie on a dimensioned rectilinear grid
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, ...]
+        The quadrilaterals
+    col_widths: NDArray
+        Column widths (from left to right) relative to the left-most column
+    row_heights: NDArray
+        Row height (from top to bottom) relative to the top-most row
+    col_margins: NDArray
+        Absolute column margins (from left to right)
+    row_margins: NDArray
+        Absolute row margins (from top to bottom)
+    """
+
+    @classmethod
+    def init_children(cls, shape: tuple[int, ...]):
+        num_row, num_col = shape
+        size = np.prod(shape)
+
+        # Children constraints do:
+        # 1. Align all quads in a grid
+        # 2. Set relative column widths relative to column 0
+        # 3. Set relative row heights relative to row 0
+        # 4. Set margins between columns
+        # 5. Set margins between rows
+        keys = (
+            "RectilinearGrid", "ColWidths", "RowHeights", "ColMargins", "RowMargins"
+        )
+        constraints = (
+            RectilinearGrid(shape=shape),
+            con.transform_map(RelativeLength(), num_col*(pr.Line,)),
+            con.transform_map(RelativeLength(), num_row*(pr.Line,)),
+            con.transform_map(OuterMargin(side='right'), num_col*(pr.Quadrilateral,)),
+            con.transform_map(OuterMargin(side='bottom'), num_row*(pr.Quadrilateral,))
+        )
+
+        def idx(i, j):
+            return idx_1d((i, j), shape)
+        rows = list(range(shape[0]))
+        cols = list(range(shape[1]))
+
+        rect_grid_args = tuple(f"arg{n}" for n in range(size))
+
+        col_width_args = tuple(
+            f"arg{idx(0, col)}/Line0" for col in cols[1:] + cols[:1]
+        )
+        row_height_args = tuple(
+            f"arg{idx(row, 0)}/Line1" for row in rows[1:] + rows[:1]
+        )
+
+        col_margin_args = tuple(f"arg{idx(0, col)}" for col in cols)
+        row_margin_args = tuple(f"arg{idx(row, 0)}" for row in rows)
+
+        prim_keys = (
+            rect_grid_args,
+            col_width_args,
+            row_height_args,
+            col_margin_args,
+            row_margin_args,
+        )
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            col_widths, row_heights, col_margins, row_margins = params
+            return ((), tuple(col_widths), tuple(row_heights), tuple(col_margins), tuple(row_margins))
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls, shape: tuple[int, ...]):
+        prim_types = np.prod(shape) * (pr.Quadrilateral,)
+        param_types = (np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+        value_size = 0
+        return con.ConstructionSignature(prim_types, param_types, value_size)
+
+
+## Axes constraints
 
 # Argument type: tuple[Axes]
 
-class PositionXAxis(ParameterizedConstraint):
+# TODO: Handle more specialized x/y axes combos (i.e. twin x/y axes)
+# The below axis constraints are made for a single x and y axis
+
+class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the x-axis to the top or bottom of an axes
 
@@ -1814,40 +668,34 @@ class PositionXAxis(ParameterizedConstraint):
         The axes
     """
 
-    @classmethod
-    def init_children(cls, bottom: bool, top: bool):
-        # TODO: Handle more specialized x/y axes combos?
-        child_keys = ('CoincidentLines',)
-        child_constraints = (CoincidentLines(),)
-        if bottom:
-            child_prim_keys = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
-        elif top:
-            child_prim_keys = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
-        else:
-            raise ValueError(
-                "Currently, 'bottom' and 'top' can't both be true"
-            )
-        return child_prim_keys, (child_keys, child_constraints)
-
-    @classmethod
-    def split_children_params(cls, params):
-        return ({"reverse": True},)
-
-    @classmethod
-    def init_aux_data(cls, bottom: bool, top: bool):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
     def __init__(self, bottom: bool=True, top: bool=False):
         return super().__init__(bottom=bottom, top=top)
 
-    def assem_res(self, prims: tuple[pr.Axes]):
-        return np.array([])
+    @classmethod
+    def init_children(cls, bottom: bool, top: bool):
+
+        keys = ('CoincidentLines',)
+        constraints = (CoincidentLines(),)
+        if bottom:
+            prim_keys = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
+        elif top:
+            prim_keys = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
+        else:
+            raise ValueError(
+                "'bottom' and 'top' can not both be true"
+            )
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((True,),)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls, bottom: bool, top: bool):
+        return cls.make_signature(0)
 
 
-class PositionYAxis(ParameterizedConstraint):
+class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the y-axis to the left or right of an axes
 
@@ -1857,40 +705,34 @@ class PositionYAxis(ParameterizedConstraint):
         The axes
     """
 
-    @classmethod
-    def init_children(cls, left: bool=True, right: bool=False):
-        # TODO: Handle more specialized x/y axes combos?
-        child_keys = ('CoincidentLines',)
-        child_constraints = (CoincidentLines(),)
-        if left:
-            child_prim_keys = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
-        elif right:
-            child_prim_keys = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
-        else:
-            raise ValueError(
-                "Currently, 'left' and 'right' can't both be true"
-            )
-        return child_prim_keys, (child_keys, child_constraints)
-
-    @classmethod
-    def split_children_params(cls, params):
-        return ({"reverse": True},)
-
-    @classmethod
-    def init_aux_data(cls, left: bool=True, right: bool=False):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ())
-        }
-
     def __init__(self, left: bool=True, right: bool=False):
         return super().__init__(left=left, right=right)
 
-    def assem_res(self, prims: tuple[pr.Axes]):
-        return np.array([])
+    @classmethod
+    def init_children(cls, left: bool=True, right: bool=False):
+
+        keys = ('CoincidentLines',)
+        constraints = (CoincidentLines(),)
+        if left:
+            prim_keys = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
+        elif right:
+            prim_keys = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
+        else:
+            raise ValueError(
+                "'left' and 'right' can not both be true"
+            )
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((True,),)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls, left: bool=True, right: bool=False):
+        return cls.make_signature(0)
 
 
-class PositionXAxisLabel(StaticConstraint):
+class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the x-axis label horizontal distance (left to right) relative to axes width
 
@@ -1904,27 +746,23 @@ class PositionXAxisLabel(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        # TODO: Handle more specialized x/y axes combos?
-        child_keys = ('RelativePointOnLineDistance',)
-        child_constraints = (RelativePointOnLineDistance(),)
-        child_prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
-        return child_prim_keys, (child_keys, child_constraints)
 
-    def split_children_params(self, params):
-        return ({"distance": params.distance, "reverse": False},)
+        keys = ('RelativePointOnLineDistance',)
+        constraints = (RelativePointOnLineDistance(),)
+        prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            distance, = params
+            return ((False, distance),)
+
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Axes], distance: float=0.5):
-        return np.array([])
+    def init_signature(cls):
+        return cls.make_signature(0)
 
 
-class PositionYAxisLabel(StaticConstraint):
+class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the y-axis label vertical distance (bottom to top) relative to axes height
 
@@ -1938,21 +776,16 @@ class PositionYAxisLabel(StaticConstraint):
 
     @classmethod
     def init_children(cls):
-        # TODO: Handle more specialized x/y axes combos?
-        child_keys = ('RelativePointOnLineDistance',)
-        child_constraints = (RelativePointOnLineDistance(),)
-        child_prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
-        return child_prim_keys, (child_keys, child_constraints)
+        keys = ('RelativePointOnLineDistance',)
+        constraints = (RelativePointOnLineDistance(),)
+        prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
 
-    def split_children_params(self, params):
-        return ({"distance": params.distance, "reverse": False},)
+        def child_params(params: Params) -> tuple[Params, ...]:
+            distance, = params
+            return ((False, distance),)
+
+        return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_aux_data(cls):
-        return {
-            'RES_ARG_TYPES': (pr.Axes,),
-            'RES_PARAMS_TYPE': namedtuple("Parameters", ("distance",))
-        }
-
-    def assem_res(self, prims: tuple[pr.Axes], distance: float=0.5):
-        return np.array([])
+    def init_signature(cls):
+        return cls.make_signature(0)

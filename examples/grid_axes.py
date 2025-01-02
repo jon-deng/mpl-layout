@@ -38,12 +38,12 @@ if __name__ == "__main__":
 
     ## Constrain the axes in a grid
     num_row, num_col = axes_shape
-    grid_params = {
-        "col_widths": (num_col - 1) * [1],
-        "row_heights": (num_row - 1) * [1],
-        "col_margins": (num_col - 1) * [0.5],
-        "row_margins": (num_row - 1) * [0.5],
-    }
+    grid_params = (
+        (num_col - 1) * [1],
+        (num_row - 1) * [1],
+        (num_col - 1) * [0.5],
+        (num_row - 1) * [0.5],
+    )
 
     layout.add_constraint(
         co.Grid(axes_shape),

@@ -71,12 +71,12 @@ class TestPrimitiveTree:
 
         ## Constrain the axes in a grid
         num_row, num_col = axes_shape
-        grid_param = {
-            "col_margins": (num_col - 1) * [1 / 16],
-            "row_margins": (num_row - 1) * [1 / 16],
-            "col_widths": (num_col - 1) * [1],
-            "row_heights": (num_row - 1) * [1],
-        }
+        grid_param = (
+            (num_col - 1) * [1],
+            (num_row - 1) * [1],
+            (num_col - 1) * [1 / 16],
+            (num_row - 1) * [1 / 16],
+        )
         layout.add_constraint(
             co.Grid(axes_shape),
             tuple(f"Axes{n}" for n in range(num_axes)),
@@ -94,12 +94,12 @@ class TestPrimitiveTree:
         layout.add_constraint(
             co.DirectedDistance(),
             ("Axes0/Line1/Point1", "Figure/Line1/Point1"),
-            (margin_top, np.array([0, 1]))
+            (np.array([0, 1]), margin_top)
         )
         layout.add_constraint(
             co.DirectedDistance(),
             (f"Axes{num_axes-1}/Line1/Point0", "Figure/Line1/Point0"),
-            (margin_bottom, np.array([0, -1]))
+            (np.array([0, -1]), margin_bottom)
         )
 
         # Constrain left/right margins
@@ -108,12 +108,12 @@ class TestPrimitiveTree:
         layout.add_constraint(
             co.DirectedDistance(),
             ("Axes0/Line0/Point0", "Figure/Line0/Point0"),
-            (margin_left, np.array([-1, 0]))
+            (np.array([-1, 0]), margin_left)
         )
         layout.add_constraint(
             co.DirectedDistance(),
             (f"Axes{num_col-1}/Line1/Point1", "Figure/Line1/Point1"),
-            (margin_right, np.array([1, 0]))
+            (np.array([1, 0]), margin_right)
         )
         return layout
 
@@ -165,8 +165,19 @@ class TestPrimitiveTree:
         t1 = time.time()
         print(f"Duration {t1-t0:.2e} s")
 
-    def test_solve(self, layout: lay.Layout):
-        prim_tree_n, solve_info = solver.solve(layout)
+    @pytest.fixture(
+        params=('newton', 'minimize')
+    )
+    def method(self, request):
+        return request.param
+
+    def test_solve(self, layout: lay.Layout, method: str):
+        t0 = time.time()
+        prim_tree_n, solve_info = solver.solve(
+            layout, method=method, max_iter=100
+        )
+        t1 = time.time()
+        print(f"Solve took {t1-t0:.2e} s")
 
         prim_keys_to_value = {
             key: prim.value for key, prim in cn.iter_flat("", prim_tree_n)

@@ -14,7 +14,7 @@ from matplotlib.axes import Axes
 from . import primitives as pr
 from . import constraints as cr
 
-# TODO: Use special primitive classes rather than keys to determine figure and axes?
+# NOTE: Use special primitive classes rather than keys to determine figure/axes?
 # If you do, this should be done for both `subplots` and `update_subplots`
 def subplots(
     root_prim: pr.Primitive,
@@ -125,7 +125,6 @@ def update_subplots(
 
     return fig, axs
 
-# TODO: Refactor signature (should depend on axes and axis string (x or y))?
 def find_axis_position(axes_frame: pr.Quadrilateral, axis: pr.Quadrilateral) -> str:
     """
     Return the axis position relative to a frame
