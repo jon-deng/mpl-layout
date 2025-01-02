@@ -97,7 +97,9 @@ def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwa
         polygon[f"Line{ii}"]["Point0"] for ii in range(len(polygon))
     ]
     verts = np.array([point.value for point in points])
-    poly_patch = Polygon(verts, closed=True, **kwargs)
+    patch_kwargs = kwargs.copy()
+    patch_kwargs['alpha'] = 0.1*kwargs['alpha']
+    poly_patch = Polygon(verts, closed=True, **patch_kwargs)
     ax.add_patch(poly_patch)
 
     # (line,) = ax.plot(xs, ys, **kwargs)
