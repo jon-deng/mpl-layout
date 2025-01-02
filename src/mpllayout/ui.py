@@ -14,6 +14,7 @@ import numpy as np
 from .containers import iter_flat
 from . import primitives as pr
 from . import constraints as cr
+from . import constructions as cn
 
 ## Functions for plotting geometric primitives
 
@@ -41,7 +42,7 @@ def rotation_from_line(line: pr.Line) -> float:
     """
     Return the rotation of a line vector
     """
-    line_vec = cr.line_vector(line)
+    line_vec = cn.LineVector.assem((line,))
     unit_vec = line_vec / np.linalg.norm(line_vec)
 
     # Since `unit_vec` has unit length, the x-component is the cosine
