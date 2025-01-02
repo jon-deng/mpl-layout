@@ -83,7 +83,7 @@ if __name__ == "__main__":
     print(info)
 
     _fig, _ = ui.figure_prims(prim_tree_n)
-    _fig.savefig("grid_axes_layout.png")
+    _fig.savefig("grid_axes_layout.png", dpi=300)
 
     # print('Figure:', prim_tree_n['Figure'])
     # print('Axes1:', prim_tree_n['Axes1'])
