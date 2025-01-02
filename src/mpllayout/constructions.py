@@ -567,7 +567,7 @@ class Vector(Construction, _NullSignature):
         return cls.make_signature(size_node.value, (np.ndarray,))
 
     @classmethod
-    def assem(cls, prims, value):
+    def assem(cls, prims: tuple[()], value: float | NDArray):
         assert prims == ()
         return value
 
@@ -579,7 +579,7 @@ class Scalar(LeafConstruction, _NullSignature):
         return cls.make_signature(1, (float,))
 
     @classmethod
-    def assem(cls, prims, value: float):
+    def assem(cls, prims: tuple[()], value: float):
         return value
 
 ## Point constructions
