@@ -6,7 +6,7 @@ For example, this could be the coordinates of a point, the angle between two
 lines, or the length of a single line.
 """
 
-from typing import Callable, Optional, Any, TypeVar
+from typing import Callable, Optional, Any, TypeVar, NamedTuple
 from collections.abc import Iterable
 from numpy.typing import NDArray
 
@@ -38,11 +38,11 @@ ConstructionSignature = tuple[tuple[PrimTypes, ParamTypes], ArraySize]
 
 ChildParams = Callable[[Params], list[Params]]
 
-ConstructionValue = tuple[
-    list[PrimKeys],
-    ChildParams,
-    ConstructionSignature
-]
+class ConstructionValue(NamedTuple):
+    child_prim_keys: list[PrimKeys]
+    child_params: ChildParams
+    signature: ConstructionSignature
+
 
 TCons = TypeVar("TCons", bound="ConstructionNode")
 
@@ -97,12 +97,13 @@ class ConstructionNode(Node[ConstructionValue]):
     Parameters
     ----------
     value: ConstructionValue
-        Tuple representing the construction children and signature
+        A named tuple specifying the signature and child constructions
 
-        A construction value is a tuple of three objects describing how child
-        constructions are evaluated and the signature of the construction
+        A construction value is a named tuple of three objects describing
+        the signature of the construction and how child constructions are
+        evaluated
             ``child_prim_keys, child_params, signature = value``
-        These are further described below.
+        The tuple fields are further described below.
 
         child_prim_keys: list[PrimKeys]
             Specifies how `child_prims` are created from `prims`
@@ -405,7 +406,7 @@ class Construction(ConstructionNode):
         ) = self.init_children(**kwargs)
         signature = self.init_signature(**kwargs)
 
-        value = (child_prim_keys, child_params, signature)
+        value = ConstructionValue(child_prim_keys, child_params, signature)
         children = {
             key: child for key, child in zip(child_keys, child_constructions)
         }
@@ -1230,8 +1231,7 @@ def transform_constraint(construction: TCons):
 
     # Tree of construction output sizes
     def value_size(node_value: ConstructionValue) -> int:
-        *_, signature = node_value
-        (_prim_types, _param_types), value_size = signature
+        (_prim_types, _param_types), value_size = node_value.signature
         return value_size
 
     size_node = node_map(value_size, construction)
