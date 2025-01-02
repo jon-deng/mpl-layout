@@ -80,7 +80,7 @@ class TestConstructionFunctions(GeometryFixtures):
         assert np.all(np.isclose(res_a, res_b))
 
         # Test non constant version
-        mul_construction = con.transform_scalar_mul(construction, None)
+        mul_construction = con.transform_scalar_mul(construction, con.Scalar())
         params = cons_params + (scalar,)
         res_b = mul_construction(prims, *params)
 

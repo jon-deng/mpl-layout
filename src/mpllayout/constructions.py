@@ -484,332 +484,6 @@ class LeafConstruction(Construction):
         return (), (), (), child_params
 
 
-## Construction transform functions
-
-# These functions transform constructions into new ones
-
-def transform_ConstraintType(ConstructionType: type[TCons]):
-    """
-    Return a constraint from a construction type
-
-    See `transform_constraint` for more details.
-
-    Parameters
-    ----------
-    ConstructionType: type[TCons]
-        The construction class to transform
-
-    Returns
-    -------
-    DerivedConstraint: type[ConstructionNode]
-        The transformed constraint class
-    """
-
-    class DerivedConstraint(ConstructionNode):
-
-        def __new__(cls, **kwargs):
-            construction = ConstructionType(**kwargs)
-            return transform_constraint(construction)
-
-        def __init__(self, **kwargs):
-            pass
-
-    DerivedConstraint.__name__ = ConstructionType.__name__
-
-    return DerivedConstraint
-
-
-def transform_constraint(construction: TCons):
-    """
-    Return a constraint from a construction
-
-    The transformed constraint returns a value according to
-    ```construction(prims, *params, value) - value```.
-    The transformed constraint accepts an additional parameter `value` on top
-    of the construction parameters.
-
-
-    Parameters
-    ----------
-    construction: typeTCons
-        The construction to transform
-
-    Returns
-    -------
-    constraint: DerivedConstraint
-        The transformed constraint class
-    """
-
-    # Tree of construction output sizes
-    def value_size(node_value: ConstructionValue) -> int:
-        *_, signature = node_value
-        (_prim_types, _param_types), value_size = signature
-        return value_size
-
-    size_node = node_map(value_size, construction)
-
-    vector = Vector(size_node)
-    return transform_sum(construction, transform_scalar_mul(vector, -1))
-
-
-def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
-    """
-    Return a derived construction that maps over an array of primitives
-
-    See `transform_map` for more details.
-
-    Parameters
-    ----------
-    ConstructionType: type[TCons]
-        The construction class to transform
-    PrimType: list[type[pr.Primitive]]
-        The list of primitives to map over
-
-    Returns
-    -------
-    MapConstruction: type[ConstructionNode]
-        The transformed map construction class
-    """
-
-    class MapConstruction(ConstructionNode):
-
-        def __new__(cls, **kwargs):
-            construction = ConstructionType(**kwargs)
-            return transform_map(construction, PrimTypes)
-
-        def __init__(self, **kwargs):
-            pass
-
-    MapConstruction.__name__ = f"Map{ConstructionType.__name__}"
-
-    return MapConstruction
-
-
-def transform_map(
-    construction: TCons,
-    PrimTypes: list[type[pr.Primitive]]
-):
-    """
-    Return a derived construction that maps over an array of primitives
-
-    This works in the typical way if `construction` accepts a single primitive.
-
-    If `construction` accepts more than one primitive, all additional primitives
-    are treated as `frozen`.
-    These primitives are always taken from the last primitive in the
-    map construction's primitive input array.
-
-    For example, consider a `construction` with signature
-    `Callable[[PrimA, PrimB1, ..., PrimBM], NDArray]`
-    where M is the number of additional primitives.
-    The map construction over prims `prims = [PrimA1, ... PrimAN]` returns a
-    tree of child constructions
-    `[construction(prims[0], prims[-M:]), ..., construction(prims[N-M-1], prims[N-M:])]`
-
-    Parameters
-    ----------
-    construction: TCons
-        The construction to map
-    PrimType: list[type[pr.Primitive]]
-        The list of primitives to map over
-
-    Returns
-    -------
-    MapConstruction
-        The transformed map construction
-    """
-    PRIM_KEYS, CHILD_PRIMS, SIGNATURE = construction.value
-    N = len(PrimTypes)
-    # `M` is the number of additional arguments past one for the construction
-    (PRIM_TYPES, PARAM_TYPES), value_size = SIGNATURE
-    M = len(PRIM_TYPES)-1
-
-    num_constr = max(N - M, 0)
-
-    child_keys = tuple(
-        f"{type(construction).__name__}{n}" for n in range(num_constr)
-    )
-    child_constructions = num_constr*(construction,)
-
-    constant_prim_keys = tuple(
-        f"arg{ii}" for ii in range(N-M, N)
-    )
-    child_prim_keys = tuple(
-        (f"arg{n}", *constant_prim_keys) for n in range(num_constr)
-    )
-    def child_params(map_params):
-        num_params = len(PARAM_TYPES)
-        return tuple(
-            map_params[n * num_params : (n + 1) * num_params]
-            for n in range(num_constr)
-        )
-
-    map_signature = (
-        (num_constr*PRIM_TYPES[:1] + PRIM_TYPES[1:], num_constr*PARAM_TYPES), 0
-    )
-
-    class MapConstruction(ConstructionNode):
-
-        def __init__(self):
-            value = (child_prim_keys, child_params, map_signature)
-            children = {
-                key: child for key, child in zip(child_keys, child_constructions)
-            }
-            super().__init__(value, children)
-
-        @classmethod
-        def assem(cls, prims, *map_params):
-            return np.array(())
-
-    MapConstruction.__name__ = f"Map{type(construction).__name__}"
-
-    return MapConstruction()
-
-
-def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
-    """
-    Return a construction representing the sum of two input constructions
-    """
-    # Check that the two constructions (and all children) have the same signature
-    # Two constructions can be added if their output size nodes are the same
-
-    def transform_SumConstruction(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
-
-        child_keys_a = cons_a.keys()
-        child_keys_b = cons_b.keys()
-
-        child_prim_keys_a, child_params_a, signature_a = cons_a.value
-        child_prim_keys_b, child_params_b, signature_b = cons_b.value
-
-        (prim_types_a, param_types_a), size_a = signature_a
-        (prim_types_b, param_types_b), size_b = signature_b
-
-        assert size_a == size_b
-
-        sum_child_prim_keys = tuple(
-            prim_keys_a + prim_keys_b
-            for prim_keys_a, prim_keys_b
-            in zip(child_prim_keys_a, child_prim_keys_b)
-        )
-
-        assert child_keys_a == child_keys_b
-        sum_child_keys = child_keys_a
-
-        sum_signature = (
-            (prim_types_a + prim_types_b, param_types_a + param_types_b),
-            size_a
-        )
-
-        def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
-            param_chunks = (len(param_types_a), len(param_types_b))
-            params_a, params_b = tuple(chunk(sum_params, param_chunks))
-            return (
-                ca + cb for ca, cb
-                in zip(child_params_a(params_a), child_params_b(params_b))
-            )
-
-        node_value = (sum_child_prim_keys, sum_child_params, sum_signature)
-
-        class SumConstruction(ConstructionNode):
-
-            @classmethod
-            def assem(cls, sum_prims: Prims, *sum_params: Params) -> NDArray:
-                prim_chunks = (len(prim_types_a), len(prim_types_b))
-                prims_a, prims_b = tuple(chunk(sum_prims, prim_chunks))
-
-                param_chunks = (len(param_types_a), len(param_types_b))
-                params_a, params_b = tuple(chunk(sum_params, param_chunks))
-                return cons_a.assem(prims_a, *params_a) + cons_b.assem(prims_b, *params_b)
-
-        return SumConstruction, node_value, sum_child_keys
-
-    flat_a = [a for a in iter_flat("", cons_a)]
-    flat_b = [b for b in iter_flat("", cons_b)]
-
-    flat_sum_constructions = [
-        (key, *transform_SumConstruction(a, b))
-        for (key, a), (_, b) in zip(flat_a, flat_b)
-    ]
-
-    return unflatten(flat_sum_constructions)[0]
-
-
-def transform_scalar_mul(cons_a: TCons, scalar: Optional[float]=None) -> ConstructionNode:
-    """
-    Return a construction representing a construction multiplied by a scalar
-    """
-    # If `scalar=None` a new scalar parameter is added
-    # If `scalar` is a float, then the scalar float is used to multiply the construction
-    # and no additional parameter is added
-
-    if scalar is None:
-        scalar = Scalar()
-
-    def transform_ScalarMultiple(
-        cons_a: TCons, scalar: float | None
-    ) -> ConstructionNode:
-        child_keys = cons_a.keys()
-        child_prim_keys, child_params, signature = cons_a.value
-
-        if isinstance(scalar, Scalar):
-            scalar_child_prim_keys, scalar_child_params, scalar_signature = scalar.value
-            class ScalarMultipleConstruction(ConstructionNode):
-
-                @classmethod
-                def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                    *_params, value = params
-                    return scalar.assem((), value) * cons_a.assem(prims, *_params)
-
-            def mul_child_params(params: Params) -> tuple[Params, ...]:
-                *_params, value = params
-                return tuple(
-                    (*_child_params, value)
-                    for _child_params in child_params(_params)
-                )
-
-            (prim_types, param_types), value_size = signature
-            mul_signature = ((prim_types, param_types+(float,)), value_size)
-
-        elif isinstance(scalar, (float, int)):
-            class ScalarMultipleConstruction(ConstructionNode):
-
-                @classmethod
-                def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                    return scalar * cons_a.assem(prims, *params)
-
-            def mul_child_params(params: Params) -> tuple[Params, ...]:
-                return child_params(params)
-
-            mul_signature = signature
-        else:
-            raise TypeError(
-                "`scalar` must be `float | int` not `{type(scalar)}`"
-            )
-
-
-        node_value = (child_prim_keys, mul_child_params, mul_signature)
-        return ScalarMultipleConstruction, node_value, child_keys
-
-    flat_a = [a for a in iter_flat("", cons_a)]
-    flat_sum_constructions = [
-        (key, *transform_ScalarMultiple(a, scalar)) for key, a in flat_a
-    ]
-
-    return unflatten(flat_sum_constructions)[0]
-
-
-T = TypeVar('T')
-
-def chunk(array: list[T], chunk_sizes: list[int]) -> Iterable[list[T]]:
-
-    slice_bounds = list(itertools.accumulate(chunk_sizes, initial=0))
-    # cum_chunk_size = slice_bounds[-1]
-
-    return (
-        array[start:stop]
-        for start, stop in zip(slice_bounds[:-1], slice_bounds[1:])
-    )
-
 ## Construction signatures
 
 
@@ -1482,3 +1156,336 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
 ## Axes constructions
 
 # Argument type: tuple[Axes]
+
+
+## Construction transform functions
+
+# Utilities for constructions transforms
+T = TypeVar('T')
+
+def chunk(array: list[T], chunk_sizes: list[int]) -> Iterable[list[T]]:
+
+    slice_bounds = list(itertools.accumulate(chunk_sizes, initial=0))
+    # cum_chunk_size = slice_bounds[-1]
+
+    return (
+        array[start:stop]
+        for start, stop in zip(slice_bounds[:-1], slice_bounds[1:])
+    )
+
+
+# These functions transform constructions into new ones
+
+def transform_ConstraintType(ConstructionType: type[TCons]):
+    """
+    Return a constraint from a construction type
+
+    See `transform_constraint` for more details.
+
+    Parameters
+    ----------
+    ConstructionType: type[TCons]
+        The construction class to transform
+
+    Returns
+    -------
+    DerivedConstraint: type[ConstructionNode]
+        The transformed constraint class
+    """
+
+    class DerivedConstraint(ConstructionNode):
+
+        def __new__(cls, **kwargs):
+            construction = ConstructionType(**kwargs)
+            return transform_constraint(construction)
+
+        def __init__(self, **kwargs):
+            pass
+
+    DerivedConstraint.__name__ = ConstructionType.__name__
+
+    return DerivedConstraint
+
+
+def transform_constraint(construction: TCons):
+    """
+    Return a constraint from a construction
+
+    The transformed constraint returns a value according to
+    ```construction(prims, *params, value) - value```.
+    The transformed constraint accepts an additional parameter `value` on top
+    of the construction parameters.
+
+
+    Parameters
+    ----------
+    construction: typeTCons
+        The construction to transform
+
+    Returns
+    -------
+    constraint: DerivedConstraint
+        The transformed constraint class
+    """
+
+    # Tree of construction output sizes
+    def value_size(node_value: ConstructionValue) -> int:
+        *_, signature = node_value
+        (_prim_types, _param_types), value_size = signature
+        return value_size
+
+    size_node = node_map(value_size, construction)
+
+    vector = Vector(size_node)
+    return transform_sum(construction, transform_scalar_mul(vector, -1))
+
+
+def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
+    """
+    Return a derived construction that maps over an array of primitives
+
+    See `transform_map` for more details.
+
+    Parameters
+    ----------
+    ConstructionType: type[TCons]
+        The construction class to transform
+    PrimType: list[type[pr.Primitive]]
+        The list of primitives to map over
+
+    Returns
+    -------
+    MapConstruction: type[ConstructionNode]
+        The transformed map construction class
+    """
+
+    class MapConstruction(ConstructionNode):
+
+        def __new__(cls, **kwargs):
+            construction = ConstructionType(**kwargs)
+            return transform_map(construction, PrimTypes)
+
+        def __init__(self, **kwargs):
+            pass
+
+    MapConstruction.__name__ = f"Map{ConstructionType.__name__}"
+
+    return MapConstruction
+
+
+def transform_map(
+    construction: TCons,
+    PrimTypes: list[type[pr.Primitive]]
+):
+    """
+    Return a derived construction that maps over an array of primitives
+
+    This works in the typical way if `construction` accepts a single primitive.
+
+    If `construction` accepts more than one primitive, all additional primitives
+    are treated as `frozen`.
+    These primitives are always taken from the last primitive in the
+    map construction's primitive input array.
+
+    For example, consider a `construction` with signature
+    `Callable[[PrimA, PrimB1, ..., PrimBM], NDArray]`
+    where M is the number of additional primitives.
+    The map construction over prims `prims = [PrimA1, ... PrimAN]` returns a
+    tree of child constructions
+    `[construction(prims[0], prims[-M:]), ..., construction(prims[N-M-1], prims[N-M:])]`
+
+    Parameters
+    ----------
+    construction: TCons
+        The construction to map
+    PrimType: list[type[pr.Primitive]]
+        The list of primitives to map over
+
+    Returns
+    -------
+    MapConstruction
+        The transformed map construction
+    """
+    PRIM_KEYS, CHILD_PRIMS, SIGNATURE = construction.value
+    N = len(PrimTypes)
+    # `M` is the number of additional arguments past one for the construction
+    (PRIM_TYPES, PARAM_TYPES), value_size = SIGNATURE
+    M = len(PRIM_TYPES)-1
+
+    num_constr = max(N - M, 0)
+
+    child_keys = tuple(
+        f"{type(construction).__name__}{n}" for n in range(num_constr)
+    )
+    child_constructions = num_constr*(construction,)
+
+    constant_prim_keys = tuple(
+        f"arg{ii}" for ii in range(N-M, N)
+    )
+    child_prim_keys = tuple(
+        (f"arg{n}", *constant_prim_keys) for n in range(num_constr)
+    )
+    def child_params(map_params):
+        num_params = len(PARAM_TYPES)
+        return tuple(
+            map_params[n * num_params : (n + 1) * num_params]
+            for n in range(num_constr)
+        )
+
+    map_signature = (
+        (num_constr*PRIM_TYPES[:1] + PRIM_TYPES[1:], num_constr*PARAM_TYPES), 0
+    )
+
+    class MapConstruction(ConstructionNode):
+
+        def __init__(self):
+            value = (child_prim_keys, child_params, map_signature)
+            children = {
+                key: child for key, child in zip(child_keys, child_constructions)
+            }
+            super().__init__(value, children)
+
+        @classmethod
+        def assem(cls, prims, *map_params):
+            return np.array(())
+
+    MapConstruction.__name__ = f"Map{type(construction).__name__}"
+
+    return MapConstruction()
+
+
+def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
+    """
+    Return a construction representing the sum of two input constructions
+    """
+    # Check that the two constructions (and all children) have the same signature
+    # Two constructions can be added if their output size nodes are the same
+
+    def transform_SumConstruction(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
+
+        child_keys_a = cons_a.keys()
+        child_keys_b = cons_b.keys()
+
+        child_prim_keys_a, child_params_a, signature_a = cons_a.value
+        child_prim_keys_b, child_params_b, signature_b = cons_b.value
+
+        (prim_types_a, param_types_a), size_a = signature_a
+        (prim_types_b, param_types_b), size_b = signature_b
+
+        assert size_a == size_b
+
+        sum_child_prim_keys = tuple(
+            prim_keys_a + prim_keys_b
+            for prim_keys_a, prim_keys_b
+            in zip(child_prim_keys_a, child_prim_keys_b)
+        )
+
+        assert child_keys_a == child_keys_b
+        sum_child_keys = child_keys_a
+
+        sum_signature = (
+            (prim_types_a + prim_types_b, param_types_a + param_types_b),
+            size_a
+        )
+
+        def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
+            param_chunks = (len(param_types_a), len(param_types_b))
+            params_a, params_b = tuple(chunk(sum_params, param_chunks))
+            return (
+                ca + cb for ca, cb
+                in zip(child_params_a(params_a), child_params_b(params_b))
+            )
+
+        node_value = (sum_child_prim_keys, sum_child_params, sum_signature)
+
+        class SumConstruction(ConstructionNode):
+
+            @classmethod
+            def assem(cls, sum_prims: Prims, *sum_params: Params) -> NDArray:
+                prim_chunks = (len(prim_types_a), len(prim_types_b))
+                prims_a, prims_b = tuple(chunk(sum_prims, prim_chunks))
+
+                param_chunks = (len(param_types_a), len(param_types_b))
+                params_a, params_b = tuple(chunk(sum_params, param_chunks))
+                return cons_a.assem(prims_a, *params_a) + cons_b.assem(prims_b, *params_b)
+
+        return SumConstruction, node_value, sum_child_keys
+
+    flat_a = [a for a in iter_flat("", cons_a)]
+    flat_b = [b for b in iter_flat("", cons_b)]
+
+    flat_sum_constructions = [
+        (key, *transform_SumConstruction(a, b))
+        for (key, a), (_, b) in zip(flat_a, flat_b)
+    ]
+
+    return unflatten(flat_sum_constructions)[0]
+
+
+def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionNode:
+    """
+    Return a construction representing a construction multiplied by a scalar
+    """
+    # TODO: Implement a parameter freezing transform which fixes a parameter
+    # Then constnt `Scalar` and `Vector` could be represented by freezing
+    # `value` parameter
+
+    # If `scalar` is `Scalar` a new scalar parameter is added
+    # If `scalar` is `float`, then the scalar float is used to multiply the
+    # construction and no additional parameter is added
+
+    def transform_ScalarMultiple(
+        cons_a: TCons, scalar: float | Scalar
+    ) -> ConstructionNode:
+        child_keys = cons_a.keys()
+        child_prim_keys, child_params, signature = cons_a.value
+        (prim_types, param_types), value_size = signature
+
+        if isinstance(scalar, Scalar):
+            *_, scalar_signature = scalar.value
+            (scalar_prim_types, scalar_param_types), scalar_value_size = scalar_signature
+
+            class ScalarMultipleConstruction(ConstructionNode):
+
+                @classmethod
+                def assem(cls, prims: Prims, *params: Params) -> NDArray:
+                    *_params, value = params
+                    return scalar.assem((), value) * cons_a.assem(prims, *_params)
+
+            def mul_child_params(mul_params: Params) -> tuple[Params, ...]:
+                params_sizes = (len(param_types), len(scalar_param_types))
+                cons_params, scal_params = tuple(chunk(mul_params, params_sizes))
+                *_params, value = mul_params
+                return tuple(
+                    _child_params + scal_params
+                    for _child_params in child_params(cons_params)
+                )
+
+            mul_signature = ((prim_types, param_types+scalar_param_types), value_size)
+
+        elif isinstance(scalar, (float, int)):
+            class ScalarMultipleConstruction(ConstructionNode):
+
+                @classmethod
+                def assem(cls, prims: Prims, *params: Params) -> NDArray:
+                    return scalar * cons_a.assem(prims, *params)
+
+            def mul_child_params(params: Params) -> tuple[Params, ...]:
+                return child_params(params)
+
+            mul_signature = signature
+        else:
+            raise TypeError(
+                f"`scalar` must be `float | int | Scalar` not `{type(scalar)}`"
+            )
+
+
+        node_value = (child_prim_keys, mul_child_params, mul_signature)
+        return ScalarMultipleConstruction, node_value, child_keys
+
+    flat_a = [a for a in iter_flat("", cons_a)]
+    flat_sum_constructions = [
+        (key, *transform_ScalarMultiple(a, scalar)) for key, a in flat_a
+    ]
+
+    return unflatten(flat_sum_constructions)[0]

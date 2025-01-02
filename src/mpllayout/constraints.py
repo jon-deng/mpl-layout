@@ -132,7 +132,7 @@ class RelativeLength(con.ConstructionNode):
         return con.transform_sum(
             con.Length(),
             con.transform_scalar_mul(
-                con.transform_scalar_mul(con.Length(), -1), None
+                con.transform_scalar_mul(con.Length(), -1), con.Scalar()
             )
         )
 
