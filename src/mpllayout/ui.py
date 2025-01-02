@@ -167,14 +167,20 @@ def plot_prim(
     plot = make_plot(prim)
     plot(ax, prim, label=label, alpha=alpha, **kwargs)
 
-    for child_key, child_prim in prim.items():
-        plot_prim(
-            ax,
-            child_prim,
-            prim_key=f'{prim_key}/{child_key}',
-            max_label_depth=max_label_depth,
-            **kwargs
-        )
+    if isinstance(prim, pr.Line):
+        pass
+        # NOTE: Skip plotting point belonging to lines because the labels overlap
+        # TODO: Implement nice plots of points in lines
+        # Should try to avoid label overlap
+    else:
+        for child_key, child_prim in prim.items():
+            plot_prim(
+                ax,
+                child_prim,
+                prim_key=f'{prim_key}/{child_key}',
+                max_label_depth=max_label_depth,
+                **kwargs
+            )
 
 
 ## Functions for plotting arbitrary geometric primitives
