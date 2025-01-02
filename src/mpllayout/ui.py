@@ -7,6 +7,7 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 import matplotlib as mpl
+from matplotlib.patches import Polygon
 from matplotlib import pyplot as plt
 from matplotlib.colors import Colormap
 import numpy as np
@@ -92,11 +93,12 @@ def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwa
         Additional keyword arguments for plotting
     """
     origin = polygon[f"Line0"]["Point0"].value
-    # points = [polygon[f"Line0"]["Point0"]] + [
-    #     polygon[f"Line{ii}"]["Point1"] for ii in range(len(polygon))
-    # ]
-    # xs = np.array([point.value[0] for point in points])
-    # ys = np.array([point.value[1] for point in points])
+    points = [
+        polygon[f"Line{ii}"]["Point0"] for ii in range(len(polygon))
+    ]
+    verts = np.array([point.value for point in points])
+    poly_patch = Polygon(verts, closed=True, **kwargs)
+    ax.add_patch(poly_patch)
 
     # (line,) = ax.plot(xs, ys, **kwargs)
     if label is not None:
