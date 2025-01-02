@@ -779,7 +779,7 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
     # Check that the two constructions (and all children) have the same signature
     # Two constructions can be added if their output size nodes are the same
 
-    def transform_SumConstruction(a: TCons, b: TCons) -> ConstructionNode:
+    def transform_SumConstruction(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
 
         child_keys_a = cons_a.keys()
         child_keys_b = cons_b.keys()
@@ -792,8 +792,11 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
 
         assert size_a == size_b
 
-        assert child_prim_keys_a == child_prim_keys_b
-        sum_child_prim_keys = child_prim_keys_a
+        sum_child_prim_keys = tuple(
+            prim_keys_a + prim_keys_b
+            for prim_keys_a, prim_keys_b
+            in zip(child_prim_keys_a, child_prim_keys_b)
+        )
 
         assert child_keys_a == child_keys_b
         sum_child_keys = child_keys_a
@@ -822,12 +825,13 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
 
                 param_chunks = (len(param_types_a), len(param_types_b))
                 params_a, params_b = tuple(chunk(sum_params, param_chunks))
-                return a.assem(prims_a, *params_a) + b.assem(prims_b, *params_b)
+                return cons_a.assem(prims_a, *params_a) + cons_b.assem(prims_b, *params_b)
 
         return SumConstruction, node_value, sum_child_keys
 
     flat_a = [a for a in iter_flat("", cons_a)]
     flat_b = [b for b in iter_flat("", cons_b)]
+
     flat_sum_constructions = [
         (key, *transform_SumConstruction(a, b))
         for (key, a), (_, b) in zip(flat_a, flat_b)
