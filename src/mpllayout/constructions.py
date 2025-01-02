@@ -20,7 +20,6 @@ from .containers import Node, iter_flat, flatten, unflatten
 from .containers import map as node_map, accumulate as node_accumulate
 
 
-
 Param = float | int | NDArray | bool
 Params = tuple[Param, ...]
 ParamTypes = tuple[type[Param]]
@@ -34,7 +33,10 @@ PrimTypes = tuple[type[pr.Primitive], ...]
 # datatype, shape etc.
 ArraySize = int
 
-ConstructionSignature = tuple[tuple[PrimTypes, ParamTypes], ArraySize]
+class ConstructionSignature(NamedTuple):
+    prim_types: PrimTypes
+    param_types: ParamTypes
+    value_size: ArraySize
 
 ChildParams = Callable[[Params], list[Params]]
 
@@ -130,10 +132,11 @@ class ConstructionNode(Node[ConstructionValue]):
             This function should return a list of `child_params` for each child
             construction from `params`.
         signature: ConstructionSignature
-            A tuple describing types for `assem`
+            A named tuple describing intput and output types for `assem`
 
-            This a tuple of the format
-                ``(prim_types, param_types), value_size = signature``
+            This a tuple with field `prim_types`, `param_types` and
+            `value_size`
+                ``prim_types, param_types, value_size = signature``,
             where
             `prim_types` is a tuple of primitive types for `prims`,
             `param_types` is a tuple of parameter types for `params,
@@ -153,28 +156,25 @@ class ConstructionNode(Node[ConstructionValue]):
             raise ValueError(f"`value` must have 3 items not {len(value)}")
 
         # Check each component of `value`
-        (prim_types, param_types), value_size = value.signature
 
         # Check `child_prim_keys` has one `PrimKeys` tuple for each child
         if not isinstance(value.child_prim_keys, (tuple, list)):
             raise TypeError(f"`value[0]` must be a tuple or list of `PrimKeys`")
         elif len(value.child_prim_keys) != len(children):
             raise ValueError(
-                f"`value[0]` must have length {len(children)}, matching the number of children"
+                f"`value.child_prim_keys` must have length {len(children)}"
+                " , matching the number of children"
             )
 
         # Check each `child_prim_keys` tuple indexes the right number of child
         # prims for the corresponding child construction
-        child_signatures = {
-            key: child.value.signature for key, child in children.items()
-        }
         child_prim_types = {
-            key: prim_types
-            for key, ((prim_types, _), _) in child_signatures.items()
+            key: child.value.signature.prim_types
+            for key, child in children.items()
         }
         valid_child_prim_keys = {
-            key: len(prim_types) == len(key_tuple)
-            for (key, prim_types), key_tuple
+            key: len(prim_types) == len(prim_keys)
+            for (key, prim_types), prim_keys
             in zip(child_prim_types.items(), value.child_prim_keys)
         }
         if not all(valid_child_prim_keys):
@@ -188,7 +188,11 @@ class ConstructionNode(Node[ConstructionValue]):
 
         # Check `child_params` is callable
         if not isinstance(value.child_params, Callable):
-            raise TypeError(f"value[1] must be `Callable`")
+            raise TypeError(f"value.child_params must be `Callable`")
+
+        # Check `signature` is a `ConstructionSignature`
+        if not isinstance(value.signature, ConstructionSignature):
+            raise TypeError(f"value.signature must be `ConstructionSignature`")
 
         ## Check `children`
 
@@ -262,7 +266,7 @@ class ConstructionNode(Node[ConstructionValue]):
             A root primitive containing primitives for the construction
         """
         return pr.PrimitiveNode(
-            np.array([]), {key: prim for key, prim in zip(prim_keys, prims)}
+            np.array(()), {key: prim for key, prim in zip(prim_keys, prims)}
         )
 
     def root_prim_keys(self, prim_keys: PrimKeys) -> PrimKeysNode:
@@ -483,14 +487,14 @@ class LeafConstruction(Construction):
 ## Construction signatures
 
 
-def make_signature_class(arg_types: tuple[type[pr.Primitive], ...]):
+def make_signature_class(prim_types: tuple[type[pr.Primitive], ...]):
 
     class PrimsSignature:
         @staticmethod
         def make_signature(
             value_size: ArraySize, param_types: ParamTypes = ()
         ):
-            return ((arg_types, param_types), value_size)
+            return ConstructionSignature(prim_types, param_types, value_size)
 
     return PrimsSignature
 
@@ -1226,8 +1230,7 @@ def transform_constraint(construction: TCons):
 
     # Tree of construction output sizes
     def value_size(node_value: ConstructionValue) -> int:
-        (_prim_types, _param_types), value_size = node_value.signature
-        return value_size
+        return node_value.signature.value_size
 
     size_node = node_map(value_size, construction)
 
@@ -1301,11 +1304,10 @@ def transform_map(
     MapConstruction
         The transformed map construction
     """
-    PRIM_KEYS, CHILD_PRIMS, SIGNATURE = construction.value
+    PRIM_KEYS, CHILD_PRIMS, SIG = construction.value
     N = len(PrimTypes)
     # `M` is the number of additional arguments past one for the construction
-    (PRIM_TYPES, PARAM_TYPES), value_size = SIGNATURE
-    M = len(PRIM_TYPES)-1
+    M = len(SIG.prim_types)-1
 
     num_constr = max(N - M, 0)
 
@@ -1321,14 +1323,16 @@ def transform_map(
         (f"arg{n}", *constant_prim_keys) for n in range(num_constr)
     )
     def child_params(map_params):
-        num_params = len(PARAM_TYPES)
+        num_params = len(SIG.param_types)
         return tuple(
             map_params[n * num_params : (n + 1) * num_params]
             for n in range(num_constr)
         )
 
-    map_signature = (
-        (num_constr*PRIM_TYPES[:1] + PRIM_TYPES[1:], num_constr*PARAM_TYPES), 0
+    map_signature = ConstructionSignature(
+        num_constr*SIG.prim_types[:1] + SIG.prim_types[1:],
+        num_constr*SIG.param_types,
+        0
     )
 
     class MapConstruction(ConstructionNode):
@@ -1366,10 +1370,10 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
         sum_child_keys = child_keys_a
 
         # Check the two constructions have the same output size
-        (prim_types_a, param_types_a), size_a = cons_a.value.signature
-        (prim_types_b, param_types_b), size_b = cons_b.value.signature
+        signature_a = cons_a.value.signature
+        signature_b = cons_b.value.signature
 
-        assert size_a == size_b
+        assert signature_a.value_size == signature_b.value_size
 
         # Build the sum construction `ConstructionValue` tuple
         sum_child_prim_keys = tuple(
@@ -1378,13 +1382,14 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
             in zip(cons_a.value.child_prim_keys, cons_b.value.child_prim_keys)
         )
 
-        sum_signature = (
-            (prim_types_a + prim_types_b, param_types_a + param_types_b),
-            size_a
+        sum_signature = ConstructionSignature(
+            signature_a.prim_types + signature_b.prim_types,
+            signature_a.param_types + signature_b.param_types,
+            signature_a.value_size
         )
 
+        param_chunks = (len(signature_a.param_types), len(signature_b.param_types))
         def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
-            param_chunks = (len(param_types_a), len(param_types_b))
             params_a, params_b = tuple(chunk(sum_params, param_chunks))
             return (
                 ca + cb for ca, cb
@@ -1398,14 +1403,13 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
             sum_child_prim_keys, sum_child_params, sum_signature
         )
 
+        prim_chunks = (len(signature_a.prim_types), len(signature_b.prim_types))
         class SumConstruction(ConstructionNode):
 
             @classmethod
             def assem(cls, sum_prims: Prims, *sum_params: Params) -> NDArray:
-                prim_chunks = (len(prim_types_a), len(prim_types_b))
                 prims_a, prims_b = tuple(chunk(sum_prims, prim_chunks))
 
-                param_chunks = (len(param_types_a), len(param_types_b))
                 params_a, params_b = tuple(chunk(sum_params, param_chunks))
                 return cons_a.assem(prims_a, *params_a) + cons_b.assem(prims_b, *params_b)
 
@@ -1438,11 +1442,10 @@ def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionN
         cons_a: TCons, scalar: float | Scalar
     ) -> ConstructionNode:
         child_keys = cons_a.keys()
-        child_prim_keys, child_params, signature = cons_a.value
-        (prim_types, param_types), value_size = cons_a.value.signature
+        a_signature = cons_a.value.signature
 
         if isinstance(scalar, Scalar):
-            (scalar_prim_types, scalar_param_types), scalar_value_size = scalar.value.signature
+            scalar_signature = scalar.value.signature
 
             class ScalarMultipleConstruction(ConstructionNode):
 
@@ -1451,16 +1454,24 @@ def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionN
                     *_params, value = params
                     return scalar.assem((), value) * cons_a.assem(prims, *_params)
 
+            params_sizes = (
+                len(a_signature.param_types), len(scalar_signature.param_types)
+            )
             def mul_child_params(mul_params: Params) -> tuple[Params, ...]:
-                params_sizes = (len(param_types), len(scalar_param_types))
-                cons_params, scal_params = tuple(chunk(mul_params, params_sizes))
-                *_params, value = mul_params
+                cons_params, scalar_params = tuple(
+                    chunk(mul_params, params_sizes)
+                )
                 return tuple(
-                    _child_params + scal_params
-                    for _child_params in cons_a.value.child_params(cons_params)
+                    child_cons_params + scalar_params
+                    for child_cons_params
+                    in cons_a.value.child_params(cons_params)
                 )
 
-            mul_signature = ((prim_types, param_types+scalar_param_types), value_size)
+            mul_signature = ConstructionSignature(
+                a_signature.prim_types + scalar_signature.prim_types,
+                a_signature.param_types + scalar_signature.param_types,
+                a_signature.value_size
+            )
 
         elif isinstance(scalar, (float, int)):
             class ScalarMultipleConstruction(ConstructionNode):

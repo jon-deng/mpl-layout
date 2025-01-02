@@ -569,7 +569,7 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         prim_types = np.prod(shape) * (pr.Quadrilateral,)
         param_types = ()
         value_size = 0
-        return ((prim_types, param_types), value_size)
+        return con.ConstructionSignature(prim_types, param_types, value_size)
 
 
 class Grid(ArrayConstraint, con._QuadrilateralsSignature):
@@ -648,7 +648,7 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
         prim_types = np.prod(shape) * (pr.Quadrilateral,)
         param_types = (np.ndarray, np.ndarray, np.ndarray, np.ndarray)
         value_size = 0
-        return ((prim_types, param_types), value_size)
+        return con.ConstructionSignature(prim_types, param_types, value_size)
 
 
 ## Axes constraints
