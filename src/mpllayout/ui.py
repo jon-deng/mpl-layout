@@ -117,7 +117,7 @@ def plot_polygon(ax: Axes, polygon: pr.Polygon, label: Optional[str]=None, **kwa
 def plot_generic_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs):
     pass
 
-def plot_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs):
+def plot_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, max_label_depth: int = 99, **kwargs):
     """
     Recursively plot all child primitives of a generic primitive
 
@@ -142,17 +142,23 @@ def plot_prim(ax: Axes, prim: pr.Primitive, label: Optional[str]=None, **kwargs)
         # have lower transparency
         depth = len(split_child_key) - 1
 
-        # This is the height of a node relative to the tree height
-        # The root node has relative height 1 and the deepest child has relative
-        # height 0
-        if prim_height == 0:
-            s = 1
+        # Only add labels for primitives that aren't too deep from the root node
+        if depth > max_label_depth:
+            label = None
         else:
-            s = (prim_height - depth)/prim_height
-        alpha = 1*s + 0.2*(1-s)
+            # This is the height of a node relative to the tree height
+            # The root node has relative height 1 and the deepest child has relative
+            # height 0
+            if prim_height == 0:
+                s = 1
+            else:
+                s = (prim_height - depth)/prim_height
+            alpha = 1*s + 0.2*(1-s)
 
-        parent_key = depth*"."
-        plot(ax, child_prim, label=f"{parent_key}/{split_child_key[-1]}", alpha=alpha, **kwargs)
+            parent_key = depth*"."
+            label = f"{parent_key}/{split_child_key[-1]}"
+
+        plot(ax, child_prim, label=label, alpha=alpha, **kwargs)
 
 
 ## Functions for plotting arbitrary geometric primitives
