@@ -953,8 +953,6 @@ _AxesSignature = make_signature_class((pr.Axes,))
 
 ## Constant constructions
 
-# TODO: Need to handle scalar value input (just pass on right vector size to each node?)
-
 class Vector(Construction, _NullSignature):
 
     def __init__(self, size_node: Optional[Node[int]]=None):
@@ -979,6 +977,9 @@ class Vector(Construction, _NullSignature):
 
         def child_params(params: Params) -> tuple[Params, ...]:
             value, = params
+
+            if isinstance(value, (float, int)):
+                value = value* np.ones(cumsize_node.value)
 
             return tuple(
                 (child_value[:size],)
