@@ -1163,7 +1163,27 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
 # Utilities for constructions transforms
 T = TypeVar('T')
 
-def chunk(array: list[T], chunk_sizes: list[int]) -> Iterable[list[T]]:
+def chunk(
+    array: list[T], chunk_sizes: list[int]
+) -> Iterable[list[T]]:
+    """
+    Return an iterable of array chunks
+
+    Parameters
+    ----------
+    array: list[T]
+        The array
+    chunk_sizes: list[int]
+        A list of chunk sizes to chunk the array
+
+        The array is split into `len(chunk_sizes)` chunks with each chunk having
+        the given size.
+
+    Returns
+    -------
+    Iterable[list[T]]
+        An iterable over the array chunks
+    """
 
     slice_bounds = list(itertools.accumulate(chunk_sizes, initial=0))
     # cum_chunk_size = slice_bounds[-1]
