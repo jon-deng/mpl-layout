@@ -1193,6 +1193,93 @@ def chunk(
         for start, stop in zip(slice_bounds[:-1], slice_bounds[1:])
     )
 
+ConcatPrims = (
+    Callable[[Prims, Prims], Prims]
+    | Callable[[PrimKeys, PrimKeys], PrimKeys]
+)
+SplitPrims = (
+    Callable[[Prims], tuple[Prims, Prims]]
+    | Callable[[PrimKeys], tuple[PrimKeys, PrimKeys]]
+)
+
+ConcatParams = Callable[[Params, Params], Params]
+SplitParams = Callable[[Params], tuple[Params, Params]]
+
+def concatenate_construction_inputs(
+    sig_a: ConstructionSignature, sig_b: ConstructionSignature, value_size: int
+) -> tuple[
+    ConstructionSignature,
+    tuple[ConcatPrims, SplitPrims],
+    tuple[ConcatParams, SplitParams]
+]:
+    """
+    Concatenate construction inputs
+
+    Concatenating two constructions represents a generic construction that
+    accepts the concatenated `prims` and `*params` of the two input
+    constructions.
+
+    To fully define the generic construction, you must also define a new `assem`
+    method over the combined `prims` and `*params`.
+    """
+    cat_sig = concatenate_signature(sig_a, sig_b, value_size)
+    helper_prims = concatenate_prims(sig_a, sig_b)
+    helper_params = concatenate_params(sig_a, sig_b)
+    return cat_sig, helper_prims, helper_params
+
+
+def concatenate_signature(
+    sig_a: ConstructionSignature, sig_b: ConstructionSignature, value_size: int
+) -> ConstructionSignature:
+    """
+    Concatenate two construction signatures to form a combined construction value
+
+    See `concatenate_construction_inputs` for more details.
+    """
+
+    cat_signature = ConstructionSignature(
+        sig_a.prim_types + sig_b.prim_types,
+        sig_a.param_types + sig_b.param_types,
+        value_size
+    )
+
+    return cat_signature
+
+
+def concatenate_prims(
+    signature_a: ConstructionSignature, signature_b: ConstructionSignature
+) -> tuple[ConcatPrims, SplitPrims]:
+    """
+    See `concatenate_construction_inputs` for more details.
+    """
+
+    def concat(prims_a: Prims, prims_b: Prims) -> Prims:
+        return prims_a + prims_b
+
+    chunks = (len(signature_a.prim_types), len(signature_b.prim_types))
+    def split(cat_prims) -> tuple[Prims, Prims]:
+        return tuple(chunk(cat_prims, chunks))
+
+    return concat, split
+
+
+def concatenate_params(
+    signature_a: ConstructionSignature, signature_b: ConstructionSignature
+) -> tuple[ConcatParams, SplitParams]:
+    """
+    See `concatenate_construction_inputs` for more details.
+    """
+
+    chunks = (len(signature_a.param_types), len(signature_b.param_types))
+
+    def concat(params_a: Params, params_b: Params) -> Params:
+        return params_a + params_b
+
+    def split(cat_params) -> tuple[Params, Params]:
+        return tuple(chunk(cat_params, chunks))
+
+    return concat, split
+
 
 # These functions transform constructions into new ones
 
@@ -1395,48 +1482,42 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
         assert child_keys_a == child_keys_b
         sum_child_keys = child_keys_a
 
-        # Check the two constructions have the same output size
-        signature_a = cons_a.value.signature
-        signature_b = cons_b.value.signature
 
+        # Check the two constructions have the same output size
+        value_a, value_b = cons_a.value, cons_b.value
+        signature_a, signature_b = value_a.signature, value_b.signature
         assert signature_a.value_size == signature_b.value_size
+
+        # Create the combined construction signature
+        sum_signature, cat_split_prims, cat_split_params = concatenate_construction_inputs(
+            signature_a, signature_b, signature_a.value_size
+        )
+        concat_prims, split_prims = cat_split_prims
+        concat_params, split_params = cat_split_params
 
         # Build the sum construction `ConstructionValue` tuple
         sum_child_prim_keys = tuple(
-            prim_keys_a + prim_keys_b
-            for prim_keys_a, prim_keys_b
-            in zip(cons_a.value.child_prim_keys, cons_b.value.child_prim_keys)
+            concat_prims(prim_keys_a, prim_keys_b) for prim_keys_a, prim_keys_b
+            in zip(value_a.child_prim_keys, value_b.child_prim_keys)
         )
 
-        sum_signature = ConstructionSignature(
-            signature_a.prim_types + signature_b.prim_types,
-            signature_a.param_types + signature_b.param_types,
-            signature_a.value_size
-        )
-
-        param_chunks = (len(signature_a.param_types), len(signature_b.param_types))
         def sum_child_params(sum_params: Params) -> tuple[Params, ...]:
-            params_a, params_b = tuple(chunk(sum_params, param_chunks))
+            params_a, params_b = split_params(sum_params)
             return (
-                ca + cb for ca, cb
-                in zip(
-                    cons_a.value.child_params(params_a),
-                    cons_b.value.child_params(params_b)
-                )
+                concat_params(ca, cb) for ca, cb
+                in zip(value_a.child_params(params_a), value_b.child_params(params_b))
             )
 
         node_value = ConstructionValue(
             sum_child_prim_keys, sum_child_params, sum_signature
         )
 
-        prim_chunks = (len(signature_a.prim_types), len(signature_b.prim_types))
         class SumConstruction(ConstructionNode):
 
             @classmethod
             def assem(cls, sum_prims: Prims, *sum_params: Params) -> NDArray:
-                prims_a, prims_b = tuple(chunk(sum_prims, prim_chunks))
-
-                params_a, params_b = tuple(chunk(sum_params, param_chunks))
+                prims_a, prims_b = split_prims(sum_prims)
+                params_a, params_b = split_params(sum_params)
                 return cons_a.assem(prims_a, *params_a) + cons_b.assem(prims_b, *params_b)
 
         return SumConstruction, node_value, sum_child_keys
@@ -1468,38 +1549,39 @@ def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionN
         cons_a: TCons, scalar: float | Scalar
     ) -> ConstructionNode:
         child_keys = cons_a.keys()
-        a_signature = cons_a.value.signature
+        value_a = cons_a.value
+        signature_a = value_a.signature
 
         if isinstance(scalar, Scalar):
-            scalar_signature = scalar.value.signature
+            signature_scalar = scalar.value.signature
+
+            mul_signature, cat_split_prims, cat_split_params = concatenate_construction_inputs(
+                signature_a, signature_scalar, signature_a.value_size
+            )
+            concat_prims, split_prims = cat_split_prims
+            concat_params, split_params = cat_split_params
 
             class ScalarMultipleConstruction(ConstructionNode):
 
                 @classmethod
                 def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                    *_params, value = params
-                    return scalar.assem((), value) * cons_a.assem(prims, *_params)
+                    prims_a, prims_scalar = split_prims(prims)
+                    params_a, params_scalar = split_params(params)
+                    return (
+                        scalar.assem(prims_scalar, *params_scalar)
+                        * cons_a.assem(prims_a, *params_a)
+                    )
 
-            params_sizes = (
-                len(a_signature.param_types), len(scalar_signature.param_types)
-            )
-            def mul_child_params(mul_params: Params) -> tuple[Params, ...]:
-                cons_params, scalar_params = tuple(
-                    chunk(mul_params, params_sizes)
-                )
+            def mul_child_params(params: Params) -> tuple[Params, ...]:
+                params_a, params_scalar = split_params(params)
                 return tuple(
-                    child_cons_params + scalar_params
-                    for child_cons_params
-                    in cons_a.value.child_params(cons_params)
+                    concat_params(child_cons_params, params_scalar)
+                    for child_cons_params in value_a.child_params(params_a)
                 )
-
-            mul_signature = ConstructionSignature(
-                a_signature.prim_types + scalar_signature.prim_types,
-                a_signature.param_types + scalar_signature.param_types,
-                a_signature.value_size
-            )
 
         elif isinstance(scalar, (float, int)):
+            mul_signature = signature_a
+
             class ScalarMultipleConstruction(ConstructionNode):
 
                 @classmethod
@@ -1507,14 +1589,12 @@ def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionN
                     return scalar * cons_a.assem(prims, *params)
 
             def mul_child_params(params: Params) -> tuple[Params, ...]:
-                return cons_a.value.child_params(params)
+                return value_a.child_params(params)
 
-            mul_signature = cons_a.value.signature
         else:
             raise TypeError(
                 f"`scalar` must be `float | int | Scalar` not `{type(scalar)}`"
             )
-
 
         node_value = ConstructionValue(
             cons_a.value.child_prim_keys, mul_child_params, mul_signature
