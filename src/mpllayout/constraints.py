@@ -2,7 +2,7 @@
 Geometric constraints
 """
 
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 from matplotlib.axis import XAxis, YAxis
 from numpy.typing import NDArray
 
@@ -668,21 +668,31 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
         The axes
     """
 
-    def __init__(self, bottom: bool=True, top: bool=False):
-        return super().__init__(bottom=bottom, top=top)
+    def __init__(
+        self,
+        side: Literal['bottom', 'top']='bottom',
+        twinx: bool=False
+    ):
+        return super().__init__(side=side, twinx=twinx)
 
     @classmethod
-    def init_children(cls, bottom: bool, top: bool):
+    def init_children(cls,
+        side: Literal['bottom', 'top']='bottom',
+        twinx: bool=False
+    ):
 
         keys = ('CoincidentLines',)
         constraints = (CoincidentLines(),)
-        if bottom:
-            prim_keys = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
-        elif top:
-            prim_keys = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
+
+        prim_keys_bottom = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
+        prim_keys_top = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
+        if side == 'bottom':
+            prim_keys = prim_keys_bottom
+        elif side == 'top':
+            prim_keys = prim_keys_top
         else:
             raise ValueError(
-                "'bottom' and 'top' can not both be true"
+                "`side` must be 'bottom' or 'top'"
             )
 
         def child_params(params: Params) -> tuple[Params, ...]:
@@ -691,7 +701,11 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
         return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_signature(cls, bottom: bool, top: bool):
+    def init_signature(
+        cls,
+        side: Literal['bottom', 'top']='bottom',
+        twinx: bool=False
+    ):
         return cls.make_signature(0)
 
 
@@ -705,18 +719,29 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
         The axes
     """
 
-    def __init__(self, left: bool=True, right: bool=False):
-        return super().__init__(left=left, right=right)
+    def __init__(
+        self,
+        side: Literal['left', 'right']='left',
+        twiny: bool=False
+    ):
+        return super().__init__(side=side, twiny=twiny)
 
     @classmethod
-    def init_children(cls, left: bool=True, right: bool=False):
+    def init_children(
+        cls,
+        side: Literal['left', 'right']='left',
+        twiny: bool=False
+    ):
 
         keys = ('CoincidentLines',)
         constraints = (CoincidentLines(),)
-        if left:
-            prim_keys = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
-        elif right:
-            prim_keys = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
+
+        prim_keys_left = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
+        prim_keys_right = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
+        if side == 'left':
+            prim_keys = prim_keys_left
+        elif side == 'right':
+            prim_keys = prim_keys_right
         else:
             raise ValueError(
                 "'left' and 'right' can not both be true"
@@ -728,7 +753,11 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
         return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_signature(cls, left: bool=True, right: bool=False):
+    def init_signature(
+        cls,
+        side: Literal['left', 'right']='left',
+        twiny: bool=False
+    ):
         return cls.make_signature(0)
 
 
