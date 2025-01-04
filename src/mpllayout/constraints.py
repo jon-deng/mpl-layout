@@ -508,6 +508,48 @@ class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilatera
     def init_signature(cls):
         return cls.make_signature(0)
 
+class AlignOutside(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+    """
+    Constrain the outside sides of two quadrilaterals to coincide
+
+    The behaviour depends on the `side` keyword argument. If side is 'left', the
+    left side of the first quad is coincident with the right side of the second
+    quad. If side is 'bottom', the bottom side of the first quad is coincident
+    with the top side of the second quad. Behaviour for the 'top' and 'right'
+    follows the same pattern.
+
+    Parameters
+    ----------
+    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
+        The quadrilaterals
+    """
+
+    @classmethod
+    def init_children(cls, side=Literal['bottom', 'top', 'left', 'right']):
+        keys = ("CoincidentLines",)
+        constraints = (CoincidentLines(),)
+        if side == 'bottom':
+            prim_keys = (('arg0/Line0', f'arg1/Line2'),)
+        elif side == 'top':
+            prim_keys = (('arg0/Line2', f'arg1/Line0'),)
+        elif side == 'left':
+            prim_keys = (('arg0/Line3', f'arg1/Line1'),)
+        elif side == 'right':
+            prim_keys = (('arg0/Line1', f'arg1/Line3'),)
+        else:
+            raise ValueError(
+                "`side` must be one of 'bottom', 'top', 'left', or 'right'"
+            )
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((True,),)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(cls):
+        return cls.make_signature(0)
+
 # Argument type: tuple[Quadrilateral, ...]
 
 def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
