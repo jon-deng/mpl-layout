@@ -695,12 +695,12 @@ class TestAxesConstraints(GeometryFixtures):
 
         assert np.all(np.isclose(res, 0))
 
-    def test_PositionXAxisLabel(self, axes, xlabel_position):
-        res = co.PositionXAxisLabel()((axes,), xlabel_position)
+    def test_PositionXAxisLabel(self, axes, xlabel_position, twinx):
+        res = co.PositionXAxisLabel(twin=twinx)((axes,), xlabel_position)
         assert np.all(np.isclose(res, 0))
 
-    def test_PositionYAxisLabel(self, axes, ylabel_position):
-        res = co.PositionYAxisLabel()((axes,), ylabel_position)
+    def test_PositionYAxisLabel(self, axes, ylabel_position, twiny):
+        res = co.PositionYAxisLabel(twin=twiny)((axes,), ylabel_position)
 
         assert np.all(np.isclose(res, 0))
 
