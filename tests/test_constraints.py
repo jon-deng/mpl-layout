@@ -583,21 +583,15 @@ class TestAxesConstraints(GeometryFixtures):
         return np.random.rand(2)
 
     @pytest.fixture(
-        params=[
-            {'bottom': True, 'top': False},
-            {'bottom': False, 'top': True},
-        ]
+        params=['bottom', 'top']
     )
-    def xaxis_position(self, request):
+    def xaxis_side(self, request):
         return request.param
 
     @pytest.fixture(
-        params=[
-            {'left': True, 'right': False},
-            {'left': False, 'right': True},
-        ]
+        params=['left', 'right']
     )
-    def yaxis_position(self, request):
+    def yaxis_side(self, request):
         return request.param
 
     @pytest.fixture()
@@ -612,8 +606,8 @@ class TestAxesConstraints(GeometryFixtures):
     def axes(
         self,
         axes_size: tuple[float, float],
-        xaxis_position,
-        yaxis_position,
+        xaxis_side,
+        yaxis_side,
         xaxis_height,
         yaxis_width,
         xlabel_position,
@@ -626,17 +620,17 @@ class TestAxesConstraints(GeometryFixtures):
         squash_width = np.array([[0, 0], [0, 1]])
 
         scale = np.diag([axes_width, xaxis_height])
-        if xaxis_position['bottom']:
+        if xaxis_side == 'bottom':
             xaxis = self.make_quad(np.array([0, -xaxis_height]), scale)
-        elif xaxis_position['top']:
+        elif xaxis_side == 'top':
             xaxis = self.make_quad(np.array([0, axes_height]), scale)
         else:
             raise ValueError()
 
         scale = np.diag([yaxis_width, axes_height])
-        if yaxis_position['left']:
+        if yaxis_side == 'left':
             yaxis = self.make_quad(np.array([-yaxis_width, 0]), scale)
-        elif yaxis_position['right']:
+        elif yaxis_side == 'right':
             yaxis = self.make_quad(np.array([axes_width, 0]), scale)
         else:
             raise ValueError()
@@ -658,12 +652,12 @@ class TestAxesConstraints(GeometryFixtures):
             yaxis=True
         )
 
-    def test_PositionXAxis(self, axes, xaxis_position):
-        res = co.PositionXAxis(**xaxis_position)((axes,))
+    def test_PositionXAxis(self, axes, xaxis_side):
+        res = co.PositionXAxis(side=xaxis_side)((axes,))
         assert np.all(np.isclose(res, 0))
 
-    def test_PositionYAxis(self, axes, yaxis_position):
-        res = co.PositionYAxis(**yaxis_position)((axes,))
+    def test_PositionYAxis(self, axes, yaxis_side):
+        res = co.PositionYAxis(side=yaxis_side)((axes,))
 
         assert np.all(np.isclose(res, 0))
 
@@ -682,8 +676,8 @@ class TestAxesConstraints(GeometryFixtures):
     def axes_mpl(
             self,
             axes_size: tuple[float, float],
-            xaxis_position,
-            yaxis_position,
+            xaxis_side,
+            yaxis_side,
         ):
         width, height = axes_size
         # NOTE: Unit dimensions of the figure are important because `fig.add_axes`
@@ -697,14 +691,14 @@ class TestAxesConstraints(GeometryFixtures):
         ax.set_xlabel("My favourite xlabel")
         ax.set_ylabel("My favourite ylabel")
 
-        if xaxis_position['bottom']:
+        if xaxis_side == 'bottom':
             ax.xaxis.tick_bottom()
-        elif xaxis_position['top']:
+        elif xaxis_side == 'top':
             ax.xaxis.tick_top()
 
-        if yaxis_position['left']:
+        if yaxis_side == 'left':
             ax.yaxis.tick_left()
-        elif yaxis_position['right']:
+        elif yaxis_side == 'right':
             ax.yaxis.tick_right()
 
         return ax
