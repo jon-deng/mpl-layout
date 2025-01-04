@@ -420,10 +420,13 @@ class Quadrilateral(Polygon):
         ys = [0, 0, 1, 1]
         return [Point((x, y)) for x, y in zip(xs, ys)]
 
+AxisPrims = tuple[Quadrilateral, Point]
 AxesChildPrims = (
     tuple[Quadrilateral]
-    | tuple[Quadrilateral, Quadrilateral, Point]
-    | tuple[Quadrilateral, Quadrilateral, Point, Quadrilateral, Point]
+    | tuple[Quadrilateral, *AxisPrims]
+    | tuple[Quadrilateral, *AxisPrims, *AxisPrims]
+    | tuple[Quadrilateral, *AxisPrims, *AxisPrims, *AxisPrims]
+    | tuple[Quadrilateral, *AxisPrims, *AxisPrims, *AxisPrims, *AxisPrims]
 )
 
 class Axes(Primitive):
@@ -436,6 +439,10 @@ class Axes(Primitive):
     - `quad['XAxisLabel']` : A `Point` representing the x-axis label anchor
     - `quad['YAxis']` : A `Quadrilateral` representing the y-axis
     - `quad['YAxisLabel']` : A `Point` representing the y-axis label anchor
+    - `quad['TwinXAxis']` : A `Quadrilateral` representing the twin x-axis
+    - `quad['TwinXAxisLabel']` : A `Point` representing the twin x-axis label anchor
+    - `quad['TwinYAxis']` : A `Quadrilateral` representing the twin y-axis
+    - `quad['TwinYAxisLabel']` : A `Point` representing the twin y-axis label anchor
 
     Parameters
     ----------
@@ -451,14 +458,19 @@ class Axes(Primitive):
 
         If false for a given axis, the corresponding child primitives will not
         be present.
+    xtwin, ytwin: bool
+        Whether to include a twin x/y axis
     """
 
+    _AxisPrimClasses = (Quadrilateral, Point)
     signature = (
         0,
         {
             (Quadrilateral,),
-            (Quadrilateral, Quadrilateral, Point),
-            (Quadrilateral, Quadrilateral, Point, Quadrilateral, Point)
+            (Quadrilateral, *(1 * _AxisPrimClasses)),
+            (Quadrilateral, *(2 * _AxisPrimClasses)),
+            (Quadrilateral, *(3 * _AxisPrimClasses)),
+            (Quadrilateral, *(4 * _AxisPrimClasses)),
         }
     )
 
@@ -467,45 +479,80 @@ class Axes(Primitive):
             value: Optional[NDArray]=None,
             prims: Optional[AxesChildPrims]=None,
             xaxis: bool=False,
-            yaxis: bool=False
+            yaxis: bool=False,
+            twinx: bool=False,
+            twiny: bool=False
         ):
-        super().__init__(value, prims, xaxis=xaxis, yaxis=yaxis)
+        super().__init__(value, prims, xaxis=xaxis, yaxis=yaxis, twinx=twinx, twiny=twiny)
 
     @classmethod
     def init_children(
         cls,
         prims: AxesChildPrims,
         xaxis: bool=False,
-        yaxis: bool=False
+        yaxis: bool=False,
+        twinx: bool=False,
+        twiny: bool=False
     ) -> tuple[list[str], AxesChildPrims]:
 
+        xaxis_keys = ()
+        twin_xaxis_keys = ()
         if xaxis:
             xaxis_keys = ("XAxis", "XAxisLabel")
-        else:
-            xaxis_keys = ()
+            if twinx:
+                twin_xaxis_keys = ("TwinXAxis", "TwinXAxisLabel")
 
+        yaxis_keys = ()
+        twin_yaxis_keys = ()
         if yaxis:
             yaxis_keys = ("YAxis", "YAxisLabel")
-        else:
-            yaxis_keys = ()
-        return ("Frame",) + xaxis_keys + yaxis_keys, prims
+            if twiny:
+                twin_yaxis_keys = ("TwinYAxis", "TwinYAxisLabel")
+
+        keys = (
+            ("Frame",)
+            + (xaxis_keys + yaxis_keys)
+            + (twin_xaxis_keys + twin_yaxis_keys)
+        )
+        return (keys, prims)
 
     @classmethod
-    def default_value(cls, xaxis: bool=False, yaxis: bool=False):
+    def default_value(
+        cls,
+        xaxis: bool=False,
+        yaxis: bool=False,
+        twinx: bool=False,
+        twiny: bool=False
+    ):
         return np.array(())
 
     @classmethod
-    def default_prims(cls, xaxis: bool=False, yaxis: bool=False):
+    def default_prims(
+        cls,
+        xaxis: bool=False,
+        yaxis: bool=False,
+        twinx: bool=False,
+        twiny: bool=False
+    ):
+        xaxis_prims = ()
+        twin_xaxis_prims = ()
         if xaxis:
             xaxis_prims = (Quadrilateral(), Point())
-        else:
-            xaxis_prims = ()
+            if twinx:
+                twin_xaxis_prims = (Quadrilateral(), Point())
 
+        yaxis_prims = ()
+        twin_yaxis_prims = ()
         if yaxis:
             yaxis_prims = (Quadrilateral(), Point())
-        else:
-            yaxis_prims = ()
-        return (Quadrilateral(),) + xaxis_prims + yaxis_prims
+            if twiny:
+                twin_yaxis_prims = (Quadrilateral(), Point())
+
+        return (
+            (Quadrilateral(),)
+            + (xaxis_prims + yaxis_prims)
+            + (twin_xaxis_prims + twin_yaxis_prims)
+        )
 
 
 ## Register `Primitive` classes as `jax.pytree`
