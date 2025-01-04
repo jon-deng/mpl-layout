@@ -718,7 +718,61 @@ def opposite_side(side: Literal['bottom', 'top', 'left', 'right']):
     else:
         raise ValueError()
 
-class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
+
+class PositionAxis(con.CompoundConstruction, con._AxesSignature):
+    """
+    Constrain the x or y axis (or twin axis) to a side of the axes frame
+
+    Parameters
+    ----------
+    prims: tuple[pr.Axes]
+        The axes
+    """
+
+    def __init__(
+        self,
+        axis: Literal['x', 'y'] = 'x',
+        side: Literal['bottom', 'top', 'left', 'right'] = 'bottom',
+        twin: bool=False
+    ):
+        return super().__init__(axis=axis, side=side, twin=twin)
+
+    @classmethod
+    def init_children(
+        cls,
+        axis: Literal['x', 'y'] = 'x',
+        side: Literal['bottom', 'top', 'left', 'right'] = 'bottom',
+        twin: bool=False
+    ):
+        keys = ('AlignOutside',)
+        constraints = (AlignOutside(side=side),)
+        prim_keys = (('arg0/Frame', f'arg0/{axis.upper()}Axis'),)
+
+        if twin:
+            keys = keys + ('TwinAlignOutside',)
+            constraints = constraints + (AlignOutside(side=opposite_side(side)),)
+            prim_keys = prim_keys + (('arg0/Frame', f'arg0/Twin{axis.upper()}Axis'),)
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            if twin:
+                child_params = 2*((),)
+            else:
+                child_params = ((),)
+            return child_params
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(
+        cls,
+        axis: Literal['x', 'y'] = 'x',
+        side: Literal['bottom', 'top', 'left', 'right'] = 'bottom',
+        twin: bool=False
+    ):
+        return cls.make_signature(0)
+
+
+class PositionXAxis(PositionAxis):
     """
     Constrain the x-axis to the top or bottom of an axes
 
@@ -733,44 +787,10 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
         side: Literal['bottom', 'top']='bottom',
         twin: bool=False
     ):
-        return super().__init__(side=side, twin=twin)
-
-    @classmethod
-    def init_children(cls,
-        side: Literal['bottom', 'top']='bottom',
-        twin: bool=False
-    ):
-        if side not in {'bottom', 'top'}:
-            raise ValueError("`side` must be 'bottom' or 'top'")
-
-        keys = ('AlignOutside',)
-        constraints = (AlignOutside(side=side),)
-        prim_keys = (('arg0/Frame', 'arg0/XAxis'),)
-
-        if twin:
-            keys = keys + ('TwinAlignOutside',)
-            constraints = constraints + (AlignOutside(side=opposite_side(side)),)
-            prim_keys = prim_keys + (('arg0/Frame', 'arg0/TwinXAxis'),)
-
-        def child_params(params: Params) -> tuple[Params, ...]:
-            if twin:
-                child_params = 2*((),)
-            else:
-                child_params = ((),)
-            return child_params
-
-        return keys, constraints, prim_keys, child_params
-
-    @classmethod
-    def init_signature(
-        cls,
-        side: Literal['bottom', 'top']='bottom',
-        twin: bool=False
-    ):
-        return cls.make_signature(0)
+        return super().__init__(axis='x', side=side, twin=twin)
 
 
-class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
+class PositionYAxis(PositionAxis, con._AxesSignature):
     """
     Constrain the y-axis to the left or right of an axes
 
@@ -785,43 +805,7 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
         side: Literal['left', 'right']='left',
         twin: bool=False
     ):
-        return super().__init__(side=side, twin=twin)
-
-    @classmethod
-    def init_children(
-        cls,
-        side: Literal['left', 'right']='left',
-        twin: bool=False
-    ):
-
-        if side not in {'left', 'right'}:
-            raise ValueError("`side` must be 'left' or 'right'")
-
-        keys = ('AlignOutside',)
-        constraints = (AlignOutside(side=side),)
-        prim_keys = (('arg0/Frame', 'arg0/YAxis'),)
-
-        if twin:
-            keys = keys + ('TwinAlignOutside',)
-            constraints = constraints + (AlignOutside(side=opposite_side(side)),)
-            prim_keys = prim_keys + (('arg0/Frame', 'arg0/TwinYAxis'),)
-
-        def child_params(params: Params) -> tuple[Params, ...]:
-            if twin:
-                child_params = 2*((),)
-            else:
-                child_params = ((),)
-            return child_params
-
-        return keys, constraints, prim_keys, child_params
-
-    @classmethod
-    def init_signature(
-        cls,
-        side: Literal['left', 'right']='left',
-        twin: bool=False
-    ):
-        return cls.make_signature(0)
+        return super().__init__(axis='y', side=side, twin=twin)
 
 
 class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
