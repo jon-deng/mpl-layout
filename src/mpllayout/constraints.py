@@ -680,23 +680,39 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
         side: Literal['bottom', 'top']='bottom',
         twinx: bool=False
     ):
+        if side not in {'bottom', 'top'}:
+            raise ValueError("`side` must be 'bottom' or 'top'")
+
+        if side == 'bottom':
+            bottom = True
+        else:
+            bottom = False
+
+        def coincident_line_keys(bottom: bool, twin: bool=False):
+            if twin:
+                twin_prefix = 'Twin'
+            else:
+                twin_prefix = ''
+
+            if bottom:
+                return (('arg0/Frame/Line0', f'arg0/{twin_prefix}XAxis/Line2'),)
+            else:
+                return (('arg0/Frame/Line2', f'arg0/{twin_prefix}XAxis/Line0'),)
 
         keys = ('CoincidentLines',)
         constraints = (CoincidentLines(),)
+        prim_keys = coincident_line_keys(bottom)
 
-        prim_keys_bottom = (('arg0/Frame/Line0', 'arg0/XAxis/Line2'),)
-        prim_keys_top = (('arg0/Frame/Line2', 'arg0/XAxis/Line0'),)
-        if side == 'bottom':
-            prim_keys = prim_keys_bottom
-        elif side == 'top':
-            prim_keys = prim_keys_top
-        else:
-            raise ValueError(
-                "`side` must be 'bottom' or 'top'"
-            )
+        if twinx:
+            keys = keys + ('TwinCoincidentLines',)
+            constraints = constraints + (CoincidentLines(),)
+            prim_keys = prim_keys + coincident_line_keys(not bottom, twin=True)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            return ((True,),)
+            child_params = ((True,),)
+            if twinx:
+                child_params = child_params + ((True,),)
+            return child_params
 
         return keys, constraints, prim_keys, child_params
 
@@ -733,22 +749,39 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
         twiny: bool=False
     ):
 
+        if side not in {'left', 'right'}:
+            raise ValueError("`side` must be 'left' or 'right'")
+
+        if side == 'left':
+            left = True
+        else:
+            left = False
+
+        def coincident_line_keys(left: bool, twin: bool=False):
+            if twin:
+                twin_prefix = 'Twin'
+            else:
+                twin_prefix = ''
+
+            if left:
+                return (('arg0/Frame/Line3', f'arg0/{twin_prefix}YAxis/Line1'),)
+            else:
+                return (('arg0/Frame/Line1', f'arg0/{twin_prefix}YAxis/Line3'),)
+
         keys = ('CoincidentLines',)
         constraints = (CoincidentLines(),)
+        prim_keys = coincident_line_keys(left)
 
-        prim_keys_left = (('arg0/Frame/Line3', 'arg0/YAxis/Line1'),)
-        prim_keys_right = (('arg0/Frame/Line1', 'arg0/YAxis/Line3'),)
-        if side == 'left':
-            prim_keys = prim_keys_left
-        elif side == 'right':
-            prim_keys = prim_keys_right
-        else:
-            raise ValueError(
-                "'left' and 'right' can not both be true"
-            )
+        if twiny:
+            keys = keys + ('TwinCoincidentLines',)
+            constraints = constraints + (CoincidentLines(),)
+            prim_keys = prim_keys + coincident_line_keys(not left, twin=True)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            return ((True,),)
+            child_params = ((True,),)
+            if twiny:
+                child_params = child_params + ((True,),)
+            return child_params
 
         return keys, constraints, prim_keys, child_params
 
