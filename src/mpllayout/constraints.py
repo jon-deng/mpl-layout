@@ -808,6 +808,72 @@ class PositionYAxis(PositionAxis, con._AxesSignature):
         return super().__init__(axis='y', side=side, twin=twin)
 
 
+class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
+    """
+    Constrain the x or y axis label fractional distance along the axis length
+
+    For the x label, this is the left to right fraction along the axes frame.
+    For the y label, this is the bottom to top fraction along the axes frame.
+
+    Parameters
+    ----------
+    prims: tuple[pr.AxesX | pr.Axes]
+        The axes
+    distance: float
+        The axes fraction from the left to position the label
+    """
+
+    def __init__(
+        self,
+        axis: Literal['x', 'y'] = 'x',
+        twin: bool=False
+    ):
+        super().__init__(axis=axis, twin=twin)
+
+    @classmethod
+    def init_children(
+        cls,
+        axis: Literal['x', 'y'] = 'x',
+        twin: bool=False
+    ):
+
+        keys = ('RelativePointOnLineDistance',)
+        constraints = (RelativePointOnLineDistance(),)
+
+        if twin:
+            twin_prefix = 'Twin'
+        else:
+            twin_prefix = ''
+
+        if axis == 'x':
+            prim_keys = (
+                (f'arg0/{twin_prefix}XAxisLabel', f'arg0/Frame/Line0'),
+            )
+        elif axis == 'y':
+            prim_keys = (
+                (f'arg0/{twin_prefix}YAxisLabel', f'arg0/Frame/Line1'),
+            )
+        else:
+            raise ValueError("`axis` must be 'x' or 'y'")
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            distance, = params
+            return ((False, distance),)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(
+        cls,
+        axis: Literal['x', 'y'] = 'x',
+        twin: bool=False
+    ):
+        return cls.make_signature(0)
+
+    def assem(cls, prims: tuple[pr.Axes], distance: float):
+        return super().assem(prims, distance)
+
+
 class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the x-axis label horizontal distance (left to right) relative to axes width
