@@ -582,6 +582,14 @@ class TestAxesConstraints(GeometryFixtures):
     def axes_size(self):
         return np.random.rand(2)
 
+    @pytest.fixture(params=(False, True))
+    def twinx(self, request):
+        return request.param
+
+    @pytest.fixture(params=(False, True))
+    def twiny(self, request):
+        return request.param
+
     @pytest.fixture(
         params=['bottom', 'top']
     )
@@ -619,21 +627,35 @@ class TestAxesConstraints(GeometryFixtures):
 
         squash_width = np.array([[0, 0], [0, 1]])
 
-        scale = np.diag([axes_width, xaxis_height])
-        if xaxis_side == 'bottom':
-            xaxis = self.make_quad(np.array([0, -xaxis_height]), scale)
-        elif xaxis_side == 'top':
-            xaxis = self.make_quad(np.array([0, axes_height]), scale)
-        else:
-            raise ValueError()
+        def make_quad_on_hor_side(bottom: bool):
+            scale = np.diag([axes_width, xaxis_height])
+            if bottom:
+                return self.make_quad(np.array([0, -xaxis_height]), scale)
+            else:
+                return self.make_quad(np.array([0, axes_height]), scale)
 
-        scale = np.diag([yaxis_width, axes_height])
-        if yaxis_side == 'left':
-            yaxis = self.make_quad(np.array([-yaxis_width, 0]), scale)
-        elif yaxis_side == 'right':
-            yaxis = self.make_quad(np.array([axes_width, 0]), scale)
+        if xaxis_side == 'bottom':
+            xbottom = True
         else:
-            raise ValueError()
+            xbottom = False
+
+        xaxis = make_quad_on_hor_side(xbottom)
+        twin_xaxis = make_quad_on_hor_side(not xbottom)
+
+        def make_quad_on_ver_side(left: bool):
+            scale = np.diag([yaxis_width, axes_height])
+            if left:
+                return self.make_quad(np.array([-yaxis_width, 0]), scale)
+            else:
+                return self.make_quad(np.array([axes_width, 0]), scale)
+
+        if yaxis_side == 'left':
+            yleft = True
+        else:
+            yleft = False
+
+        yaxis = make_quad_on_ver_side(yleft)
+        twin_yaxis = make_quad_on_ver_side(not yleft)
 
         def point_from_arclength(line: pr.Line, s: float):
             origin = line['Point0'].value
@@ -646,14 +668,26 @@ class TestAxesConstraints(GeometryFixtures):
             [np.random.rand(), point_from_arclength(yaxis['Line1'], ylabel_position)[1]]
         )
 
-        return pr.Axes(
-            prims=(frame, xaxis, xlabel_anchor, yaxis, ylabel_anchor),
-            xaxis=True,
-            yaxis=True
+        twin_xlabel_anchor = self.make_point(
+            [point_from_arclength(xaxis['Line0'], xlabel_position)[0], np.random.rand()]
+        )
+        twin_ylabel_anchor = self.make_point(
+            [np.random.rand(), point_from_arclength(yaxis['Line1'], ylabel_position)[1]]
         )
 
-    def test_PositionXAxis(self, axes, xaxis_side):
-        res = co.PositionXAxis(side=xaxis_side)((axes,))
+        xaxis_prims = (xaxis, xlabel_anchor)
+        yaxis_prims = (yaxis, ylabel_anchor)
+        twin_xaxis_prims = (twin_xaxis, twin_xlabel_anchor)
+        twin_yaxis_prims = (twin_yaxis, twin_ylabel_anchor)
+
+        prims = (frame, *xaxis_prims, *yaxis_prims, *twin_xaxis_prims, *twin_yaxis_prims)
+
+        return pr.Axes(
+            prims=prims, xaxis=True, yaxis=True, twinx=True, twiny=True
+        )
+
+    def test_PositionXAxis(self, axes, xaxis_side, twinx):
+        res = co.PositionXAxis(side=xaxis_side, twinx=twinx)((axes,))
         assert np.all(np.isclose(res, 0))
 
     def test_PositionYAxis(self, axes, yaxis_side):
