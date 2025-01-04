@@ -874,7 +874,7 @@ class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
         return super().assem(prims, distance)
 
 
-class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
+class PositionXAxisLabel(PositionAxisLabel):
     """
     Constrain the x-axis label horizontal distance (left to right) relative to axes width
 
@@ -885,26 +885,11 @@ class PositionXAxisLabel(con.CompoundConstruction, con._AxesSignature):
     distance: float
         The axes fraction from the left to position the label
     """
-
-    @classmethod
-    def init_children(cls):
-
-        keys = ('RelativePointOnLineDistance',)
-        constraints = (RelativePointOnLineDistance(),)
-        prim_keys = (('arg0/XAxisLabel', 'arg0/XAxis/Line0'),)
-
-        def child_params(params: Params) -> tuple[Params, ...]:
-            distance, = params
-            return ((False, distance),)
-
-        return keys, constraints, prim_keys, child_params
-
-    @classmethod
-    def init_signature(cls):
-        return cls.make_signature(0)
+    def __init__(self, twin: bool=False):
+        super().__init__(axis='x', twin=twin)
 
 
-class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
+class PositionYAxisLabel(PositionAxisLabel):
     """
     Constrain the y-axis label vertical distance (bottom to top) relative to axes height
 
@@ -915,19 +900,5 @@ class PositionYAxisLabel(con.CompoundConstruction, con._AxesSignature):
     distance: float
         The axes fraction from the bottom to position the label
     """
-
-    @classmethod
-    def init_children(cls):
-        keys = ('RelativePointOnLineDistance',)
-        constraints = (RelativePointOnLineDistance(),)
-        prim_keys = (('arg0/YAxisLabel', 'arg0/YAxis/Line1'),)
-
-        def child_params(params: Params) -> tuple[Params, ...]:
-            distance, = params
-            return ((False, distance),)
-
-        return keys, constraints, prim_keys, child_params
-
-    @classmethod
-    def init_signature(cls):
-        return cls.make_signature(0)
+    def __init__(self, twin: bool=False):
+        super().__init__(axis='y', twin=twin)
