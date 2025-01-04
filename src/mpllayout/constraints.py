@@ -508,7 +508,7 @@ class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilatera
     def init_signature(cls):
         return cls.make_signature(0)
 
-class AlignOutside(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+class AlignOutside(con.CompoundConstruction, con._QuadrilateralQuadrilateralSignature):
     """
     Constrain the outside sides of two quadrilaterals to coincide
 
@@ -523,6 +523,9 @@ class AlignOutside(con.StaticCompoundConstruction, con._QuadrilateralQuadrilater
     prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
         The quadrilaterals
     """
+
+    def __init__(self, side=Literal['bottom', 'top', 'left', 'right']):
+        super().__init__(side=side)
 
     @classmethod
     def init_children(cls, side=Literal['bottom', 'top', 'left', 'right']):
@@ -547,7 +550,7 @@ class AlignOutside(con.StaticCompoundConstruction, con._QuadrilateralQuadrilater
         return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_signature(cls):
+    def init_signature(cls, side=Literal['bottom', 'top', 'left', 'right']):
         return cls.make_signature(0)
 
 # Argument type: tuple[Quadrilateral, ...]
@@ -700,6 +703,21 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
 # TODO: Handle more specialized x/y axes combos (i.e. twin x/y axes)
 # The below axis constraints are made for a single x and y axis
 
+def opposite_side(side: Literal['bottom', 'top', 'left', 'right']):
+    """
+    Return the opposite side string representation
+    """
+    if side == 'bottom':
+        return 'top'
+    elif side == 'top':
+        return 'bottom'
+    elif side == 'left':
+        return 'right'
+    elif side == 'right':
+        return 'left'
+    else:
+        raise ValueError()
+
 class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     """
     Constrain the x-axis to the top or bottom of an axes
@@ -725,35 +743,20 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
         if side not in {'bottom', 'top'}:
             raise ValueError("`side` must be 'bottom' or 'top'")
 
-        if side == 'bottom':
-            bottom = True
-        else:
-            bottom = False
-
-        def coincident_line_keys(bottom: bool, twin: bool=False):
-            if twin:
-                twin_prefix = 'Twin'
-            else:
-                twin_prefix = ''
-
-            if bottom:
-                return (('arg0/Frame/Line0', f'arg0/{twin_prefix}XAxis/Line2'),)
-            else:
-                return (('arg0/Frame/Line2', f'arg0/{twin_prefix}XAxis/Line0'),)
-
-        keys = ('CoincidentLines',)
-        constraints = (CoincidentLines(),)
-        prim_keys = coincident_line_keys(bottom)
+        keys = ('AlignOutside',)
+        constraints = (AlignOutside(side=side),)
+        prim_keys = (('arg0/Frame', 'arg0/XAxis'),)
 
         if twinx:
-            keys = keys + ('TwinCoincidentLines',)
-            constraints = constraints + (CoincidentLines(),)
-            prim_keys = prim_keys + coincident_line_keys(not bottom, twin=True)
+            keys = keys + ('TwinAlignOutside',)
+            constraints = constraints + (AlignOutside(side=opposite_side(side)),)
+            prim_keys = prim_keys + (('arg0/Frame', 'arg0/TwinXAxis'),)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            child_params = ((True,),)
             if twinx:
-                child_params = child_params + ((True,),)
+                child_params = 2*((),)
+            else:
+                child_params = ((),)
             return child_params
 
         return keys, constraints, prim_keys, child_params
@@ -794,35 +797,20 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
         if side not in {'left', 'right'}:
             raise ValueError("`side` must be 'left' or 'right'")
 
-        if side == 'left':
-            left = True
-        else:
-            left = False
-
-        def coincident_line_keys(left: bool, twin: bool=False):
-            if twin:
-                twin_prefix = 'Twin'
-            else:
-                twin_prefix = ''
-
-            if left:
-                return (('arg0/Frame/Line3', f'arg0/{twin_prefix}YAxis/Line1'),)
-            else:
-                return (('arg0/Frame/Line1', f'arg0/{twin_prefix}YAxis/Line3'),)
-
-        keys = ('CoincidentLines',)
-        constraints = (CoincidentLines(),)
-        prim_keys = coincident_line_keys(left)
+        keys = ('AlignOutside',)
+        constraints = (AlignOutside(side=side),)
+        prim_keys = (('arg0/Frame', 'arg0/YAxis'),)
 
         if twiny:
-            keys = keys + ('TwinCoincidentLines',)
-            constraints = constraints + (CoincidentLines(),)
-            prim_keys = prim_keys + coincident_line_keys(not left, twin=True)
+            keys = keys + ('TwinAlignOutside',)
+            constraints = constraints + (AlignOutside(side=opposite_side(side)),)
+            prim_keys = prim_keys + (('arg0/Frame', 'arg0/TwinYAxis'),)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            child_params = ((True,),)
             if twiny:
-                child_params = child_params + ((True,),)
+                child_params = 2*((),)
+            else:
+                child_params = ((),)
             return child_params
 
         return keys, constraints, prim_keys, child_params
