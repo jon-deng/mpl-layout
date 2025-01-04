@@ -687,7 +687,7 @@ class TestAxesConstraints(GeometryFixtures):
         )
 
     def test_PositionXAxis(self, axes, xaxis_side, twinx):
-        res = co.PositionXAxis(side=xaxis_side, twinx=twinx)((axes,))
+        res = co.PositionXAxis(side=xaxis_side, twin=twinx)((axes,))
         assert np.all(np.isclose(res, 0))
 
     def test_PositionYAxis(self, axes, yaxis_side):

@@ -731,14 +731,14 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     def __init__(
         self,
         side: Literal['bottom', 'top']='bottom',
-        twinx: bool=False
+        twin: bool=False
     ):
-        return super().__init__(side=side, twinx=twinx)
+        return super().__init__(side=side, twin=twin)
 
     @classmethod
     def init_children(cls,
         side: Literal['bottom', 'top']='bottom',
-        twinx: bool=False
+        twin: bool=False
     ):
         if side not in {'bottom', 'top'}:
             raise ValueError("`side` must be 'bottom' or 'top'")
@@ -747,13 +747,13 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
         constraints = (AlignOutside(side=side),)
         prim_keys = (('arg0/Frame', 'arg0/XAxis'),)
 
-        if twinx:
+        if twin:
             keys = keys + ('TwinAlignOutside',)
             constraints = constraints + (AlignOutside(side=opposite_side(side)),)
             prim_keys = prim_keys + (('arg0/Frame', 'arg0/TwinXAxis'),)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            if twinx:
+            if twin:
                 child_params = 2*((),)
             else:
                 child_params = ((),)
@@ -765,7 +765,7 @@ class PositionXAxis(con.CompoundConstruction, con._AxesSignature):
     def init_signature(
         cls,
         side: Literal['bottom', 'top']='bottom',
-        twinx: bool=False
+        twin: bool=False
     ):
         return cls.make_signature(0)
 
@@ -783,15 +783,15 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
     def __init__(
         self,
         side: Literal['left', 'right']='left',
-        twiny: bool=False
+        twin: bool=False
     ):
-        return super().__init__(side=side, twiny=twiny)
+        return super().__init__(side=side, twin=twin)
 
     @classmethod
     def init_children(
         cls,
         side: Literal['left', 'right']='left',
-        twiny: bool=False
+        twin: bool=False
     ):
 
         if side not in {'left', 'right'}:
@@ -801,13 +801,13 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
         constraints = (AlignOutside(side=side),)
         prim_keys = (('arg0/Frame', 'arg0/YAxis'),)
 
-        if twiny:
+        if twin:
             keys = keys + ('TwinAlignOutside',)
             constraints = constraints + (AlignOutside(side=opposite_side(side)),)
             prim_keys = prim_keys + (('arg0/Frame', 'arg0/TwinYAxis'),)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            if twiny:
+            if twin:
                 child_params = 2*((),)
             else:
                 child_params = ((),)
@@ -819,7 +819,7 @@ class PositionYAxis(con.CompoundConstruction, con._AxesSignature):
     def init_signature(
         cls,
         side: Literal['left', 'right']='left',
-        twiny: bool=False
+        twin: bool=False
     ):
         return cls.make_signature(0)
 
