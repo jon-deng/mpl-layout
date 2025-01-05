@@ -713,13 +713,7 @@ class XDistance(DirectedDistance):
     """
     Return the x-distance between two points
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Point])
+    See `DirectedDistance` with fixed `direction=np.array((1, 0))`.
     """
 
     @classmethod
@@ -735,13 +729,7 @@ class YDistance(DirectedDistance):
     """
     Return the y-distance between two points
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Point])
+    See `DirectedDistance` with fixed `direction=np.array((0, 1))`.
     """
 
     @classmethod
