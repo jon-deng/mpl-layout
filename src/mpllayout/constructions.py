@@ -665,7 +665,6 @@ class Coordinate(LeafConstruction, _PointSignature):
     Methods
     -------
     assem(prims: tuple[pr.Point])
-        Return the point coordinates
     """
 
     @classmethod
@@ -683,7 +682,7 @@ class Coordinate(LeafConstruction, _PointSignature):
 
 class DirectedDistance(LeafConstruction, _PointPointSignature):
     """
-    Return the distance between two points along a direction
+    Return the distance between two points projected along a direction
 
     Parameters
     ----------
@@ -692,9 +691,6 @@ class DirectedDistance(LeafConstruction, _PointPointSignature):
     Methods
     -------
     assem(prims: tuple[pr.Point, pr.Point], direction: NDArray)
-        Return the distance between two points along the direction
-
-        Distance is measured from the first point to the second point.
     """
 
     @classmethod
@@ -720,10 +716,7 @@ class XDistance(DirectedDistance):
 
     Methods
     -------
-    assem(prims: tuple[pr.Point, pr.Point], direction: NDArray)
-        Return the x distance between the two points
-
-        Distance is measured from the first point to the second point.
+    assem(prims: tuple[pr.Point, pr.Point])
     """
 
     @classmethod
@@ -745,10 +738,7 @@ class YDistance(DirectedDistance):
 
     Methods
     -------
-    assem(prims: tuple[pr.Point, pr.Point], direction: NDArray)
-        Return the y distance between the two points
-
-        Distance is measured from the first point to the second point.
+    assem(prims: tuple[pr.Point, pr.Point])
     """
 
     @classmethod
@@ -767,7 +757,9 @@ class YDistance(DirectedDistance):
 
 class LineVector(LeafConstruction, _LineSignature):
     """
-    Return a vector representing a straight line segment
+    Return a line segment vector
+
+    The vector points from the start point to the end point of the line.
 
     Parameters
     ----------
@@ -776,9 +768,6 @@ class LineVector(LeafConstruction, _LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the line vector
-
-        The vector points from the start point to the end point of the line.
     """
 
     @classmethod
@@ -794,7 +783,7 @@ class LineVector(LeafConstruction, _LineSignature):
 
 class UnitLineVector(LeafConstruction, _LineSignature):
     """
-    Return the unit direction vector of a line
+    Return the line unit direction vector
 
     Parameters
     ----------
@@ -803,7 +792,6 @@ class UnitLineVector(LeafConstruction, _LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the unit direction vector of the line
     """
 
     @classmethod
@@ -818,7 +806,7 @@ class UnitLineVector(LeafConstruction, _LineSignature):
 
 class Length(LeafConstruction, _LineSignature):
     """
-    Return the length of a line
+    Return the line length
 
     Parameters
     ----------
@@ -827,7 +815,6 @@ class Length(LeafConstruction, _LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the length of the line
     """
 
     @classmethod
@@ -851,7 +838,6 @@ class DirectedLength(LeafConstruction, _LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line], direction: NDArray)
-        Return the length of the line along the direction
     """
 
     @classmethod
@@ -866,7 +852,7 @@ class DirectedLength(LeafConstruction, _LineSignature):
 
 class XLength(DirectedLength):
     """
-    Return the length of a line along the x direction
+    Return the length of a line along the x axis
 
     Parameters
     ----------
@@ -875,7 +861,6 @@ class XLength(DirectedLength):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the length of the line along the x axis
     """
 
     @classmethod
@@ -889,7 +874,7 @@ class XLength(DirectedLength):
 
 class YLength(DirectedLength):
     """
-    Return the length of a line along the y direction
+    Return the length of a line along the y axis
 
     Parameters
     ----------
@@ -898,7 +883,6 @@ class YLength(DirectedLength):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the length of the line along the y axis
     """
 
     @classmethod
@@ -921,7 +905,6 @@ class Midpoint(LeafConstruction, _LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the midpoint coordinate of the line
     """
     @classmethod
     def init_signature(cls):
@@ -941,7 +924,7 @@ class Midpoint(LeafConstruction, _LineSignature):
 
 class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
     """
-    Return the distance between line midpoints along a direction
+    Return the projected distance between line midpoints along a direction
 
     Parameters
     ----------
@@ -950,7 +933,6 @@ class MidpointDirectedDistance(LeafConstruction, _LineLineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line, pr.Line], direction: NDArray)
-        Return the distance between the line midpoints along the direction
     """
 
     @classmethod
@@ -976,7 +958,6 @@ class MidpointXDistance(MidpointDirectedDistance):
     Methods
     -------
     assem(prims: tuple[pr.Line, pr.Line])
-        Return the distance between the line midpoints along the x axis
     """
 
     @classmethod
@@ -998,8 +979,7 @@ class MidpointYDistance(MidpointDirectedDistance):
 
     Methods
     -------
-    assem(prims: tuple[pr.Line, pr.Line], direction: NDArray)
-        Return the distance between the line midpoints along the y axis
+    assem(prims: tuple[pr.Line, pr.Line])
     """
 
     @classmethod
@@ -1015,6 +995,8 @@ class Angle(LeafConstruction, _LineLineSignature):
     """
     Return the angle between two lines
 
+    TODO: Document the convention for angle sign (CW or CCW? 0 to 360?)
+
     Parameters
     ----------
     None
@@ -1022,9 +1004,6 @@ class Angle(LeafConstruction, _LineLineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line, pr.Line])
-        Return the angle between two lines
-
-        TODO: Document the convention for angle sign (CW or CCW? 0 to 360?)
     """
 
     @classmethod
@@ -1046,7 +1025,7 @@ class Angle(LeafConstruction, _LineLineSignature):
 
 class PointOnLineDistance(LeafConstruction, _PointLineSignature):
     """
-    Return the distance of a point along a line
+    Return the distance of a point projected along a line
 
     Parameters
     ----------
@@ -1055,7 +1034,6 @@ class PointOnLineDistance(LeafConstruction, _PointLineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Point, pr.Line], reverse: bool)
-        Return the distance of the point along the line
 
         `reverse` indicates whether the distance is measured from the line start
         point towards the line end point or vice-versa. If `reverse = False`
@@ -1090,7 +1068,6 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Point, pr.Line], reverse: bool)
-        Return the orthogonal distance of the point to the line
 
         `reverse` indicates how the orthogonal direction is measured. By
         convention the orthogonal direction rotates the unit line vector 90
@@ -1120,7 +1097,9 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
 
 class RelativePointOnLineDistance(LeafConstruction, _PointLineSignature):
     """
-    Return the fractional distance of a point along a line
+    Return the fractional distance of a point projected along a line
+
+    A value of 1 indicates the point has covered the entire line length.
 
     Parameters
     ----------
@@ -1129,7 +1108,6 @@ class RelativePointOnLineDistance(LeafConstruction, _PointLineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Point, pr.Line], reverse: bool)
-        Return the fractional distance of the point along the line
 
         `reverse` indicates whether the distance is measured from the line start
         point towards the line end point or vice-versa. If `reverse = False`
@@ -1169,7 +1147,6 @@ class AspectRatio(LeafConstruction, _QuadrilateralSignature):
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral])
-        Return the aspect ratio (width / height) of the quadrilateral
     """
 
     @classmethod
@@ -1211,7 +1188,6 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
-        Return the outer margin between the two quadrilaterals
     """
 
     def __init__(self, side: str = "left"):
@@ -1276,7 +1252,6 @@ class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
-        Return the inner margin between the two quadrilaterals
     """
 
     def __init__(self, side: str = "left"):

@@ -41,7 +41,7 @@ YDistance = con.transform_ConstraintType(con.YDistance)
 
 class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
-    Return coincidence error between two points
+    Return coincident error between two points
 
     Parameters
     ----------
@@ -50,7 +50,7 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
     Methods
     -------
     assem(prims: tuple[pr.Point, pr.Point])
-        Return the difference between the point coordinates
+        Return the difference between two point coordinates
     """
 
     @classmethod
@@ -92,7 +92,7 @@ class Vertical(con.LeafConstruction, con._LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the dot-product between a line vector and the y-axis
+        Return the dot-product between a line vector and the x-axis
     """
 
     @classmethod
@@ -115,7 +115,7 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line])
-        Return the dot-product between a line vector and the x-axis
+        Return the dot-product between a line vector and the y-axis
     """
 
     @classmethod
@@ -129,6 +129,7 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
 
 # Argument type: tuple[Line, Line]
 
+# TODO: Refactor as derived constraint
 class RelativeLength(con.ConstructionNode):
     """
     Return the length error of a line relative to another line
@@ -140,7 +141,6 @@ class RelativeLength(con.ConstructionNode):
     Methods
     -------
     assem(prims: tuple[pr.Line, pr.Line], value: float)
-        Return the length error of the first line relative to the second
 
         `value` is the desired relative length.
     """
@@ -230,7 +230,6 @@ class Collinear(con.LeafConstruction, con._LineLineSignature):
     Methods
     -------
     assem(prims: tuple[pr.Line, pr.Line])
-        Return the collinear error between the two lines
     """
 
     @classmethod
@@ -239,9 +238,6 @@ class Collinear(con.LeafConstruction, con._LineLineSignature):
 
     @classmethod
     def assem(self, prims: tuple[pr.Line, pr.Line]):
-        """
-        Return the collinearity error between two lines
-        """
         line0, line1 = prims
         line2 = pr.Line(prims=(line1[0], line0[0]))
 
@@ -252,7 +248,7 @@ class Collinear(con.LeafConstruction, con._LineLineSignature):
 
 class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
     """
-    Return coincident error between two lines
+    Return the coincident error between two lines
 
     Parameters
     ----------
@@ -331,7 +327,6 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral])
-        Return the rectangularity error of a quadrilateral
     """
 
     @classmethod
@@ -392,7 +387,7 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
 class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
-    Return the x-axis height error for an axes
+    Return the x-axis height error for an x-axis
 
     Parameters
     ----------
@@ -401,7 +396,7 @@ class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral], axis: XAxis)
-        Return the error between computed and given axis heights
+        Return the error between the computed and given axis height
     """
 
     @staticmethod
@@ -434,7 +429,7 @@ class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
 class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
-    Return the y-axis width error for an axes
+    Return the y-axis height error for an y-axis
 
     Parameters
     ----------
@@ -442,8 +437,8 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
     Methods
     -------
-    assem(prims: tuple[pr.Quadrilateral], axis: YAxis)
-        Return the error between computed and given axis widths
+    assem(prims: tuple[pr.Quadrilateral], axis: XAxis)
+        Return the error between the computed and given axis width
     """
 
     @staticmethod
@@ -574,7 +569,6 @@ class CoincidentOutwardFaces(
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
-        Return the coincident error between quadrilateral faces
     """
 
     def __init__(self, side=Literal['bottom', 'top', 'left', 'right']):
@@ -632,7 +626,6 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral, ...])
-        Return the rectilinear grid error of the quadrilaterals
     """
 
     @classmethod
@@ -702,7 +695,6 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
         col_margins: NDArray,
         row_margins: NDArray
     )
-        Return the dimensioned rectilinear grid error for the quadrilaterals
 
         The parameters control the grid margins and dimensions as follows:
         - `col_widths`:
@@ -933,7 +925,7 @@ class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
     Return the x or y axis label position error along the axes width
 
-    The behaviour dependson the axis.
+    The behaviour depends on the axis.
     - For the x axis, this is the error along the x-axis and distance is
     measured from left to right.
     - For the y axis, this is the error along the y-axis and distance is
