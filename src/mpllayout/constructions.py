@@ -954,13 +954,7 @@ class MidpointXDistance(MidpointDirectedDistance):
     """
     Return the x-distance between two line midpoints
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line, pr.Line])
+    See `MidpointDirectedDistance` with fixed `direction=np.array((1, 0))`
     """
 
     @classmethod
@@ -976,13 +970,7 @@ class MidpointYDistance(MidpointDirectedDistance):
     """
     Return the y-distance between two line midpoints
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line, pr.Line])
+    See `MidpointDirectedDistance` with fixed `direction=np.array((0, 1))`
     """
 
     @classmethod
