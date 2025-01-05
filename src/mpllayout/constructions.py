@@ -245,6 +245,41 @@ class ConstructionNode(Node[ConstructionValue]):
     def signature(self) -> ConstructionSignature:
         return self.value.signature
 
+    ## Input validation functions
+
+    def validate_prims(self, prims: Prims):
+        """
+        Raise an exception if primitives do not match the signature
+        """
+        if len(prims) != len(self.signature.prim_types):
+            raise TypeError(f"Incorrect number of primitives")
+
+        invalid_types = [
+            not isinstance(prim, prim_type)
+            for prim, prim_type in zip(prims, self.signature.prim_types)
+        ]
+        if any(invalid_types):
+            raise TypeError(f"Incorrect primitive types")
+
+    def validate_params(self, params: Params):
+        """
+        Raise an exception if parameters do not match the signature
+        """
+        if len(params) != len(self.signature.param_types):
+            raise TypeError(f"Incorrect number of parameters")
+
+        # NOTE: Didn't check parameter types because types are much looser
+        # In many cases, a float will work in place of an NDArray, etc.
+
+    def validate_value(self, value: NDArray):
+        """
+        Raise an exception if the output value has the wrong size
+        """
+        value_size = self.signature.value_size
+
+        if value.size != value_size:
+            raise ValueError(f"`value` should have size {value_size}")
+
     ## Node representations for construction-related data
 
     def root_prim(self, prim_keys: PrimKeys, prims: Prims) -> pr.PrimitiveNode:
@@ -322,6 +357,8 @@ class ConstructionNode(Node[ConstructionValue]):
     ## Construction function related methods
 
     def __call__(self, prims: Prims, *params: Params) -> NDArray:
+        self.validate_prims(prims)
+        self.validate_params(params)
         prim_keys = tuple(f"arg{n}" for n, _ in enumerate(prims))
         root_prim = self.root_prim(prim_keys, prims)
         root_prim_keys = self.root_prim_keys(prim_keys)
@@ -381,8 +418,6 @@ class ConstructionNode(Node[ConstructionValue]):
         # Some changes can be implemented using either `*params` or `**kwargs`
         # so there is some overlap.
         raise NotImplementedError()
-
-    # TODO: Add construction `prims`, `params` (output?) validation methods
 
 
 class Construction(ConstructionNode):
