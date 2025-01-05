@@ -861,16 +861,7 @@ class PositionXAxis(PositionAxis):
     """
     Return the x axis side position eror
 
-    See `PositionAxis` for more details.
-
-    Parameters
-    ----------
-    side: Literal['bottom', 'top']
-    twin: bool
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Axes])
+    See `PositionAxis` with fixed `axis='x'` for more details.
     """
 
     def __init__(
@@ -885,16 +876,7 @@ class PositionYAxis(PositionAxis):
     """
     Return the y axis side position eror
 
-    See `PositionAxis` for more details.
-
-    Parameters
-    ----------
-    side: Literal['left', 'right']
-    twin: bool
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Axes])
+    See `PositionAxis` with fixed `axis='y'` for more details.
     """
 
     def __init__(
@@ -984,16 +966,7 @@ class PositionXAxisLabel(PositionAxisLabel):
     """
     Return the x axis label position error along the axes width
 
-    See `PositionAxisLabel` for more details.
-
-    Parameters
-    ----------
-    twin: bool
-        Whether to position the twin axis or primary axis
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Axes], value: float)
+    See `PositionAxis` with fixed `axis='x'` for more details.
     """
     def __init__(self, twin: bool=False):
         super().__init__(axis='x', twin=twin)
@@ -1001,18 +974,9 @@ class PositionXAxisLabel(PositionAxisLabel):
 
 class PositionYAxisLabel(PositionAxisLabel):
     """
-    Return the y axis label position error along the axes height
+    Return the y axis label position error along the axes width
 
-    See `PositionAxisLabel` for more details.
-
-    Parameters
-    ----------
-    twin: bool
-        Whether to position the twin axis or primary axis
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Axes], value: float)
+    See `PositionAxis` with fixed `axis='y'` for more details.
     """
     def __init__(self, twin: bool=False):
         super().__init__(axis='y', twin=twin)
