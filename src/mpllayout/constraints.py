@@ -30,73 +30,14 @@ ArrayConstraint = con.ArrayCompoundConstruction
 
 # TODO: Figure out how to assign docstrings to these generated classes
 Fix = con.transform_ConstraintType(con.Coordinate)
-Fix.__doc__ = (
-    """
-    Return a point's coordinate error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point], value: NDArray)
-        Return the point coordinate error relative to the given coordinate
-    """
-)
 
 # Argument type: tuple[Point, Point]
 
 DirectedDistance = con.transform_ConstraintType(con.DirectedDistance)
-DirectedDistance.__doc__ = (
-    """
-    Return the directed distance error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Point], value: NDArray)
-        Return the distance error relative to the given distance
-    """
-)
-
 
 XDistance = con.transform_ConstraintType(con.XDistance)
-XDistance.__doc__ = (
-    """
-    Return the x distance error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Point], value: NDArray)
-        Return the distance error relative to the given distance
-    """
-)
-
 
 YDistance = con.transform_ConstraintType(con.YDistance)
-YDistance.__doc__ = (
-    """
-    Return the y distance error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Point], value: NDArray)
-        Return the distance error relative to the given distance
-    """
-)
-
 
 class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
@@ -130,69 +71,14 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
 # Argument type: tuple[Line]
 
 Length = con.transform_ConstraintType(con.Length)
-Length.__doc__ = (
-    """
-    Return the length error of a line
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line], value: float)
-        Return the length error relative to the given length
-    """
-)
 
 DirectedLength = con.transform_ConstraintType(con.DirectedLength)
-DirectedLength.__doc__ = (
-    """
-    Return the directed length error of a line
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line], direction: NDArray, value: float)
-        Return the directed length error relative to the given length
-    """
-)
 
 XLength = con.transform_ConstraintType(con.XLength)
-XLength.__doc__ = (
-    """
-    Return the x length error of a line
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line], value: float)
-        Return the x length error relative to the given length
-    """
-)
 
 
 YLength = con.transform_ConstraintType(con.YLength)
-YLength.__doc__ = (
-    """
-    Return the y length error of a line
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line], value: float)
-        Return the y length error relative to the given length
-    """
-)
 
 
 class Vertical(con.LeafConstruction, con._LineSignature):
@@ -269,38 +155,9 @@ class RelativeLength(con.ConstructionNode):
 
 
 MidpointXDistance = con.transform_ConstraintType(con.MidpointXDistance)
-MidpointXDistance. __doc__ = (
-    """
-    Return the midpoint x distance error between two lines
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line, pr.Line], value: float)
-        Return the midpoint x distance error between the lines
-    """
-)
 
 
 MidpointYDistance = con.transform_ConstraintType(con.MidpointYDistance)
-MidpointYDistance. __doc__ = (
-    """
-    Return the midpoint y distance error between two lines
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line, pr.Line], value: float)
-        Return the midpoint y distance error between the lines
-    """
-)
-
 
 class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
@@ -361,21 +218,6 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
 
 
 Angle = con.transform_ConstraintType(con.Angle)
-Angle.__doc__ = (
-    """
-    Return the angle error between two lines
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line, pr.Line], value: float)
-        Return the difference between the angle and a given angle
-    """
-)
-
 
 class Collinear(con.LeafConstruction, con._LineLineSignature):
     """
@@ -460,55 +302,13 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 # This would be useful for aligning axis labels
 
 PointOnLineDistance = con.transform_ConstraintType(con.PointOnLineDistance)
-PointOnLineDistance.__doc__ = (
-    """
-    Return the point-on-line distance error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
-        Return the point-on-line distance error
-    """
-)
 
 
 PointToLineDistance = con.transform_ConstraintType(con.PointToLineDistance)
-PointToLineDistance.__doc__ = (
-    """
-    Return the point-to-line distance error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
-        Return the point-to-line distance error
-    """
-)
 
 
 RelativePointOnLineDistance = con.transform_ConstraintType(
     con.RelativePointOnLineDistance
-)
-RelativePointOnLineDistance.__doc__ = (
-    """
-    Return the fractional point-to-line distance error
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
-        Return the relative point-to-line distance error
-    """
 )
 
 
@@ -558,20 +358,6 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 
 
 AspectRatio = con.transform_ConstraintType(con.AspectRatio)
-AspectRatio.__doc__ = (
-    """
-    Return the aspect ratio error of a quadrilateral
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Quadrilateral], value: float)
-        Return the error between computed and given aspect ratios
-    """
-)
 
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
@@ -691,36 +477,8 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
 OuterMargin = con.transform_ConstraintType(con.OuterMargin)
-OuterMargin.__doc__ = (
-    """
-    Return the outer margin error between two quadrilaterals
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral], value: float)
-        Return the error between computed and given outer margins
-    """
-)
 
 InnerMargin = con.transform_ConstraintType(con.InnerMargin)
-InnerMargin.__doc__ = (
-    """
-    Return the inner margin error between two quadrilaterals
-
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral], value: float)
-        Return the error between computed and given inner margins
-    """
-)
 
 class AlignRow(
     con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature
