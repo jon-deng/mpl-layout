@@ -26,26 +26,90 @@ ArrayConstraint = con.ArrayCompoundConstruction
 
 ## Point constraints
 
-# Argument type: tuple[Point,]
+# Argument type: tuple[Point]
 
+# TODO: Figure out how to assign docstrings to these generated classes
 Fix = con.transform_ConstraintType(con.Coordinate)
+Fix.__doc__ = (
+    """
+    Return a point's coordinate error
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point], value: NDArray)
+        Return the point coordinate error relative to the given coordinate
+    """
+)
 
 # Argument type: tuple[Point, Point]
 
 DirectedDistance = con.transform_ConstraintType(con.DirectedDistance)
-
-XDistance = con.transform_ConstraintType(con.XDistance)
-
-YDistance = con.transform_ConstraintType(con.YDistance)
-
-class Coincident(con.LeafConstruction, con._PointPointSignature):
+DirectedDistance.__doc__ = (
     """
-    Constrain two points to be coincident
+    Return the directed distance error
 
     Parameters
     ----------
-    prims: tuple[pr.Point, pr.Point]
-        The two points
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point], value: NDArray)
+        Return the distance error relative to the given distance
+    """
+)
+
+
+XDistance = con.transform_ConstraintType(con.XDistance)
+XDistance.__doc__ = (
+    """
+    Return the x distance error
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point], value: NDArray)
+        Return the distance error relative to the given distance
+    """
+)
+
+
+YDistance = con.transform_ConstraintType(con.YDistance)
+YDistance.__doc__ = (
+    """
+    Return the y distance error
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point], value: NDArray)
+        Return the distance error relative to the given distance
+    """
+)
+
+
+class Coincident(con.LeafConstruction, con._PointPointSignature):
+    """
+    Return coincidence error between two points
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point])
+        Return the difference between the point coordinates
     """
 
     @classmethod
@@ -63,25 +127,86 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
 
 ## Line constraints
 
-# Argument type: tuple[Line,]
+# Argument type: tuple[Line]
 
 Length = con.transform_ConstraintType(con.Length)
+Length.__doc__ = (
+    """
+    Return the length error of a line
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], value: float)
+        Return the length error relative to the given length
+    """
+)
 
 DirectedLength = con.transform_ConstraintType(con.DirectedLength)
+DirectedLength.__doc__ = (
+    """
+    Return the directed length error of a line
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], direction: NDArray, value: float)
+        Return the directed length error relative to the given length
+    """
+)
 
 XLength = con.transform_ConstraintType(con.XLength)
+XLength.__doc__ = (
+    """
+    Return the x length error of a line
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], value: float)
+        Return the x length error relative to the given length
+    """
+)
+
 
 YLength = con.transform_ConstraintType(con.YLength)
+YLength.__doc__ = (
+    """
+    Return the y length error of a line
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], value: float)
+        Return the y length error relative to the given length
+    """
+)
 
 
 class Vertical(con.LeafConstruction, con._LineSignature):
     """
-    Constrain a line to be vertical
+    Return the vertical error of a line
 
     Parameters
     ----------
-    prims: tuple[pr.Line]
-        The lines
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line])
+        Return the dot-product between a line vector and the y-axis
     """
 
     @classmethod
@@ -95,12 +220,16 @@ class Vertical(con.LeafConstruction, con._LineSignature):
 
 class Horizontal(con.LeafConstruction, con._LineSignature):
     """
-    Constrain a line to be horizontal
+    Return the horizontal error of a line
 
     Parameters
     ----------
-    prims: tuple[pr.Line]
-        The lines
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line])
+        Return the dot-product between a line vector and the x-axis
     """
 
     @classmethod
@@ -116,16 +245,18 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
 
 class RelativeLength(con.ConstructionNode):
     """
-    Constrain the length of a line relative to another line
+    Return the length error of a line relative to another line
 
     Parameters
     ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
+    None
 
-        The length of the first line is measured relative to the second line
-    length: float
-        The relative length
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+        Return the length error of the first line relative to the second
+
+        `value` is the desired relative length.
     """
 
     def __new__(cls):
@@ -136,18 +267,53 @@ class RelativeLength(con.ConstructionNode):
             )
         )
 
+
 MidpointXDistance = con.transform_ConstraintType(con.MidpointXDistance)
-
-MidpointYDistance = con.transform_ConstraintType(con.MidpointYDistance)
-
-class Orthogonal(con.LeafConstruction, con._LineLineSignature):
+MidpointXDistance. __doc__ = (
     """
-    Constrain two lines to be orthogonal
+    Return the midpoint x distance error between two lines
 
     Parameters
     ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+        Return the midpoint x distance error between the lines
+    """
+)
+
+
+MidpointYDistance = con.transform_ConstraintType(con.MidpointYDistance)
+MidpointYDistance. __doc__ = (
+    """
+    Return the midpoint y distance error between two lines
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+        Return the midpoint y distance error between the lines
+    """
+)
+
+
+class Orthogonal(con.LeafConstruction, con._LineLineSignature):
+    """
+    Return the orthogonal error between two lines
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line])
+        Return the dot product between the two lines
     """
 
     @classmethod
@@ -171,8 +337,12 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
 
     Parameters
     ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line])
+        Return the cross product between the two lines
     """
 
     @classmethod
@@ -191,6 +361,20 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
 
 
 Angle = con.transform_ConstraintType(con.Angle)
+Angle.__doc__ = (
+    """
+    Return the angle error between two lines
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+        Return the difference between the angle and a given angle
+    """
+)
 
 
 class Collinear(con.LeafConstruction, con._LineLineSignature):
@@ -199,8 +383,12 @@ class Collinear(con.LeafConstruction, con._LineLineSignature):
 
     Parameters
     ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line])
+        Return the collinear error between the two lines
     """
 
     @classmethod
@@ -226,10 +414,18 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 
     Parameters
     ----------
-    prims: tuple[pr.Line, pr.Line]
-        The lines
-    reverse: bool
-        A boolean indicating whether lines are reversed
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], reverse: bool)
+        Return the difference between endpoint coordinates of the two lines
+
+        `reverse` controls how the line endpoint errors are computed.
+        If `reverse = False`, then the start to start difference and end to end
+        difference is returned.
+        If `reverse = True`, then the start to end and end to start difference
+        is returned.
     """
 
     @classmethod
@@ -250,7 +446,6 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
             point1_err = Coincident.assem((line1['Point1'], line0['Point1']))
         return jnp.concatenate([point0_err, point1_err])
 
-# Argument type: tuple[Line, ...]
 
 ## Point and Line constraints
 
@@ -265,26 +460,55 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 # This would be useful for aligning axis labels
 
 PointOnLineDistance = con.transform_ConstraintType(con.PointOnLineDistance)
+PointOnLineDistance.__doc__ = (
+    """
+    Return the point-on-line distance error
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
+        Return the point-on-line distance error
+    """
+)
 
 
 PointToLineDistance = con.transform_ConstraintType(con.PointToLineDistance)
+PointToLineDistance.__doc__ = (
+    """
+    Return the point-to-line distance error
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
+        Return the point-to-line distance error
+    """
+)
 
 
 class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature):
     """
-    Constrain the projected distance of a point along a line
+    Return the fractional distance of a point along a line
 
     Parameters
     ----------
-    prims: tuple[pr.Point, pr.Line]
-        The point and line
-    reverse: bool
-        A boolean indicating whether to reverse the line direction
+    None
 
-        The distance of the point on the line is measured either from the start or end
-        point of the line based on `reverse`. If `reverse=False` then the start point is
-        used.
-    distance: float
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool)
+        Return the fractional distance of the point along the line
+
+        `reverse` indicates whether the distance is measured from the line start
+        point towards the line end point or vice-versa. If `reverse = False`
+        then distance is measure from the start towards the end.
     """
 
     @classmethod
@@ -298,9 +522,6 @@ class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature)
         reverse: bool,
         distance: float
     ):
-        """
-        Return the projected distance error of a point along a line
-        """
         point, line = prims
         if reverse:
             origin = con.Coordinate.assem((line['Point1'],))
@@ -320,12 +541,20 @@ class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature)
 
 class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
-    Constrain a quadrilateral to be rectangular
+    Return the rectangularity error of a quadrilateral
+
+    This assumes an orientation for rectangle where the first line of the
+    quadrilateral is the bottom of the rectangle, the second line is the right,
+    and so on.
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral]
-        The quad
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral])
+        Return the rectangularity error of a quadrilateral
     """
 
     @classmethod
@@ -346,8 +575,26 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     def init_signature(cls):
         return cls.make_signature(0)
 
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral]):
+        return super().assem(prims)
+
 
 AspectRatio = con.transform_ConstraintType(con.AspectRatio)
+AspectRatio.__doc__ = (
+    """
+    Return the aspect ratio error of a quadrilateral
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral], value: float)
+        Return the error between computed and given aspect ratios
+    """
+)
 
 
 def get_axis_dim(axis: XAxis | YAxis, side: str):
@@ -382,14 +629,16 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
 class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
-    Return the x-axis height for an axes
+    Return the x-axis height error for an axes
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral]
-        The axes
-    axis: XAxis
-        The XAxis
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral], axis: XAxis)
+        Return the error between computed and given axis heights
     """
 
     @staticmethod
@@ -415,17 +664,23 @@ class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     def init_signature(cls):
         return cls.make_signature(0, (XAxis,))
 
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral], axis: XAxis):
+        return super().assem(prims, axis)
+
 
 class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     """
-    Constrain the y-axis width for an axes
+    Return the y-axis width error for an axes
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral]
-        The axes
-    axis: YAxis
-        The YAxis
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral], axis: YAxis)
+        Return the error between computed and given axis widths
     """
 
     @staticmethod
@@ -451,21 +706,59 @@ class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
     def init_signature(cls):
         return cls.make_signature(0, (YAxis,))
 
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral], axis: YAxis):
+        return super().assem(prims, axis)
+
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
 OuterMargin = con.transform_ConstraintType(con.OuterMargin)
-
-InnerMargin = con.transform_ConstraintType(con.InnerMargin)
-
-class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+OuterMargin.__doc__ = (
     """
-    Constrain two quadrilaterals to lie in a row
+    Return the outer margin error between two quadrilaterals
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quadrilaterals
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral], value: float)
+        Return the error between computed and given outer margins
+    """
+)
+
+InnerMargin = con.transform_ConstraintType(con.InnerMargin)
+InnerMargin.__doc__ = (
+    """
+    Return the inner margin error between two quadrilaterals
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral], value: float)
+        Return the error between computed and given inner margins
+    """
+)
+
+class AlignRow(
+    con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature
+):
+    """
+    Return the row-alignment error of two quadrilaterals
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
+        Return the collinearity error between quadrilateral sides
     """
 
     @classmethod
@@ -483,14 +776,25 @@ class AlignRow(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSi
     def init_signature(cls):
         return cls.make_signature(0)
 
-class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature):
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
+        return super().assem(prims)
+
+
+class AlignColumn(
+    con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature
+):
     """
-    Constrain two quadrilaterals to lie in a column
+    Return the column-alignment error of two quadrilaterals
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quadrilaterals
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
+        Return the collinearity error between quadrilateral tops and bottoms
     """
 
     @classmethod
@@ -508,20 +812,35 @@ class AlignColumn(con.StaticCompoundConstruction, con._QuadrilateralQuadrilatera
     def init_signature(cls):
         return cls.make_signature(0)
 
-class AlignOutside(con.CompoundConstruction, con._QuadrilateralQuadrilateralSignature):
-    """
-    Constrain the outside sides of two quadrilaterals to coincide
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
+        return super().assem(prims)
 
-    The behaviour depends on the `side` keyword argument. If side is 'left', the
-    left side of the first quad is coincident with the right side of the second
-    quad. If side is 'bottom', the bottom side of the first quad is coincident
-    with the top side of the second quad. Behaviour for the 'top' and 'right'
-    follows the same pattern.
+
+# TODO: Rename to CoincidentOutwardFaces
+class AlignOutside(
+    con.CompoundConstruction, con._QuadrilateralQuadrilateralSignature
+):
+    """
+    Return the coincident error between outward-facing quadrilateral faces
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral, pr.Quadrilateral]
-        The quadrilaterals
+    side: Literal['bottom', 'top', 'left', 'right']
+        The face to align
+
+        - If `side = 'left'`, the left side of the first quad is coincident with
+        the right side of the second quad.
+        - If `side = 'bottom'`, the bottom side of the first quad is coincident
+        with the top side of the second quad.
+        - ...
+
+        Behaviour for the 'top' and 'right' follows the same pattern.
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
+        Return the coincident error between quadrilateral faces
     """
 
     def __init__(self, side=Literal['bottom', 'top', 'left', 'right']):
@@ -553,6 +872,10 @@ class AlignOutside(con.CompoundConstruction, con._QuadrilateralQuadrilateralSign
     def init_signature(cls, side=Literal['bottom', 'top', 'left', 'right']):
         return cls.make_signature(0)
 
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
+        return super().assem(prims)
+
 # Argument type: tuple[Quadrilateral, ...]
 
 def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
@@ -562,14 +885,20 @@ def idx_1d(multi_idx: tuple[int, ...], shape: tuple[int, ...]):
     strides = shape[1:] + (1,)
     return sum(axis_idx * stride for axis_idx, stride in zip(multi_idx, strides))
 
+
 class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
     """
-    Constrain a set of quads to lie on a rectilinear grid
+    Return the rectilinear grid error of a set of quadrilaterals
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral, ...]
-        The quadrilaterals
+    shape: tuple[int]
+        The shape (rows, columns) of the grid
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, ...])
+        Return the rectilinear grid error of the quadrilaterals
     """
 
     @classmethod
@@ -616,23 +945,40 @@ class RectilinearGrid(ArrayConstraint, con._QuadrilateralsSignature):
         value_size = 0
         return con.ConstructionSignature(prim_types, param_types, value_size)
 
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, ...]):
+        return super().assem(prims)
+
 
 class Grid(ArrayConstraint, con._QuadrilateralsSignature):
     """
-    Constrain a set of quads to lie on a dimensioned rectilinear grid
+    Return the dimensioned rectilinear grid error for a set of quadrilaterals
 
     Parameters
     ----------
-    prims: tuple[pr.Quadrilateral, ...]
-        The quadrilaterals
-    col_widths: NDArray
-        Column widths (from left to right) relative to the left-most column
-    row_heights: NDArray
-        Row height (from top to bottom) relative to the top-most row
-    col_margins: NDArray
-        Absolute column margins (from left to right)
-    row_margins: NDArray
-        Absolute row margins (from top to bottom)
+    shape: tuple[int]
+        The shape (rows, columns) of the grid
+
+    Methods
+    -------
+    assem(
+        prims: tuple[pr.Quadrilateral, ...],
+        col_widths: NDArray,
+        row_heights: NDArray,
+        col_margins: NDArray,
+        row_margins: NDArray
+    )
+        Return the dimensioned rectilinear grid error for the quadrilaterals
+
+        The parameters control the grid margins and dimensions as follows:
+        - `col_widths`:
+            Column widths (from left to right) relative to the left-most column
+        - `row_heights`:
+            Row height (from top to bottom) relative to the top-most row
+        - `col_margins`:
+            Absolute column margins (from left to right)
+        - `row_margins`:
+            Absolute row margins (from top to bottom)
     """
 
     @classmethod
@@ -695,6 +1041,19 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
         value_size = 0
         return con.ConstructionSignature(prim_types, param_types, value_size)
 
+    @classmethod
+    def assem(
+        cls,
+        prims: tuple[pr.Quadrilateral, ...],
+        col_widths: NDArray,
+        row_heights: NDArray,
+        col_margins: NDArray,
+        row_margins: NDArray
+    ):
+        return super().assem(
+            prims, col_widths, row_heights, col_margins, row_margins
+        )
+
 
 ## Axes constraints
 
@@ -718,12 +1077,27 @@ def opposite_side(side: Literal['bottom', 'top', 'left', 'right']):
 
 class PositionAxis(con.CompoundConstruction, con._AxesSignature):
     """
-    Constrain the x or y axis (or twin axis) to a side of the axes frame
+    Return the x or y axis side position eror
 
     Parameters
     ----------
-    prims: tuple[pr.Axes]
-        The axes
+    axis: Literal['x', 'y']
+        The axis to position
+    side: Literal['bottom', 'top', 'left', 'right']
+        The side of the axes to place the axis
+
+        If `axis='x'` this can be 'bottom' or 'top'.
+        If `axis='y'` this can be 'left' or 'right'.
+    twin: bool
+        Whether the axis has a twin
+
+        If there is a twin axis, then the twin axis is place opposite to the
+        primary axis.
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Axes])
+        Return the coincident error between axis and desired axes frame side
     """
 
     def __init__(
@@ -768,15 +1142,25 @@ class PositionAxis(con.CompoundConstruction, con._AxesSignature):
     ):
         return cls.make_signature(0)
 
+    @classmethod
+    def assem(cls, prims: tuple[pr.Axes]):
+        return super().assem(prims)
+
 
 class PositionXAxis(PositionAxis):
     """
-    Constrain the x-axis to the top or bottom of an axes
+    Return the x axis side position eror
+
+    See `PositionAxis` for more details.
 
     Parameters
     ----------
-    prims: tuple[pr.Axes]
-        The axes
+    side: Literal['bottom', 'top']
+    twin: bool
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Axes])
     """
 
     def __init__(
@@ -789,12 +1173,18 @@ class PositionXAxis(PositionAxis):
 
 class PositionYAxis(PositionAxis):
     """
-    Constrain the y-axis to the left or right of an axes
+    Return the y axis side position eror
+
+    See `PositionAxis` for more details.
 
     Parameters
     ----------
-    prims: tuple[pr.Axes]
-        The axes
+    side: Literal['left', 'right']
+    twin: bool
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Axes])
     """
 
     def __init__(
@@ -807,17 +1197,25 @@ class PositionYAxis(PositionAxis):
 
 class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
     """
-    Constrain the x or y axis label fractional distance along the axis length
+    Return the x or y axis label position error along the axes width
 
-    For the x label, this is the left to right fraction along the axes frame.
-    For the y label, this is the bottom to top fraction along the axes frame.
+    The behaviour dependson the axis.
+    - For the x axis, this is the error along the x-axis and distance is
+    measured from left to right.
+    - For the y axis, this is the error along the y-axis and distance is
+    measured from bottom to top.
 
     Parameters
     ----------
-    prims: tuple[pr.Axes]
-        The axes
-    distance: float
-        The axes fraction from the left to position the label
+    axis: Literal['x', 'y']
+        The axis label to position
+    twin: bool
+        Whether to position the twin axis or primary axis
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Axes], value: float)
+        Return the difference between the label distance and desired distance
     """
 
     def __init__(
@@ -867,20 +1265,25 @@ class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
     ):
         return cls.make_signature(0, (float,))
 
-    def assem(cls, prims: tuple[pr.Axes], distance: float):
-        return super().assem(prims, distance)
+    @classmethod
+    def assem(cls, prims: tuple[pr.Axes], value: float):
+        return super().assem(prims, value)
 
 
 class PositionXAxisLabel(PositionAxisLabel):
     """
-    Constrain the x-axis label horizontal distance (left to right) relative to axes width
+    Return the x axis label position error along the axes width
+
+    See `PositionAxisLabel` for more details.
 
     Parameters
     ----------
-    prims: tuple[pr.AxesX | pr.Axes]
-        The axes
-    distance: float
-        The axes fraction from the left to position the label
+    twin: bool
+        Whether to position the twin axis or primary axis
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Axes], value: float)
     """
     def __init__(self, twin: bool=False):
         super().__init__(axis='x', twin=twin)
@@ -888,14 +1291,18 @@ class PositionXAxisLabel(PositionAxisLabel):
 
 class PositionYAxisLabel(PositionAxisLabel):
     """
-    Constrain the y-axis label vertical distance (bottom to top) relative to axes height
+    Return the y axis label position error along the axes height
+
+    See `PositionAxisLabel` for more details.
 
     Parameters
     ----------
-    prims: tuple[pr.AxesX | pr.Axes]
-        The axes
-    distance: float
-        The axes fraction from the bottom to position the label
+    twin: bool
+        Whether to position the twin axis or primary axis
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Axes], value: float)
     """
     def __init__(self, twin: bool=False):
         super().__init__(axis='y', twin=twin)
