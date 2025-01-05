@@ -857,13 +857,7 @@ class XLength(DirectedLength):
     """
     Return the length of a line along the x axis
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line])
+    See `DirectedLength` with fixed `direction=np.array((1, 0))`.
     """
 
     @classmethod
@@ -879,13 +873,7 @@ class YLength(DirectedLength):
     """
     Return the length of a line along the y axis
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Line])
+    See `DirectedLength` with fixed `direction=np.array((0, 1))`.
     """
 
     @classmethod
