@@ -785,22 +785,6 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
 
 # Argument type: tuple[Axes]
 
-def opposite_side(side: Literal['bottom', 'top', 'left', 'right']):
-    """
-    Return the opposite side string representation
-    """
-    if side == 'bottom':
-        return 'top'
-    elif side == 'top':
-        return 'bottom'
-    elif side == 'left':
-        return 'right'
-    elif side == 'right':
-        return 'left'
-    else:
-        raise ValueError()
-
-
 class PositionAxis(con.CompoundConstruction, con._AxesSignature):
     """
     Return the x or y axis side position eror
@@ -847,7 +831,7 @@ class PositionAxis(con.CompoundConstruction, con._AxesSignature):
 
         if twin:
             keys = keys + ('TwinAlignOutside',)
-            constraints = constraints + (CoincidentOutwardFaces(side=opposite_side(side)),)
+            constraints = constraints + (CoincidentOutwardFaces(side=con.opposite_side(side)),)
             prim_keys = prim_keys + (('arg0/Frame', f'arg0/Twin{axis.upper()}Axis'),)
 
         def child_params(params: Params) -> tuple[Params, ...]:

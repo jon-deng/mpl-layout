@@ -6,10 +6,10 @@ For example, this could be the coordinates of a point, the angle between two
 lines, or the length of a single line.
 """
 
-# TODO: Combine constraints that act on x/y directions into single arugment construction
+# TODO: Combine constraints that act on x/y directions into single argument construction
 # TODO: Rename derived constraints as '...Error'
 
-from typing import Callable, Optional, Any, TypeVar, NamedTuple
+from typing import Callable, Optional, Any, TypeVar, NamedTuple, Literal
 from collections.abc import Iterable
 from numpy.typing import NDArray
 
@@ -1166,54 +1166,87 @@ class AspectRatio(LeafConstruction, _QuadrilateralSignature):
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-
-class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
+def opposite_side(
+    side: Literal[
+        'bottom', 'top', 'left', 'right', 'Line0', 'Line2', 'Line1', 'Line3'
+    ]
+):
     """
-    Return the outer margin between two quadrilaterals
+    Return the opposite side string representation
+    """
+    if side == 'bottom':
+        return 'top'
+    elif side == 'top':
+        return 'bottom'
+    elif side == 'left':
+        return 'right'
+    elif side == 'right':
+        return 'left'
+    elif side == 'Line0':
+        return 'Line2'
+    elif side == 'Line2':
+        return 'Line0'
+    elif side == 'Line1':
+        return 'Line3'
+    elif side == 'Line3':
+        return 'Line1'
+    else:
+        raise ValueError()
 
-    The outer margin is the distance between outside faces of the
-    quadrilaterals.
+class Margin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
+    """
+    Return the margin between two quadrilaterals
 
     Parameters
     ----------
+    outer: bool
+        Whether to compute the inner or outer margin
+
+        The outer margin is the margin from the outside faces of a quadrilateral
+        to the opposite face of another quadrilateral. The inner margin is the
+        margin from the inside face of a quadrilateral to the same face of the
+        quadrilateral.
     side: str
         The side of the quadrilateral to return a margin
 
-        - If `side` is 'left', the margin is measured from the left face to the
-        right face of the first and second quad, respectively.
-        - If `side` is 'right', the margin is measured from the right face to
-        the left face of the first and second quad, respectively.
-        - If `side` is 'bottom', the margin is measured from the bottom face to
-        the top face of the first and second quad, respectively.
-        - If `side` is 'top', the margin is measured from the top face to the
-        bottom face of the first and second quad, respectively.
-
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
     """
 
-    def __init__(self, side: str = "left"):
-        super().__init__(side=side)
+    def __init__(self, outer: bool=True, side: str = "left"):
+        super().__init__(outer=outer, side=side)
 
     @classmethod
-    def init_children(cls, side: str = "left"):
+    def init_children(cls, outer: bool=True, side: str = "left"):
         if side == "left":
             keys = ("LeftMargin",)
             constructions = (MidpointXDistance(),)
-            prim_keys = (("arg1/Line1", "arg0/Line3"),)
+            if outer:
+                prim_keys = (("arg1/Line1", "arg0/Line3"),)
+            else:
+                prim_keys = (("arg1/Line3", "arg0/Line3"),)
         elif side == "right":
             keys = ("RightMargin",)
             constructions = (MidpointXDistance(),)
-            prim_keys = (("arg0/Line1", "arg1/Line3"),)
+            if outer:
+                prim_keys = (("arg0/Line1", "arg1/Line3"),)
+            else:
+                prim_keys = (("arg0/Line1", "arg1/Line1"),)
         elif side == "bottom":
             keys = ("BottomMargin",)
             constructions = (MidpointYDistance(),)
-            prim_keys = (("arg1/Line2", "arg0/Line0"),)
+            if outer:
+                prim_keys = (("arg1/Line2", "arg0/Line0"),)
+            else:
+                prim_keys = (("arg1/Line0", "arg0/Line0"),)
         elif side == "top":
             keys = ("TopMargin",)
             constructions = (MidpointYDistance(),)
-            prim_keys = (("arg0/Line2", "arg1/Line0"),)
+            if outer:
+                prim_keys = (("arg0/Line2", "arg1/Line0"),)
+            else:
+                prim_keys = (("arg0/Line2", "arg1/Line2"),)
         else:
             raise ValueError()
 
@@ -1223,7 +1256,7 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
         return (keys, constructions, prim_keys, child_params)
 
     @classmethod
-    def init_signature(cls, side: str = "left"):
+    def init_signature(cls, outer: bool=True, side: str = "left"):
         return cls.make_signature(0, ())
 
     @classmethod
@@ -1231,68 +1264,26 @@ class OuterMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
         return super().assem(prims)
 
 
-class InnerMargin(CompoundConstruction, _QuadrilateralQuadrilateralSignature):
+class OuterMargin(Margin):
     """
-    Return the inner margin between two quadrilaterals
+    Return the outer margin between two quadrilaterals
 
-    The is the distance between the inside face of one quadrilateral to the
-    outside face of the next.
-
-    Parameters
-    ----------
-    side: str
-        The side of the quadrilateral to return an inner margin
-
-        - If `side` is 'left', the margin is measured from the left face to the
-        left face of the first and second quad, respectively.
-        - If `side` is 'right', the margin is measured from the right face to
-        the right face of the first and second quad, respectively.
-        - If `side` is 'bottom', the margin is measured from the bottom face to
-        the bottom face of the first and second quad, respectively.
-        - If `side` is 'top', the margin is measured from the top face to the
-        top face of the first and second quad, respectively.
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
+    See `Margin` with `outer=True` for more details.
     """
 
     def __init__(self, side: str = "left"):
-        super().__init__(side=side)
+        super().__init__(outer=True, side=side)
 
-    @classmethod
-    def init_children(cls, side: str = "left"):
-        if side == "left":
-            keys = ("LeftMargin",)
-            constructions = (MidpointXDistance(),)
-            prim_keys = (("arg1/Line3", "arg0/Line3"),)
-        elif side == "right":
-            keys = ("RightMargin",)
-            constructions = (MidpointXDistance(),)
-            prim_keys = (("arg0/Line1", "arg1/Line1"),)
-        elif side == "bottom":
-            keys = ("BottomMargin",)
-            constructions = (MidpointYDistance(),)
-            prim_keys = (("arg1/Line0", "arg0/Line0"),)
-        elif side == "top":
-            keys = ("TopMargin",)
-            constructions = (MidpointYDistance(),)
-            prim_keys = (("arg0/Line2", "arg1/Line2"),)
-        else:
-            raise ValueError()
 
-        def child_params(params: Params) -> tuple[Params, ...]:
-            return ((),)
+class InnerMargin(Margin):
+    """
+    Return the outer margin between two quadrilaterals
 
-        return (keys, constructions, prim_keys, child_params)
+    See `Margin` with `outer=False` for more details.
+    """
 
-    @classmethod
-    def init_signature(cls, side: str = "left"):
-        return cls.make_signature(0, ())
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
-        return super().assem(prims)
+    def __init__(self, side: str = "left"):
+        super().__init__(outer=False, side=side)
 
 
 ## Construction transform functions
