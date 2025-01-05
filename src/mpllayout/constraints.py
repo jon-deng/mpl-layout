@@ -493,9 +493,12 @@ PointToLineDistance.__doc__ = (
 )
 
 
-class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature):
+RelativePointOnLineDistance = con.transform_ConstraintType(
+    con.RelativePointOnLineDistance
+)
+RelativePointOnLineDistance.__doc__ = (
     """
-    Return the fractional distance of a point along a line
+    Return the fractional point-to-line distance error
 
     Parameters
     ----------
@@ -503,36 +506,10 @@ class RelativePointOnLineDistance(con.LeafConstruction, con._PointLineSignature)
 
     Methods
     -------
-    assem(prims: tuple[pr.Point, pr.Line], reverse: bool)
-        Return the fractional distance of the point along the line
-
-        `reverse` indicates whether the distance is measured from the line start
-        point towards the line end point or vice-versa. If `reverse = False`
-        then distance is measure from the start towards the end.
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
+        Return the relative point-to-line distance error
     """
-
-    @classmethod
-    def init_signature(cls):
-        return cls.make_signature(1, (bool, float))
-
-    @classmethod
-    def assem(
-        cls,
-        prims: tuple[pr.Point, pr.Line],
-        reverse: bool,
-        distance: float
-    ):
-        point, line = prims
-        if reverse:
-            origin = con.Coordinate.assem((line['Point1'],))
-            unit_vec = -con.UnitLineVector.assem((line,))
-        else:
-            origin = con.Coordinate.assem((line['Point0'],))
-            unit_vec = con.UnitLineVector.assem((line,))
-        line_length = con.Length.assem((line,))
-
-        proj_dist = jnp.dot(point.value-origin, unit_vec)
-        return jnp.array([proj_dist - distance*line_length])
+)
 
 
 ## Quad constraints

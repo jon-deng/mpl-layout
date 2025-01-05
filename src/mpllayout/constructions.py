@@ -1118,6 +1118,39 @@ class PointToLineDistance(LeafConstruction, _PointLineSignature):
         return jnp.dot(point.value - origin, orth_vec)
 
 
+class RelativePointOnLineDistance(LeafConstruction, _PointLineSignature):
+    """
+    Return the fractional distance of a point along a line
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool)
+        Return the fractional distance of the point along the line
+
+        `reverse` indicates whether the distance is measured from the line start
+        point towards the line end point or vice-versa. If `reverse = False`
+        then distance is measure from the start towards the end.
+    """
+
+    @classmethod
+    def init_signature(cls):
+        return cls.make_signature(1, (bool,))
+
+    @classmethod
+    def assem(
+        cls,
+        prims: tuple[pr.Point, pr.Line],
+        reverse: bool
+    ):
+        point, line = prims
+        proj_dist = PointOnLineDistance.assem(prims, reverse)
+        line_length = Length.assem((line,))
+        return jnp.array([proj_dist/line_length])
+
 ## Quad constructions
 
 # Argument type: tuple[Quadrilateral]
