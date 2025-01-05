@@ -6,6 +6,9 @@ For example, this could be the coordinates of a point, the angle between two
 lines, or the length of a single line.
 """
 
+# TODO: Combine constraints that act on x/y directions into single arugment construction
+# TODO: Rename derived constraints as '...Error'
+
 from typing import Callable, Optional, Any, TypeVar, NamedTuple
 from collections.abc import Iterable
 from numpy.typing import NDArray
