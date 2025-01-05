@@ -787,7 +787,7 @@ class PositionXAxis(PositionAxis):
         return super().__init__(axis='x', side=side, twin=twin)
 
 
-class PositionYAxis(PositionAxis, con._AxesSignature):
+class PositionYAxis(PositionAxis):
     """
     Constrain the y-axis to the left or right of an axes
 
@@ -814,7 +814,7 @@ class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
 
     Parameters
     ----------
-    prims: tuple[pr.AxesX | pr.Axes]
+    prims: tuple[pr.Axes]
         The axes
     distance: float
         The axes fraction from the left to position the label
@@ -865,7 +865,7 @@ class PositionAxisLabel(con.CompoundConstruction, con._AxesSignature):
         axis: Literal['x', 'y'] = 'x',
         twin: bool=False
     ):
-        return cls.make_signature(0)
+        return cls.make_signature(0, (float,))
 
     def assem(cls, prims: tuple[pr.Axes], distance: float):
         return super().assem(prims, distance)
