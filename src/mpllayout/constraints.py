@@ -443,7 +443,7 @@ class AxisThickness(
         return super().assem(prims, mpl_axis)
 
 
-class XAxisHeight(AxisThickness):
+class XAxisThickness(AxisThickness):
     """
     Return the thickness error between a x axis primitive and a `matplotlib` axis
 
@@ -454,7 +454,7 @@ class XAxisHeight(AxisThickness):
         super().__init__(axis='x')
 
 
-class YAxisWidth(AxisThickness):
+class YAxisThickness(AxisThickness):
     """
     Return the thickness error between a y axis primitive and a `matplotlib` axis
 

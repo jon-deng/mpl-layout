@@ -704,7 +704,7 @@ class TestAxesConstraints(GeometryFixtures):
 
         assert np.all(np.isclose(res, 0))
 
-    # NOTE: The `..AxisHeight` constraints have signature [Quadrilateral] but are
+    # NOTE: The `..AxisThickness` constraints have signature [Quadrilateral] but are
     # specialized to axes so I included them here rather than with `TestQuadrilateral`
     @pytest.fixture()
     def axes_mpl(
@@ -739,17 +739,17 @@ class TestAxesConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def xaxis_height(self, axes_mpl):
-        return co.XAxisHeight.get_axis_thickness(axes_mpl.xaxis)
+        return co.XAxisThickness.get_axis_thickness(axes_mpl.xaxis)
 
-    def test_XAxisHeight(self, axes, axes_mpl):
-        res = co.XAxisHeight()((axes['XAxis'],), axes_mpl.xaxis)
+    def test_XAxisThickness(self, axes, axes_mpl):
+        res = co.XAxisThickness()((axes['XAxis'],), axes_mpl.xaxis)
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
     def yaxis_width(self, axes_mpl):
-        return co.YAxisWidth.get_axis_thickness(axes_mpl.yaxis)
+        return co.YAxisThickness.get_axis_thickness(axes_mpl.yaxis)
 
-    def test_YAxisWidth(self, axes, axes_mpl):
-        res = co.YAxisWidth()((axes['YAxis'],), axes_mpl.yaxis)
+    def test_YAxisThickness(self, axes, axes_mpl):
+        res = co.YAxisThickness()((axes['YAxis'],), axes_mpl.yaxis)
         assert np.all(np.isclose(res, 0))
 

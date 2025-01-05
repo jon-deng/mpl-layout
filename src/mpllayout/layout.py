@@ -194,7 +194,7 @@ def update_layout_constraints(
     Some constraints have parameters that depend on `matplotlib`.
     This function shoud identify these constraints in a `Layout` and replace
     their parameters with the correct `matplotlib` element.
-    Currently this is only implemented for `XAxisHeight` and `YAxisWidth`.
+    Currently this is only implemented for `XAxisThickness` and `YAxisThickness`.
 
     Parameters
     ----------
@@ -219,12 +219,12 @@ def update_layout_constraints(
             prim_keys = layout.root_prim_keys[key]
             constraint_param = layout.root_param[key]
 
-            if isinstance(constraint, cr.XAxisHeight):
+            if isinstance(constraint, cr.XAxisThickness):
                 axis_key, = prim_keys.value
                 axes_key = axis_key.split("/", 1)[0]
                 constraintkey_to_param[key] = (axs[axes_key].xaxis,)
 
-            if isinstance(constraint, cr.YAxisWidth):
+            if isinstance(constraint, cr.YAxisThickness):
                 axis_key, = prim_keys.value
                 axes_key = axis_key.split("/", 1)[0]
                 constraintkey_to_param[key] = (axs[axes_key].yaxis,)
