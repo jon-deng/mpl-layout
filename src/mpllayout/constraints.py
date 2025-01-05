@@ -465,34 +465,51 @@ class YAxisThickness(AxisThickness):
         super().__init__(axis='y')
 
 
-
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
 OuterMargin = con.transform_ConstraintType(con.OuterMargin)
 
 InnerMargin = con.transform_ConstraintType(con.InnerMargin)
 
-class AlignRow(
-    con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature
+class Align(
+    con.CompoundConstruction, con._QuadrilateralQuadrilateralSignature
 ):
     """
-    Return the row-alignment error of two quadrilaterals
+    Return the row or column alignment error of two quadrilaterals
 
     Parameters
     ----------
-    None
+    row: bool
+        Whether to return the row or column alignment error
 
     Methods
     -------
     assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
         Return the collinearity error between quadrilateral sides
+
+        If `row=True` the top and bottom sides are used. If `row=False the left
+        and right sides are used.
     """
 
+    def __init__(self, row: bool = True):
+        super().__init__(row=row)
+
     @classmethod
-    def init_children(cls):
-        keys = ("AlignBottom", "AlignTop")
-        constraints = (Collinear(), Collinear())
-        prim_keys = (("arg0/Line0", "arg1/Line0"), ("arg0/Line2", "arg1/Line2"))
+    def init_children(cls, row: bool = True):
+        if row:
+            keys = ("AlignBottom", "AlignTop")
+            constraints = (Collinear(), Collinear())
+            prim_keys = (
+                ("arg0/Line0", "arg1/Line0"),
+                ("arg0/Line2", "arg1/Line2")
+            )
+        else:
+            keys = ("AlignLeft", "AlignRight")
+            constraints = (Collinear(), Collinear())
+            prim_keys = (
+                ("arg0/Line3", "arg1/Line3"),
+                ("arg0/Line1", "arg1/Line1")
+            )
 
         def child_params(params: Params) -> tuple[Params, ...]:
             return 2*((),)
@@ -500,7 +517,7 @@ class AlignRow(
         return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_signature(cls):
+    def init_signature(cls, row: bool = True):
         return cls.make_signature(0)
 
     @classmethod
@@ -508,40 +525,26 @@ class AlignRow(
         return super().assem(prims)
 
 
-class AlignColumn(
-    con.StaticCompoundConstruction, con._QuadrilateralQuadrilateralSignature
-):
+class AlignRow(Align):
+    """
+    Return the row-alignment error of two quadrilaterals
+
+    See `Align` with fixed `row=True` for more details.
+    """
+
+    def __init__(self):
+        super().__init__(row=True)
+
+
+class AlignColumn(Align):
     """
     Return the column-alignment error of two quadrilaterals
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral])
-        Return the collinearity error between quadrilateral tops and bottoms
+    See `Align` with fixed `row=False` for more details.
     """
 
-    @classmethod
-    def init_children(cls):
-        keys = ("AlignLeft", "AlignRight")
-        constraints = (Collinear(), Collinear())
-        prim_keys = (("arg0/Line3", "arg1/Line3"), ("arg0/Line1", "arg1/Line1"))
-
-        def child_params(params: Params) -> tuple[Params, ...]:
-            return 2*((),)
-
-        return keys, constraints, prim_keys, child_params
-
-    @classmethod
-    def init_signature(cls):
-        return cls.make_signature(0)
-
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral, pr.Quadrilateral]):
-        return super().assem(prims)
+    def __init__(self):
+        super().__init__(row=False)
 
 
 class CoincidentOutwardFaces(
