@@ -355,7 +355,7 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
 AspectRatio = con.transform_ConstraintType(con.AspectRatio)
 
 
-def get_axis_dim(axis: XAxis | YAxis, side: str):
+def get_axis_thickness(axis: XAxis | YAxis, side: str):
 
     # Ignore the axis label in the height by temporarily making it invisible
     label_visibility = axis.label.get_visible()
@@ -385,88 +385,85 @@ def get_axis_dim(axis: XAxis | YAxis, side: str):
 
     return dim
 
-class XAxisHeight(con.StaticCompoundConstruction, con._QuadrilateralSignature):
+
+class AxisThickness(
+    con.CompoundConstruction, con._QuadrilateralSignature
+):
     """
-    Return the x-axis height error for an x-axis
+    Return the thickness error between the axis primitive and `matplotlib` axis
 
     Parameters
     ----------
-    None
+    axis: Literal['x', 'y']
+        The axis
+
+        The thickness depends on the axis. If `axis = 'x'` then thickness is
+        the axis height. If `axis = 'y'` then thickness is the axis width.
 
     Methods
     -------
-    assem(prims: tuple[pr.Quadrilateral], axis: XAxis)
-        Return the error between the computed and given axis height
+    assem(prims: tuple[pr.Quadrilateral], mpl_axis: XAxis | YAxis)
     """
 
+    def __init__(self, axis: Literal['x', 'y'] = 'x'):
+        super().__init__(axis=axis)
+
     @staticmethod
-    def get_xaxis_height(axis: XAxis):
-        return get_axis_dim(axis, axis.get_ticks_position())
+    def get_axis_thickness(mpl_axis: XAxis | YAxis):
+        return get_axis_thickness(mpl_axis, mpl_axis.get_ticks_position())
 
     @classmethod
-    def init_children(cls):
+    def init_children(cls, axis: Literal['x', 'y'] = 'x'):
         keys = ("Height",)
-        constraints = (YDistance(),)
-        prim_keys = (("arg0/Line1/Point0", "arg0/Line1/Point1"),)
+        if axis == 'x':
+            constraints = (YLength(),)
+            prim_keys = (("arg0/Line1",),)
+        else:
+            constraints = (XLength(),)
+            prim_keys = (("arg0/Line0",),)
 
         def child_params(params: Params) -> tuple[Params, ...]:
-            xaxis: XAxis | None = params[0]
-            if xaxis is None:
+            mpl_axis: XAxis | YAxis | None = params[0]
+            if mpl_axis is None:
                 return ((0,),)
             else:
-                return ((cls.get_xaxis_height(xaxis),),)
+                return ((cls.get_axis_thickness(mpl_axis),),)
 
         return keys, constraints, prim_keys, child_params
 
     @classmethod
-    def init_signature(cls):
-        return cls.make_signature(0, (XAxis,))
+    def init_signature(cls, axis: Literal['x', 'y'] = 'x'):
+        if axis == 'x':
+            return cls.make_signature(0, (XAxis,))
+        else:
+            return cls.make_signature(0, (YAxis,))
 
     @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral], axis: XAxis):
-        return super().assem(prims, axis)
+    def assem(cls, prims: tuple[pr.Quadrilateral], mpl_axis: XAxis):
+        return super().assem(prims, mpl_axis)
 
 
-class YAxisWidth(con.StaticCompoundConstruction, con._QuadrilateralSignature):
+class XAxisHeight(AxisThickness):
     """
-    Return the y-axis height error for an y-axis
+    Return the thickness error between a x axis primitive and a `matplotlib` axis
 
-    Parameters
-    ----------
-    None
-
-    Methods
-    -------
-    assem(prims: tuple[pr.Quadrilateral], axis: XAxis)
-        Return the error between the computed and given axis width
+    See `AxisThickness` with fixed `axis='x'` for more details.
     """
 
-    @staticmethod
-    def get_yaxis_width(axis: YAxis):
-        return get_axis_dim(axis, axis.get_ticks_position())
+    def __init__(self):
+        super().__init__(axis='x')
 
-    @classmethod
-    def init_children(cls):
-        keys = ("Width",)
-        constraints = (XDistance(),)
-        prim_keys = (("arg0/Line0/Point0", "arg0/Line0/Point1"),)
 
-        def child_params(params: Params) -> tuple[Params, ...]:
-            yaxis: YAxis | None = params[0]
-            if yaxis is None:
-                return ((0,),)
-            else:
-                return ((cls.get_yaxis_width(yaxis),),)
+class YAxisWidth(AxisThickness):
+    """
+    Return the thickness error between a y axis primitive and a `matplotlib` axis
 
-        return keys, constraints, prim_keys, child_params
+    See `AxisThickness` with fixed `axis='y'` for more details.
+    """
 
-    @classmethod
-    def init_signature(cls):
-        return cls.make_signature(0, (YAxis,))
+    def __init__(self):
+        super().__init__(axis='y')
 
-    @classmethod
-    def assem(cls, prims: tuple[pr.Quadrilateral], axis: YAxis):
-        return super().assem(prims, axis)
 
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]

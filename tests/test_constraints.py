@@ -739,7 +739,7 @@ class TestAxesConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def xaxis_height(self, axes_mpl):
-        return co.XAxisHeight.get_xaxis_height(axes_mpl.xaxis)
+        return co.XAxisHeight.get_axis_thickness(axes_mpl.xaxis)
 
     def test_XAxisHeight(self, axes, axes_mpl):
         res = co.XAxisHeight()((axes['XAxis'],), axes_mpl.xaxis)
@@ -747,7 +747,7 @@ class TestAxesConstraints(GeometryFixtures):
 
     @pytest.fixture()
     def yaxis_width(self, axes_mpl):
-        return co.YAxisWidth.get_yaxis_width(axes_mpl.yaxis)
+        return co.YAxisWidth.get_axis_thickness(axes_mpl.yaxis)
 
     def test_YAxisWidth(self, axes, axes_mpl):
         res = co.YAxisWidth()((axes['YAxis'],), axes_mpl.yaxis)
