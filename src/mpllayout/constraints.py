@@ -28,7 +28,6 @@ ArrayConstraint = con.ArrayCompoundConstruction
 
 # Argument type: tuple[Point]
 
-# TODO: Figure out how to assign docstrings to these generated classes
 Fix = con.transform_ConstraintType(con.Coordinate)
 
 # Argument type: tuple[Point, Point]

@@ -1390,6 +1390,31 @@ def transform_ConstraintType(ConstructionType: type[TCons]):
     """
 
     class DerivedConstraint(ConstructionNode):
+        __doc__ = f"""
+        Return the error between {ConstructionType} and an input value
+
+        See {ConstructionType} for more details.
+
+        Parameters
+        ----------
+        See {ConstructionType} for more details.
+
+        Methods
+        -------
+        assem(derived_prims: Prims, *derived_params)
+
+            The difference between {ConstructionType} and a value is returned in
+            the following format.
+            ``
+            def assem(derived_prims: Prims, *derived_params):
+                prims = derived_prims
+                params, value = derived_params
+
+                return original_construction.assem(prims, *params) - value
+            ``
+            Note that the new constraint has an additional appended parameter,
+            `value`, representing the desired construction value.
+        """
 
         def __new__(cls, **kwargs):
             construction = ConstructionType(**kwargs)
