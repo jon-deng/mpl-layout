@@ -410,13 +410,29 @@ class TestQuadrilateral(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
     @pytest.fixture()
-    def quad_box(self):
+    def width(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def height(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def quad_rectangle(self, width, height):
         translation = np.random.rand(2)
-        deformation = np.diag(np.random.rand(2))
+        deformation = np.diag([width, height])
         return self.make_quad(translation, deformation)
 
-    def test_Box(self, quad_box: pr.Quadrilateral):
-        res = co.Box()((quad_box,))
+    def test_Box(self, quad_rectangle: pr.Quadrilateral):
+        res = co.Box()((quad_rectangle,))
+        assert np.all(np.isclose(res, 0))
+
+    def test_Width(self, quad_rectangle: pr.Quadrilateral, width: float):
+        res = co.Width()((quad_rectangle,), width)
+        assert np.all(np.isclose(res, 0))
+
+    def test_Height(self, quad_rectangle: pr.Quadrilateral, height: float):
+        res = co.Height()((quad_rectangle,), height)
         assert np.all(np.isclose(res, 0))
 
 
