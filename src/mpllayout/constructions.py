@@ -1097,6 +1097,78 @@ class RelativePointOnLineDistance(LeafConstruction, _PointLineSignature):
 
 # Argument type: tuple[Quadrilateral]
 
+class RectangleDim(CompoundConstruction, _QuadrilateralSignature):
+    """
+    Return a rectangle dimension (width or height)
+
+    Parameters
+    ----------
+    side: Literal['width', 'height']
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral])
+    """
+    def __init__(
+        self,
+        dim: Literal['width', 'height']='width'
+    ):
+        super().__init__(dim=dim)
+
+    @classmethod
+    def init_children(
+        cls,
+        dim: Literal['width', 'height']='width'
+    ):
+        if dim == "width":
+            keys = ("Width",)
+            constructions = (XLength(),)
+            prim_keys = (("arg0/Line0",),)
+        elif dim == "height":
+            keys = ("Height",)
+            constructions = (YLength(),)
+            prim_keys = (("arg0/Line1",),)
+        else:
+            raise ValueError()
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            return ((),)
+
+        return (keys, constructions, prim_keys, child_params)
+
+    @classmethod
+    def init_signature(
+        cls,
+        dim: Literal['width', 'height']='width'
+    ):
+        return cls.make_signature(0)
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral]):
+        return super().assem(prims)
+
+
+class Width(RectangleDim):
+    """
+    Return a rectangle width
+
+    See `RectangleDim` with fixed `dim='width'` for more details.
+    """
+
+    def __init__(self):
+        super().__init__(dim='width')
+
+
+class Height(RectangleDim):
+    """
+    Return a rectangle height
+
+    See `RectangleDim` with fixed `dim='height'` for more details.
+    """
+
+    def __init__(self):
+        super().__init__(dim='height')
+
 
 class AspectRatio(LeafConstruction, _QuadrilateralSignature):
     """

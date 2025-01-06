@@ -351,6 +351,12 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
         return super().assem(prims)
 
 
+Width = con.transform_ConstraintType(con.Width)
+
+
+Height = con.transform_ConstraintType(con.Height)
+
+
 AspectRatio = con.transform_ConstraintType(con.AspectRatio)
 
 
