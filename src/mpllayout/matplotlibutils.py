@@ -3,6 +3,7 @@ Utilities for creating `matplotlib` elements from geometric primitives
 """
 
 from typing import Optional
+from numpy.typing import NDArray
 import warnings
 
 import numpy as np
@@ -93,6 +94,7 @@ def update_subplots(
     """
     # Set Figure position
     quad = root_prim[fig_key]
+    fig_origin = quad['Line0/Point0'].value
     fig_size = np.array(width_and_height_from_quad(quad))
     fig.set_size_inches(fig_size)
 
@@ -100,7 +102,7 @@ def update_subplots(
     for key, ax in axs.items():
         # Set Axes dimensions
         quad = root_prim[f"{key}/Frame"]
-        ax.set_position(rect_from_box(quad, fig_size))
+        ax.set_position(rect_from_box(quad, fig_origin, fig_size))
 
         # Set x/y axis properties
         axis_prefixes = ("X", "Y")
@@ -175,19 +177,19 @@ def width_and_height_from_quad(quad: pr.Quadrilateral) -> tuple[float, float]:
         The width and height
     """
 
-    point_bottomleft = quad["Line0/Point0"]
-    xmin = point_bottomleft.value[0]
-    ymin = point_bottomleft.value[1]
+    coord_botleft = quad["Line0/Point0"].value
+    xmin, ymin = coord_botleft
 
-    point_topright = quad["Line1/Point1"]
-    xmax = point_topright.value[0]
-    ymax = point_topright.value[1]
+    coord_topright = quad["Line1/Point1"].value
+    xmax, ymax = coord_topright
 
     return (xmax - xmin), (ymax - ymin)
 
 
 def rect_from_box(
-    quad: pr.Quadrilateral, fig_size: Optional[tuple[float, float]] = (1, 1)
+    quad: pr.Quadrilateral,
+    fig_origin: NDArray,
+    fig_size: NDArray = np.array((1, 1))
 ) -> tuple[float, float, float, float]:
     """
     Return a `rect' tuple, `(left, bottom, width, height)`, from a quadrilateral
@@ -199,7 +201,9 @@ def rect_from_box(
     ----------
     quad: pr.Quadrilateral
         The quadrilateral
-    fig_size: Optional[tuple[float, float]]
+    fig_origin: NDArray
+        Coordinates for the figure bottom left corner
+    fig_size: NDArray
         The width and height of the figure
 
         This should be supplied so that the rect tuple has units relative to the figure.
@@ -209,15 +213,12 @@ def rect_from_box(
     -------
     xmin, ymin, width, heigth: tuple[float, float, float, float]
     """
-    fig_w, fig_h = fig_size
 
-    point_bottomleft = quad["Line0/Point0"]
-    xmin = point_bottomleft.value[0] / fig_w
-    ymin = point_bottomleft.value[1] / fig_h
+    coord_botleft = quad["Line0/Point0"].value
+    xmin, ymin = (coord_botleft-fig_origin) / fig_size
 
-    point_topright = quad["Line1/Point1"]
-    xmax = point_topright.value[0] / fig_w
-    ymax = point_topright.value[1] / fig_h
+    coord_topright = quad["Line1/Point1"].value
+    xmax, ymax = (coord_topright-fig_origin) / fig_size
     width = xmax - xmin
     height = ymax - ymin
 
