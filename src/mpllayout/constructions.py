@@ -959,7 +959,8 @@ class Angle(LeafConstruction, _LineLineSignature):
     """
     Return the angle between two lines
 
-    TODO: Document the convention for angle sign (CW or CCW? 0 to 360?)
+    The angle is measured counter-clockwise from the first to the second line
+    in the range `(-pi, pi)` (see `jax.numpy.arctan2`).
 
     Parameters
     ----------
@@ -979,7 +980,9 @@ class Angle(LeafConstruction, _LineLineSignature):
         line0, line1 = prims
         dir0 = UnitLineVector.assem((line0,))
         dir1 = UnitLineVector.assem((line1,))
-        return jnp.arccos(jnp.dot(dir0, dir1))
+        angle0 = jnp.arctan2(dir0[1], dir0[0])
+        angle1 = jnp.arctan2(dir1[1], dir1[0])
+        return angle1 - angle0
 
 
 ## Point and Line constructions
