@@ -128,7 +128,6 @@ class Horizontal(con.LeafConstruction, con._LineSignature):
 
 # Argument type: tuple[Line, Line]
 
-# TODO: Refactor as derived constraint
 class RelativeLength(con.ConstructionNode):
     """
     Return the length error of a line relative to another line
