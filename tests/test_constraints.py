@@ -730,8 +730,9 @@ class TestAxesConstraints(GeometryFixtures):
             yaxis_side,
         ):
         width, height = axes_size
-        # NOTE: Unit dimensions of the figure are important because `fig.add_axes`
-        # units are relative to figure dimensions
+        # NOTE: Unit dimensions of the figure are used because units for
+        # `fig.add_axes` are relative to figure dimensions.
+        # This ensures that added axes have the correct sizes for testing.
         fig = plt.figure(figsize=(1, 1))
         ax = fig.add_axes((0, 0, width, height))
 

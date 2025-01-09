@@ -29,8 +29,7 @@ Prims = tuple[pr.Primitive, ...]
 PrimTypes = tuple[type[pr.Primitive], ...]
 
 # NOTE: An `ArraySize` specifies the size of array returned by a construction
-# but more generally it could be some `NDArray` that encodes the
-# datatype, shape etc.
+# but more generally it could be some `NDArray` that encodes the datatype, shape, etc.
 ArraySize = int
 
 class ConstructionSignature(NamedTuple):
@@ -268,8 +267,8 @@ class ConstructionNode(Node[ConstructionValue]):
         if len(params) != len(self.signature.param_types):
             raise TypeError(f"Incorrect number of parameters")
 
-        # NOTE: Didn't check parameter types because types are much looser
-        # In many cases, a float will work in place of an NDArray, etc.
+        # NOTE: I didn't check parameter types because these are not very strict.
+        # For example, in many cases a `float` will work in place of an `NDArray`.
 
     def validate_value(self, value: NDArray):
         """
@@ -648,8 +647,6 @@ class Scalar(LeafConstruction, _NullSignature):
         return value
 
 ## Point constructions
-# NOTE: These are actual construction classes that can be called so class docstrings
-# document there `assem_res` function.
 
 # Argument type: tuple[Point]
 
@@ -1567,7 +1564,7 @@ def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Pri
     return MapConstruction
 
 
-# NOTE: Refactor `transform_map` to accept `*PrimTypes`?
+# TODO: Refactor `transform_map` to accept `*PrimTypes`?
 # This would be a tuple of `PrimTypes` lists for each primitive in the
 # construction `prims` parameter.
 # This would allow you to treat constructions with multiple `prims` as

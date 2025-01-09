@@ -225,7 +225,7 @@ def solve_minimize(
 
     ## Iteratively minimize the global residual as function of the global parameter vector
 
-    # NOTE: Could use other optimization solvers besides 'L-BFGS-B'
+    # TODO: (not critical) Implement other optimization solvers besides 'L-BFGS-B'
     res = minimize(
         jax.value_and_grad(assem_objective),
         global_param_n,

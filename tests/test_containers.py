@@ -13,7 +13,8 @@ from mpllayout import containers as cn
 
 class TestNode:
 
-    # NOTE: Test using randomly generated `Node`?
+    # TODO: Use strategic node tests cases (single left, parent with one child, etc.) to test nodes rigorously.
+
     @pytest.fixture()
     def node(self):
         childd = cn.Node.from_tree(99, {})

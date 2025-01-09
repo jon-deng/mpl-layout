@@ -171,7 +171,8 @@ def plot_prim(
 
     if isinstance(prim, pr.Line):
         pass
-        # NOTE: Skip plotting point belonging to lines because the labels overlap
+        # NOTE: I skipped plotting line start and end points because the labels
+        # get crowded
         # TODO: Implement nice plots of points in lines
         # Should try to avoid label overlap
     else:

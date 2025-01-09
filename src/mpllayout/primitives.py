@@ -98,8 +98,8 @@ class PrimitiveNode(cn.Node[NDArray[np.float64]]):
         indicates valid child primitives.
     """
 
-    # NOTE: `None` indicates `PrimitiveNode` but the name isn't available within
-    # the class itself
+    # NOTE: I used `None` to indicate `PrimitiveNode` because the name isn't
+    # available within the class itself
     signature: PrimNodeSignature = (0, (None, ...))
 
     def __init__(self, value: PrimValue, children: dict[str, TPrim]):
@@ -341,8 +341,6 @@ class Polygon(Primitive):
         Child primitives are lines joining the given vertices.
     size: int
         The number of polygon vertices
-
-        NOTE: Replace this based on `len(prims)`?
     """
 
     signature = (0, (Line, ...))

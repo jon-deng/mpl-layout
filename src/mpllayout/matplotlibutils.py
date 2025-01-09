@@ -15,8 +15,9 @@ from matplotlib.axes import Axes
 from . import primitives as pr
 from . import constraints as cr
 
-# NOTE: Use special primitive classes rather than keys to determine figure/axes?
-# If you do, this should be done for both `subplots` and `update_subplots`
+# TODO: (not critical) Should special primitive classes indicate `matplotlib` figures and axes?
+# I'm not certain if that would be that beneficial here.
+# If so, this should be done for both `subplots` and `update_subplots`.
 def subplots(
     root_prim: pr.Primitive,
     fig_key: str = "Figure",
