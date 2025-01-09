@@ -86,6 +86,32 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(res_a, res_b))
 
+    def test_transform_partial(self):
+        cons = con.DirectedLength()
+
+        line = self.make_line(np.zeros(2), np.random.rand(2))
+
+        direction = np.random.rand(2)
+        direction = direction / np.linalg.norm(direction)
+        length_ref = cons((line,), direction)
+
+        length_test = con.transform_partial(cons, direction)((line,))
+
+        assert np.all(np.isclose(length_test, length_ref))
+
+        cons = con.Width()
+
+        quad = self.make_quad(
+            np.zeros(2), np.diag(np.random.rand(2))
+        )
+
+        res_ref = cons((quad,))
+
+        res_test = con.transform_partial(cons)((quad,))
+
+        assert np.all(np.isclose(res_test, res_ref))
+
+
 class TestNull:
 
     @pytest.fixture()
@@ -114,6 +140,7 @@ class TestNull:
         print(vector_test, vector)
 
         assert np.all(np.isclose(vector_test, vector))
+
 
 class TestPoint(GeometryFixtures):
     """
