@@ -1722,10 +1722,6 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
     return unflatten(flat_sum_constructions)[0]
 
 
-# TODO: Implement a parameter freezing transform which fixes a parameter
-# Then constant `Scalar` and `Vector` could be represented by freezing
-# `value` parameter
-
 def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionNode:
     """
     Return a construction representing a construction multiplied by a scalar
@@ -1796,3 +1792,48 @@ def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionN
     ]
 
     return unflatten(flat_sum_constructions)[0]
+
+
+def transform_partial(cons: TCons, *freeze_params: tuple[Param, ...]):
+    """
+    Return a new construction with partial application of parameters
+
+
+    Parameters
+    ----------
+    cons: TCons
+        The construction to apply partial parameters to
+    *freeze_params: tuple[Param, ...]
+        "Frozen" parameters to apply for the transformed construction
+    """
+
+    child_prim_keys = cons.value.child_prim_keys
+    child_params = cons.value.child_params
+    sig = cons.value.signature
+    prim_types, param_types, value_size = sig
+
+    def partial_child_params(partial_params):
+        params = partial_params + freeze_params
+        return child_params(params)
+
+    partial_sig = ConstructionSignature(
+        prim_types, param_types[:-len(freeze_params)], value_size
+    )
+
+    partial_value = ConstructionValue(
+        child_prim_keys, partial_child_params, partial_sig
+    )
+    partial_children = cons.children
+
+    class Partial(ConstructionNode):
+
+        def __init__(self):
+            super().__init__(partial_value, partial_children)
+
+        @classmethod
+        def assem(cls, prims, *partial_params):
+            params = partial_params + freeze_params
+            return cons.assem(prims, *params)
+
+    return Partial()
+
