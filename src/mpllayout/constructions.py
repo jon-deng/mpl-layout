@@ -1722,7 +1722,9 @@ def transform_sum(cons_a: TCons, cons_b: TCons) -> ConstructionNode:
     return unflatten(flat_sum_constructions)[0]
 
 
-def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionNode:
+def transform_scalar_mul(
+    cons: TCons, scalar: Scalar | float | int
+) -> ConstructionNode:
     """
     Return a construction representing a construction multiplied by a scalar
     """
@@ -1731,73 +1733,60 @@ def transform_scalar_mul(cons_a: TCons, scalar: float | Scalar) -> ConstructionN
     # construction and no additional parameter is added
 
     def transform_ScalarMultiple(
-        cons_a: TCons, scalar: float | Scalar
+        cons_a: TCons, cons_b: Scalar
     ) -> ConstructionNode:
-        child_keys = cons_a.keys()
+        child_keys_a = cons_a.keys()
         value_a = cons_a.value
         signature_a = value_a.signature
 
-        if isinstance(scalar, Scalar):
-            signature_scalar = scalar.value.signature
+        signature_b = cons_b.value.signature
 
-            mul_signature, cat_split_prims, cat_split_params = concatenate_construction_inputs(
-                signature_a, signature_scalar, signature_a.value_size
-            )
-            concat_prims, split_prims = cat_split_prims
-            concat_params, split_params = cat_split_params
+        mul_signature, cat_split_prims, cat_split_params = concatenate_construction_inputs(
+            signature_a, signature_b, signature_a.value_size
+        )
+        concat_prims, split_prims = cat_split_prims
+        concat_params, split_params = cat_split_params
 
-            class ScalarMultipleConstruction(ConstructionNode):
+        class ScalarMultipleConstruction(ConstructionNode):
 
-                @classmethod
-                def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                    prims_a, prims_scalar = split_prims(prims)
-                    params_a, params_scalar = split_params(params)
-                    return (
-                        scalar.assem(prims_scalar, *params_scalar)
-                        * cons_a.assem(prims_a, *params_a)
-                    )
-
-            def mul_child_params(params: Params) -> tuple[Params, ...]:
-                params_a, params_scalar = split_params(params)
-                return tuple(
-                    concat_params(child_cons_params, params_scalar)
-                    for child_cons_params in value_a.child_params(params_a)
+            @classmethod
+            def assem(cls, prims: Prims, *params: Params) -> NDArray:
+                prims_a, prims_b = split_prims(prims)
+                params_a, params_b = split_params(params)
+                return (
+                    cons_b.assem(prims_b, *params_b)
+                    * cons_a.assem(prims_a, *params_a)
                 )
 
-        elif isinstance(scalar, (float, int)):
-            mul_signature = signature_a
-
-            class ScalarMultipleConstruction(ConstructionNode):
-
-                @classmethod
-                def assem(cls, prims: Prims, *params: Params) -> NDArray:
-                    return scalar * cons_a.assem(prims, *params)
-
-            def mul_child_params(params: Params) -> tuple[Params, ...]:
-                return value_a.child_params(params)
-
-        else:
-            raise TypeError(
-                f"`scalar` must be `float | int | Scalar` not `{type(scalar)}`"
+        def mul_child_params(params: Params) -> tuple[Params, ...]:
+            params_a, params_b = split_params(params)
+            return tuple(
+                concat_params(child_cons_params, params_b)
+                for child_cons_params in value_a.child_params(params_a)
             )
 
         node_value = ConstructionValue(
             cons_a.value.child_prim_keys, mul_child_params, mul_signature
         )
-        return ScalarMultipleConstruction, node_value, child_keys
+        return ScalarMultipleConstruction, node_value, child_keys_a
 
-    flat_a = [a for a in iter_flat("", cons_a)]
-    flat_sum_constructions = [
-        (key, *transform_ScalarMultiple(a, scalar)) for key, a in flat_a
+    if isinstance(scalar, (float, int)):
+        scalar = transform_partial(Scalar(), scalar)
+    elif not isinstance(scalar, Scalar):
+        raise TypeError(f"`scalar` must have type `Scalar` not {type(scalar)}")
+
+    flat_cons = [a for a in iter_flat("", cons)]
+    flat_sum_cons = [
+        (key, *transform_ScalarMultiple(_cons, scalar))
+        for key, _cons in flat_cons
     ]
 
-    return unflatten(flat_sum_constructions)[0]
+    return unflatten(flat_sum_cons)[0]
 
 
 def transform_partial(cons: TCons, *freeze_params: tuple[Param, ...]):
     """
     Return a new construction with partial application of parameters
-
 
     Parameters
     ----------
