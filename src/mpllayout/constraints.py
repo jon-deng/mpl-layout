@@ -28,15 +28,82 @@ ArrayConstraint = con.ArrayCompoundConstruction
 
 # Argument type: tuple[Point]
 
-Fix = con.transform_ConstraintType(con.Coordinate)
+class Fix(con.ConstructionNode):
+    """
+    Return the point coordinate error relative to a given value
+
+    See the `Coordinate` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point], value: NDArray)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.Coordinate())
 
 # Argument type: tuple[Point, Point]
 
-DirectedDistance = con.transform_ConstraintType(con.DirectedDistance)
+class DirectedDistance(con.ConstructionNode):
+    """
+    Return the directed distance error relative to a given value
 
-XDistance = con.transform_ConstraintType(con.XDistance)
+    See the `DirectedDistance` construction for more details.
 
-YDistance = con.transform_ConstraintType(con.YDistance)
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point], direction: NDArray, value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.DirectedDistance())
+
+
+class XDistance(con.ConstructionNode):
+    """
+    Return the x distance error relative to a given value
+
+    See the `XDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.XDistance())
+
+
+class YDistance(con.ConstructionNode):
+    """
+    Return the y distance error relative to a given value
+
+    See the `YDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Point], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.YDistance())
+
 
 class Coincident(con.LeafConstruction, con._PointPointSignature):
     """
@@ -69,15 +136,80 @@ class Coincident(con.LeafConstruction, con._PointPointSignature):
 
 # Argument type: tuple[Line]
 
-Length = con.transform_ConstraintType(con.Length)
+class Length(con.ConstructionNode):
+    """
+    Return the length error relative to a given value
+
+    See the `Length` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.Length())
 
 
-DirectedLength = con.transform_ConstraintType(con.DirectedLength)
+class DirectedLength(con.ConstructionNode):
+    """
+    Return the directed length error relative to a given value
 
-XLength = con.transform_ConstraintType(con.XLength)
+    See the `DirectedLength` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], direction: NDArray, value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.DirectedLength())
 
 
-YLength = con.transform_ConstraintType(con.YLength)
+class XLength(con.ConstructionNode):
+    """
+    Return the x length error relative to a given value
+
+    See the `XLength` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.XLength())
+
+
+class YLength(con.ConstructionNode):
+    """
+    Return the directed length error relative to a given value
+
+    See the `YLength` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.YLength())
 
 
 class Vertical(con.LeafConstruction, con._LineSignature):
@@ -152,10 +284,43 @@ class RelativeLength(con.ConstructionNode):
         )
 
 
-MidpointXDistance = con.transform_ConstraintType(con.MidpointXDistance)
+class MidpointXDistance(con.ConstructionNode):
+    """
+    Return the midpoint x distance error relative to a given value
+
+    See the `MidpointXDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.MidpointXDistance())
 
 
-MidpointYDistance = con.transform_ConstraintType(con.MidpointYDistance)
+class MidpointYDistance(con.ConstructionNode):
+    """
+    Return the midpoint y distance error relative to a given value
+
+    See the `MidpointYDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.MidpointYDistance())
+
 
 class Orthogonal(con.LeafConstruction, con._LineLineSignature):
     """
@@ -215,7 +380,24 @@ class Parallel(con.LeafConstruction, con._LineLineSignature):
         )
 
 
-Angle = con.transform_ConstraintType(con.Angle)
+class Angle(con.ConstructionNode):
+    """
+    Return the angle error relative to a given value
+
+    See the `Angle` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Line, pr.Line], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.Angle())
+
 
 class Collinear(con.LeafConstruction, con._LineLineSignature):
     """
@@ -295,15 +477,61 @@ class CoincidentLines(con.LeafConstruction, con._LineLineSignature):
 # + and offset
 # This would be useful for aligning axis labels
 
-PointOnLineDistance = con.transform_ConstraintType(con.PointOnLineDistance)
+class PointOnLineDistance(con.ConstructionNode):
+    """
+    Return the point-on-line distance error relative to a given value
+
+    See the `PointOnLineDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.PointOnLineDistance())
 
 
-PointToLineDistance = con.transform_ConstraintType(con.PointToLineDistance)
+class PointToLineDistance(con.ConstructionNode):
+    """
+    Return the point-to-line distance error relative to a given value
+
+    See the `PointToLineDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.PointToLineDistance())
 
 
-RelativePointOnLineDistance = con.transform_ConstraintType(
-    con.RelativePointOnLineDistance
-)
+class RelativePointOnLineDistance(con.ConstructionNode):
+    """
+    Return the fractional point-on-line distance error relative to a given value
+
+    See the `RelativePointOnLineDistance` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Point, pr.Line], reverse: bool, value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.RelativePointOnLineDistance())
 
 
 ## Quad constraints
@@ -350,13 +578,61 @@ class Box(con.StaticCompoundConstruction, con._QuadrilateralSignature):
         return super().assem(prims)
 
 
-Width = con.transform_ConstraintType(con.Width)
+class Width(con.ConstructionNode):
+    """
+    Return the width error relative to a given value
+
+    See the `Width` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.Width())
 
 
-Height = con.transform_ConstraintType(con.Height)
+class Height(con.ConstructionNode):
+    """
+    Return the height error relative to a given value
+
+    See the `Height` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.Height())
 
 
-AspectRatio = con.transform_ConstraintType(con.AspectRatio)
+class AspectRatio(con.ConstructionNode):
+    """
+    Return the aspect ratio error relative to a given value
+
+    See the `AspectRatio` construction for more details.
+
+    Parameters
+    ----------
+    None
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral], value: float)
+    """
+
+    def __new__(cls):
+        return con.transform_constraint(con.AspectRatio())
 
 
 def get_axis_thickness(axis: XAxis | YAxis, side: str):
@@ -471,9 +747,43 @@ class YAxisThickness(AxisThickness):
 
 # Argument type: tuple[Quadrilateral, Quadrilateral]
 
-OuterMargin = con.transform_ConstraintType(con.OuterMargin)
+class OuterMargin(con.ConstructionNode):
+    """
+    Return the outer margin error relative to a given value
 
-InnerMargin = con.transform_ConstraintType(con.InnerMargin)
+    See the `OuterMargin` construction for more details.
+
+    Parameters
+    ----------
+    side: Literal['bottom', 'top', 'left', 'right']
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral], value: float)
+    """
+
+    def __new__(cls, side: Literal['bottom', 'top', 'left', 'right']):
+        return con.transform_constraint(con.OuterMargin(side=side))
+
+
+class InnerMargin(con.ConstructionNode):
+    """
+    Return the inner margin error relative to a given value
+
+    See the `InnerMargin` construction for more details.
+
+    Parameters
+    ----------
+    side: Literal['bottom', 'top', 'left', 'right']
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, pr.Quadrilateral], value: float)
+    """
+
+    def __new__(cls, side: Literal['bottom', 'top', 'left', 'right']):
+        return con.transform_constraint(con.InnerMargin(side=side))
+
 
 class Align(
     con.CompoundConstruction, con._QuadrilateralQuadrilateralSignature
