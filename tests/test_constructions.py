@@ -22,8 +22,8 @@ class TestConstructionFunctions(GeometryFixtures):
         points = tuple(pr.Point(value=coord) for coord in coords)
 
         coords_ref = np.concatenate([con.Coordinate()((point,)) for point in points])
-        MapCoordinate = con.transform_MapType(con.Coordinate, num_point*[pr.Point])
-        coords_map = MapCoordinate()(points)
+        map_coordinate = con.transform_map(con.Coordinate(), num_point*[pr.Point])
+        coords_map = map_coordinate(points)
 
         assert np.all(np.isclose(coords_ref, coords_map))
 
