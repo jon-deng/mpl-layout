@@ -1444,62 +1444,6 @@ def concatenate_params(
 
 # These functions transform constructions into new ones
 
-def transform_ConstraintType(ConstructionType: type[TCons]):
-    """
-    Return a constraint from a construction type
-
-    See `transform_constraint` for more details.
-
-    Parameters
-    ----------
-    ConstructionType: type[TCons]
-        The construction class to transform
-
-    Returns
-    -------
-    DerivedConstraint: type[ConstructionNode]
-        The transformed constraint class
-    """
-
-    class DerivedConstraint(ConstructionNode):
-        __doc__ = f"""
-        Return the error between {ConstructionType} and an input value
-
-        See {ConstructionType} for more details.
-
-        Parameters
-        ----------
-        See {ConstructionType} for more details.
-
-        Methods
-        -------
-        assem(derived_prims: Prims, *derived_params)
-
-            The difference between {ConstructionType} and a value is returned in
-            the following format.
-            ``
-            def assem(derived_prims: Prims, *derived_params):
-                prims = derived_prims
-                params, value = derived_params
-
-                return original_construction.assem(prims, *params) - value
-            ``
-            Note that the new constraint has an additional appended parameter,
-            `value`, representing the desired construction value.
-        """
-
-        def __new__(cls, **kwargs):
-            construction = ConstructionType(**kwargs)
-            return transform_constraint(construction)
-
-        def __init__(self, **kwargs):
-            pass
-
-    DerivedConstraint.__name__ = ConstructionType.__name__
-
-    return DerivedConstraint
-
-
 def transform_constraint(construction: TCons):
     """
     Return a constraint from a construction
@@ -1529,40 +1473,6 @@ def transform_constraint(construction: TCons):
 
     vector = Vector(size_node)
     return transform_sum(construction, transform_scalar_mul(vector, -1))
-
-
-def transform_MapType(ConstructionType: type[TCons], PrimTypes: list[type[pr.Primitive]]):
-    """
-    Return a derived construction that maps over an array of primitives
-
-    See `transform_map` for more details.
-
-    Parameters
-    ----------
-    ConstructionType: type[TCons]
-        The construction class to transform
-    PrimType: list[type[pr.Primitive]]
-        The list of primitives to map over
-
-    Returns
-    -------
-    MapConstruction: type[ConstructionNode]
-        The transformed map construction class
-    """
-
-    class MapConstruction(ConstructionNode):
-
-        def __new__(cls, **kwargs):
-            construction = ConstructionType(**kwargs)
-            return transform_map(construction, PrimTypes)
-
-        def __init__(self, **kwargs):
-            pass
-
-    MapConstruction.__name__ = f"Map{ConstructionType.__name__}"
-
-    return MapConstruction
-
 
 # TODO: Refactor `transform_map` to accept `*PrimTypes`?
 # This would be a tuple of `PrimTypes` lists for each primitive in the
