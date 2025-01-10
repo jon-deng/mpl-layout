@@ -13,21 +13,23 @@ from mpllayout import containers as cn
 
 class TestNode:
 
-    # TODO: Use strategic node tests cases (single left, parent with one child, etc.) to test nodes rigorously.
+    def test_node_height(self):
+
+        # Check that a root node has height 0
+        node = cn.Node(0, {})
+        assert node.node_height() == 0
+
+        # Check nodes where one child has a grand child and the other child does not
+        node = cn.Node(0, {'a1': cn.Node(0, {'b1': cn.Node(0, {})}), 'a2': cn.Node(0, {})})
+        assert node.node_height() == 2
+
+        node = cn.Node(0, {'a1': cn.Node(0, {}), 'a2': cn.Node(0, {'b1': cn.Node(0, {})})})
+        assert node.node_height() == 2
 
     @pytest.fixture()
     def node(self):
-        childd = cn.Node.from_tree(99, {})
-        childe = cn.Node.from_tree(9, {})
-        childb = cn.Node.from_tree(2, {"d": childd, "e": childe})
-
-        childa = cn.Node.from_tree(1, {})
-        childc = cn.Node.from_tree(3, {})
-        node = cn.Node.from_tree(0, {"a": childa, "b": childb, "c": childc})
+        node = cn.Node(0, {'a1': cn.Node(0, {'b1': cn.Node(0, {})}), 'a2': cn.Node(0, {})})
         return node
-
-    def test_node_height(self, node: cn.Node):
-        assert node.node_height() == 2
 
     def test_repr(self, node: cn.Node):
         print(node)
