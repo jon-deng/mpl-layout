@@ -42,7 +42,36 @@ def random_node(
         }
     return cn.Node(value, children)
 
-class TestNode:
+class NodeFixtures:
+
+    @pytest.fixture(params=(0, 1, 2))
+    def num_children(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def root_value(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def child_values(self, num_children: int):
+        return np.random.rand(num_children)
+
+    @pytest.fixture()
+    def node(self, root_value: float, child_values: list[float]):
+        """
+        Return nodes with varying numbers of children
+
+        This covers the case of a leaf node, a node with one child, and a node
+        with two children.
+        """
+        children = {
+            f'a{n}': cn.Node(child_value, {})
+            for n, child_value in enumerate(child_values)
+        }
+        return cn.Node(root_value, children)
+
+
+class TestNode(NodeFixtures):
 
     def test_node_height(self):
 
@@ -56,22 +85,6 @@ class TestNode:
 
         node = cn.Node(0, {'a1': cn.Node(0, {}), 'a2': cn.Node(0, {'b1': cn.Node(0, {})})})
         assert node.node_height() == 2
-
-    @pytest.fixture()
-    def node(self):
-        node = cn.Node(
-            0,
-            {
-                'a1': cn.Node(
-                    0,
-                    {
-                        'b1': cn.Node(0, {})
-                    }
-                    ),
-                'a2': cn.Node(0, {})
-            }
-        )
-        return node
 
     def test_repr(self, node: cn.Node):
         print(node)
@@ -119,29 +132,8 @@ class TestNode:
         )
         print(f"Unflattening duration: {duration/N: .2e} s")
 
-class TestFunctions:
 
-    # Test functions work for a leaf node, and for varying numbers of children
-
-    @pytest.fixture(params=(0, 1, 2))
-    def num_children(self, request):
-        return request.param
-
-    @pytest.fixture()
-    def root_value(self):
-        return np.random.rand()
-
-    @pytest.fixture()
-    def child_values(self, num_children: int):
-        return np.random.rand(num_children)
-
-    @pytest.fixture()
-    def node(self, root_value: float, child_values: list[float]):
-        children = {
-            f'a{n}': cn.Node(child_value, {})
-            for n, child_value in enumerate(child_values)
-        }
-        return cn.Node(root_value, children)
+class TestFunctions(NodeFixtures):
 
     def test_map(self, node):
         def fun(x):
