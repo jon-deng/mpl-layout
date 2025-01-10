@@ -124,13 +124,30 @@ class TestFunctions:
     def test_map(self):
         def fun(x):
             return x+1
-        node = cn.Node(1, {'a': cn.Node(1, {}), 'b': cn.Node(1, {}), 'c': cn.Node(1, {})})
 
-        new_node = cn.map(fun, node)
+        # Check `map` works for a leaf node
+        node = cn.Node(0, {})
+        node_test = cn.map(fun, node)
 
-        test_node_values = [fun(_node.value) for _key, _node in cn.iter_flat('', node)]
-        new_node_values = [_node.value for _key, _node in cn.iter_flat('', new_node)]
-        assert np.all(np.isclose(new_node_values, test_node_values))
+        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
+        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
+        assert np.all(np.isclose(values_test, values_ref))
+
+        # Check `map` works for a node with one child
+        node = cn.Node(0, {'a1': cn.Node(1, {})})
+        node_test = cn.map(fun, node)
+
+        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
+        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
+        assert np.all(np.isclose(values_test, values_ref))
+
+        # Check `map` works for a node with two children
+        node = cn.Node(0, {'a1': cn.Node(1, {}), 'a2': cn.Node(2, {})})
+        node_test = cn.map(fun, node)
+
+        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
+        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
+        assert np.all(np.isclose(values_test, values_ref))
 
     def test_accumulate(self):
         # TODO: Think of how to test this properly
