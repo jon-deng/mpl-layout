@@ -59,7 +59,18 @@ class TestNode:
 
     @pytest.fixture()
     def node(self):
-        node = cn.Node(0, {'a1': cn.Node(0, {'b1': cn.Node(0, {})}), 'a2': cn.Node(0, {})})
+        node = cn.Node(
+            0,
+            {
+                'a1': cn.Node(
+                    0,
+                    {
+                        'b1': cn.Node(0, {})
+                    }
+                    ),
+                'a2': cn.Node(0, {})
+            }
+        )
         return node
 
     def test_repr(self, node: cn.Node):
