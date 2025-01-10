@@ -10,39 +10,41 @@ import numpy as np
 
 from mpllayout import containers as cn
 
-def random_node(
-    value: float,
-    depth: int=0,
-    min_children: int=1,
-    max_children: int=1,
-    min_depth: int=0,
-    max_depth: int=0
-):
-    num_child = np.random.randint(min_children, max_children)
-    child_values = np.random.rand(num_child)
-
-    # Give a linear distribution for the probability of stopping
-    def probability_stop(depth: int):
-        _p = (depth - min_depth) / (max_depth - min_depth)
-        return np.clip(_p, 0, 1)
-
-    if np.random.rand() < probability_stop(depth):
-        children = {}
-    else:
-        child_kwargs = {
-            'depth': depth+1,
-            'min_children': min_children,
-            'max_children': max_children,
-            'min_depth': min_depth,
-            'max_depth':  max_depth
-        }
-        children = {
-            f"Child{n:d}": random_node(child_value, **child_kwargs)
-            for n, child_value in enumerate(child_values)
-        }
-    return cn.Node(value, children)
 
 class NodeFixtures:
+
+    def random_node(
+        self,
+        value: float,
+        depth: int=0,
+        min_children: int=1,
+        max_children: int=1,
+        min_depth: int=0,
+        max_depth: int=0
+    ):
+        num_child = np.random.randint(min_children, max_children)
+        child_values = np.random.rand(num_child)
+
+        # Give a linear distribution for the probability of stopping
+        def probability_stop(depth: int):
+            _p = (depth - min_depth) / (max_depth - min_depth)
+            return np.clip(_p, 0, 1)
+
+        if np.random.rand() < probability_stop(depth):
+            children = {}
+        else:
+            child_kwargs = {
+                'depth': depth+1,
+                'min_children': min_children,
+                'max_children': max_children,
+                'min_depth': min_depth,
+                'max_depth':  max_depth
+            }
+            children = {
+                f"Child{n:d}": self.random_node(child_value, **child_kwargs)
+                for n, child_value in enumerate(child_values)
+            }
+        return cn.Node(value, children)
 
     @pytest.fixture(params=(0, 1, 2))
     def num_children(self, request):
