@@ -125,36 +125,27 @@ class TestFunctions:
         def fun(x):
             return x+1
 
-        # Check `map` works for a leaf node
-        node = cn.Node(0, {})
-        node_test = cn.map(fun, node)
+        # Check `map` works for a node with varying numbers of children
+        for num_children in (0, 1, 2):
+            value = np.random.rand()
+            child_values = np.random.rand(num_children)
+            children = {
+                f'a{n}': cn.Node(child_value, {})
+                for n, child_value in enumerate(child_values)
+            }
+            node = cn.Node(value, children)
 
-        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
-        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
-        assert np.all(np.isclose(values_test, values_ref))
+            node_test = cn.map(fun, node)
 
-        # Check `map` works for a node with one child
-        node = cn.Node(0, {'a1': cn.Node(1, {})})
-        node_test = cn.map(fun, node)
-
-        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
-        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
-        assert np.all(np.isclose(values_test, values_ref))
-
-        # Check `map` works for a node with two children
-        node = cn.Node(0, {'a1': cn.Node(1, {}), 'a2': cn.Node(2, {})})
-        node_test = cn.map(fun, node)
-
-        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
-        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
-        assert np.all(np.isclose(values_test, values_ref))
+            values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
+            values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
+            assert np.all(np.isclose(values_test, values_ref))
 
     def test_accumulate(self):
         def fun(x, y):
             return x + y
 
         # Check `accumulate` works for a node with varying numbers of children
-
         for num_children in (0, 1, 2):
             value = np.random.rand()
             child_values = np.random.rand(num_children)
