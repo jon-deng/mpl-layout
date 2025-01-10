@@ -150,15 +150,20 @@ class TestFunctions:
         assert np.all(np.isclose(values_test, values_ref))
 
     def test_accumulate(self):
-        # TODO: Think of how to test this properly
-        # Could have two tests to check that recursion works + iterating over different numbers of children works?
         def fun(x, y):
             return x + y
 
-        import string
-        values = 5*[1]
-        node = cn.Node(0, {key: cn.Node(value, {}) for key, value in zip(string.ascii_lowercase, values)})
+        # Check `accumulate` works for a node with varying numbers of children
 
-        new_node = cn.accumulate(fun, node, 0)
+        for num_children in (0, 1, 2):
+            value = np.random.rand()
+            child_values = np.random.rand(num_children)
+            children = {
+                f'a{n}': cn.Node(child_value, {})
+                for n, child_value in enumerate(child_values)
+            }
+            node = cn.Node(value, children)
 
-        assert np.isclose(new_node.value, np.sum(values))
+            node_test = cn.accumulate(fun, node, initial=0)
+
+            assert np.isclose(node_test.value, value + np.sum(child_values))
