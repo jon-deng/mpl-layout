@@ -121,40 +121,42 @@ class TestNode:
 
 class TestFunctions:
 
-    def test_map(self):
+    # Test functions work for a leaf node, and for varying numbers of children
+
+    @pytest.fixture(params=(0, 1, 2))
+    def num_children(self, request):
+        return request.param
+
+    @pytest.fixture()
+    def root_value(self):
+        return np.random.rand()
+
+    @pytest.fixture()
+    def child_values(self, num_children: int):
+        return np.random.rand(num_children)
+
+    @pytest.fixture()
+    def node(self, root_value: float, child_values: list[float]):
+        children = {
+            f'a{n}': cn.Node(child_value, {})
+            for n, child_value in enumerate(child_values)
+        }
+        return cn.Node(root_value, children)
+
+    def test_map(self, node):
         def fun(x):
             return x+1
 
-        # Check `map` works for a node with varying numbers of children
-        for num_children in (0, 1, 2):
-            value = np.random.rand()
-            child_values = np.random.rand(num_children)
-            children = {
-                f'a{n}': cn.Node(child_value, {})
-                for n, child_value in enumerate(child_values)
-            }
-            node = cn.Node(value, children)
+        node_test = cn.map(fun, node)
 
-            node_test = cn.map(fun, node)
+        values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
+        values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
+        assert np.all(np.isclose(values_test, values_ref))
 
-            values_ref = [fun(fnode.value) for _, fnode in cn.iter_flat('', node)]
-            values_test = [fnode.value for _, fnode in cn.iter_flat('', node_test)]
-            assert np.all(np.isclose(values_test, values_ref))
-
-    def test_accumulate(self):
+    def test_accumulate(self, node, root_value, child_values):
         def fun(x, y):
             return x + y
 
-        # Check `accumulate` works for a node with varying numbers of children
-        for num_children in (0, 1, 2):
-            value = np.random.rand()
-            child_values = np.random.rand(num_children)
-            children = {
-                f'a{n}': cn.Node(child_value, {})
-                for n, child_value in enumerate(child_values)
-            }
-            node = cn.Node(value, children)
+        node_test = cn.accumulate(fun, node, initial=0)
 
-            node_test = cn.accumulate(fun, node, initial=0)
-
-            assert np.isclose(node_test.value, value + np.sum(child_values))
+        assert np.isclose(node_test.value, root_value + np.sum(child_values))
