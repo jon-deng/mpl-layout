@@ -69,6 +69,9 @@ class ParamsNode(Node[Params]):
     pass
 
 
+# TODO: Add `__add__` and `__radd__` implementation for `transform_sum`
+# TODO: Add `__mul__` and `__rmul__` implementation for `transform_scalar_mul`
+# TODO: Add `__div__` and `__rdiv__` implementation for `transform_scalar_mul`
 class ConstructionNode(Node[ConstructionValue]):
     """
     Node representation of a geometric construction

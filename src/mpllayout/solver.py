@@ -69,6 +69,7 @@ def solve(
     else:
         raise ValueError(f"Invalid `method` {method}")
 
+# TODO: Add sparse jacobian assembly and solving via sparse least squares
 
 def solve_newton(
     layout: lay.Layout,
