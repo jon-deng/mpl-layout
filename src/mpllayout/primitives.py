@@ -70,6 +70,12 @@ def validate_prims(
             f"Invalid `prims` types must be {prim_types} not {_prim_types}"
         )
 
+
+# TODO: Improve primitive array data structure?
+# Each primitive node stores it's own parameter vector but this doesn't
+# handle connectivity information. For example, the same point coordinate is
+# owned by two lines in a polygon
+
 class PrimitiveNode(cn.Node[NDArray[np.float64]]):
     """
     Node representation of a geometric primitive
