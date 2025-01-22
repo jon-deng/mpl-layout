@@ -68,7 +68,9 @@ class ParamsNode(Node[Params]):
 
     pass
 
+
 # TODO: Add `__div__` and `__rdiv__` implementation for `transform_scalar_mul`
+# TODO: Add `transform_pow` to model raise to power operations
 class ConstructionNode(Node[ConstructionValue]):
     """
     Node representation of a geometric construction
