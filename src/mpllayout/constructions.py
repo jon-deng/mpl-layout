@@ -420,6 +420,12 @@ class ConstructionNode(Node[ConstructionValue]):
 
     ## Special methods
 
+    def __neg__(self):
+        return transform_scalar_mul(self, -1.0)
+
+    def __pos__(self):
+        return self
+
     def __add__(self, other: "ConstructionNode | float"):
         return transform_sum(self, other)
 
@@ -434,6 +440,7 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def __rmul__(self, other: "float | Scalar"):
         return transform_scalar_mul(self, other)
+
 
 class Construction(ConstructionNode):
     """
