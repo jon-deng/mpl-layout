@@ -68,8 +68,6 @@ class ParamsNode(Node[Params]):
 
     pass
 
-
-# TODO: Add `__mul__` and `__rmul__` implementation for `transform_scalar_mul`
 # TODO: Add `__div__` and `__rdiv__` implementation for `transform_scalar_mul`
 class ConstructionNode(Node[ConstructionValue]):
     """
@@ -427,6 +425,15 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def __radd__(self, other: "ConstructionNode | float"):
         return transform_sum(other, self)
+
+    def __mul__(self, other: "float | Scalar"):
+        if isinstance(self, Scalar):
+            return transform_scalar_mul(other, self)
+        else:
+            return transform_scalar_mul(self, other)
+
+    def __rmul__(self, other: "float | Scalar"):
+        return transform_scalar_mul(self, other)
 
 class Construction(ConstructionNode):
     """
