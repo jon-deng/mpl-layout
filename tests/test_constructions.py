@@ -64,6 +64,10 @@ class TestConstructionFunctions(GeometryFixtures):
 
         assert np.all(np.isclose(res_a, res_b))
 
+        res_b = (construction + construction)(prims_a+prims_b, *(params_a + params_b))
+
+        assert np.all(np.isclose(res_a, res_b))
+
     def test_transform_scalar_mul(self):
         construction = con.Coordinate()
 
@@ -73,17 +77,25 @@ class TestConstructionFunctions(GeometryFixtures):
         res_a = scalar * construction(prims, *cons_params)
 
         # Test constant version
-        mul_construction = con.transform_scalar_mul(construction, scalar)
         params = cons_params + ()
-        res_b = mul_construction(prims, *params)
 
+        mul_construction = con.transform_scalar_mul(construction, scalar)
+        res_b = mul_construction(prims, *params)
+        assert np.all(np.isclose(res_a, res_b))
+
+        mul_construction = scalar * construction
+        res_b = mul_construction(prims, *params)
         assert np.all(np.isclose(res_a, res_b))
 
         # Test non constant version
-        mul_construction = con.transform_scalar_mul(construction, con.Scalar())
         params = cons_params + (scalar,)
-        res_b = mul_construction(prims, *params)
 
+        mul_construction = con.transform_scalar_mul(construction, con.Scalar())
+        res_b = mul_construction(prims, *params)
+        assert np.all(np.isclose(res_a, res_b))
+
+        mul_construction = con.Scalar() * construction
+        res_b = mul_construction(prims, *params)
         assert np.all(np.isclose(res_a, res_b))
 
     def test_transform_partial(self):
