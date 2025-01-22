@@ -69,7 +69,6 @@ class ParamsNode(Node[Params]):
     pass
 
 
-# TODO: Add `__add__` and `__radd__` implementation for `transform_sum`
 # TODO: Add `__mul__` and `__rmul__` implementation for `transform_scalar_mul`
 # TODO: Add `__div__` and `__rdiv__` implementation for `transform_scalar_mul`
 class ConstructionNode(Node[ConstructionValue]):
@@ -421,6 +420,13 @@ class ConstructionNode(Node[ConstructionValue]):
         # so there is some overlap.
         raise NotImplementedError()
 
+    ## Special methods
+
+    def __add__(self, other: "ConstructionNode | float"):
+        return transform_sum(self, other)
+
+    def __radd__(self, other: "ConstructionNode | float"):
+        return transform_sum(other, self)
 
 class Construction(ConstructionNode):
     """
