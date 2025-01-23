@@ -1683,7 +1683,7 @@ def transform_scalar_mul(
         concat_prims, split_prims = cat_split_prims
         concat_params, split_params = cat_split_params
 
-        class ScalarMultipleConstruction(ConstructionNode):
+        class ScalarMultipleConstruction(type(cons_a)):
 
             @classmethod
             def assem(cls, prims: Prims, *params: Params) -> NDArray:
@@ -1757,7 +1757,7 @@ def transform_scalar_pow(
         concat_prims, split_prims = cat_split_prims
         concat_params, split_params = cat_split_params
 
-        class ScalarPowerConstruction(ConstructionNode):
+        class ScalarPowerConstruction(type(cons_a)):
 
             @classmethod
             def assem(cls, prims: Prims, *params: Params) -> NDArray:
@@ -1823,10 +1823,10 @@ def transform_partial(cons: TCons, *freeze_params: tuple[Param, ...]):
     )
     partial_children = cons.children
 
-    class Partial(ConstructionNode):
+    class Partial(type(cons)):
 
         def __init__(self):
-            super().__init__(partial_value, partial_children)
+            ConstructionNode.__init__(self, partial_value, partial_children)
 
         @classmethod
         def assem(cls, prims, *partial_params):
