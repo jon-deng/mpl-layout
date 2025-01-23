@@ -443,6 +443,9 @@ class ConstructionNode(Node[ConstructionValue]):
     def __rmul__(self, other: "float | Scalar"):
         return transform_scalar_mul(self, other)
 
+    def __div__(self, other: "float | Scalar"):
+        return transform_scalar_div(self, other)
+
     def __pow__(self, other: "float | Scalar"):
         return transform_scalar_pow(self, other)
 
@@ -1717,6 +1720,18 @@ def transform_scalar_mul(
     ]
 
     return unflatten(flat_sum_cons)[0]
+
+
+def transform_scalar_div(
+    cons: TCons, scalar: Scalar | float | int
+) -> ConstructionNode:
+    """
+    Return a construction representing a construction divided by a scalar
+    """
+    if not isinstance(scalar, Scalar):
+        scalar = transform_partial(Scalar(), scalar)
+
+    return transform_scalar_mul(cons, transform_scalar_pow(scalar, -1))
 
 
 def transform_scalar_pow(
