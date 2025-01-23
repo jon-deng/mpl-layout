@@ -443,6 +443,9 @@ class ConstructionNode(Node[ConstructionValue]):
     def __rmul__(self, other: "float | Scalar"):
         return transform_scalar_mul(self, other)
 
+    def __pow__(self, other: "float | Scalar"):
+        return transform_scalar_pow(self, other)
+
 
 class Construction(ConstructionNode):
     """
