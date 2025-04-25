@@ -372,14 +372,16 @@ class ConstructionNode(Node[ConstructionValue]):
     ) -> NDArray:
         flat_constructions = [x for _, x in iter_flat("", self)]
         flat_prim_keys = [x.value for _, x in iter_flat("", root_prim_keys)]
+        flat_prims = [
+            tuple(root_prim[key] for key in prim_keys)
+            for prim_keys in flat_prim_keys
+        ]
         flat_params = [x.value for _, x in iter_flat("", root_params)]
 
         residuals = [
-            construction.assem_atleast_1d(
-                tuple(root_prim[arg_key] for arg_key in argkeys), *params
-            )
-            for construction, argkeys, params in zip(
-                flat_constructions, flat_prim_keys, flat_params
+            construction.assem_atleast_1d(prims, *params)
+            for construction, prims, params in zip(
+                flat_constructions, flat_prims, flat_params
             )
         ]
         return jnp.concatenate(residuals)
