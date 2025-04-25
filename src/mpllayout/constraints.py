@@ -785,6 +785,64 @@ class InnerMargin(con.ConstructionNode):
         return con.transform_constraint(con.InnerMargin(side=side))
 
 
+class OuterMarginArray(con.CompoundConstruction):
+    """
+    Return an array of outer margin errors for a set of quadrilaterals
+
+    Parameters
+    ----------
+    shape: int | tuple[int]
+        The number of quadrilaterals in the array
+
+        Note that the number of margins to set is the N-1, if N is the number of
+        quadrilaterals.
+    side: Literal['bottom', 'top', 'left', 'right']
+
+    Methods
+    -------
+    assem(prims: tuple[pr.Quadrilateral, ...])
+    """
+
+    def __init__(self, shape: tuple[int, ...], side: Literal['bottom', 'top', 'left', 'right']):
+        super().__init__(shape=shape, side=side)
+
+    @classmethod
+    def init_children(
+        cls,
+        shape: tuple[int, ...],
+        side: Literal['bottom', 'top', 'left', 'right']
+    ):
+        num_quad, = shape
+
+        keys = tuple(f"OuterMargin{n}" for n in range(num_quad))
+        constraints = tuple(OuterMargin(side=side) for _ in range(num_quad-1))
+        prim_keys = tuple((f'arg{n}', f'arg{n+1}') for n in range(num_quad-1))
+
+        def child_params(params: Params) -> tuple[Params, ...]:
+            # `params` is a size N-1 tuple of margins which should be split
+            # into a size 1 tuple for each child margin constraint
+            return tuple((child_margin,) for child_margin in params)
+
+        return keys, constraints, prim_keys, child_params
+
+    @classmethod
+    def init_signature(
+        cls,
+        shape: tuple[int, ...],
+        side: Literal['bottom', 'top', 'left', 'right']
+    ):
+        # margin_sig = OuterMargin.init_signature(side)
+        num_quad, = shape
+        prim_types = num_quad * (pr.Quadrilateral,)
+        param_types = (num_quad-1)*(float,)
+        value_size = 0
+        return con.ConstructionSignature(prim_types, param_types, value_size)
+
+    @classmethod
+    def assem(cls, prims: tuple[pr.Quadrilateral, ...], *params: tuple[float, ...]):
+        return super().assem(prims, *params)
+
+
 class Align(
     con.CompoundConstruction, con._QuadrilateralQuadrilateralSignature
 ):
@@ -1039,8 +1097,10 @@ class Grid(ArrayConstraint, con._QuadrilateralsSignature):
             RectilinearGrid(shape=shape),
             con.transform_map(RelativeLength(), num_col*(pr.Line,)),
             con.transform_map(RelativeLength(), num_row*(pr.Line,)),
-            con.transform_map(OuterMargin(side='right'), num_col*(pr.Quadrilateral,)),
-            con.transform_map(OuterMargin(side='bottom'), num_row*(pr.Quadrilateral,))
+            # con.transform_map(OuterMargin(side='right'), num_col*(pr.Quadrilateral,)),
+            # con.transform_map(OuterMargin(side='bottom'), num_row*(pr.Quadrilateral,)),
+            OuterMarginArray(shape=(num_col,), side='right'),
+            OuterMarginArray(shape=(num_row,), side='bottom'),
         )
 
         def idx(i, j):

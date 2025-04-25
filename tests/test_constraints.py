@@ -587,6 +587,42 @@ class TestQuadrilateralArray(GeometryFixtures):
         res = co.Grid(grid_shape)(quads_grid, *grid_parameters)
         assert np.all(np.isclose(res, 0))
 
+    @pytest.fixture()
+    def num_quad(self):
+        return 3
+
+    @pytest.fixture()
+    def margins(self, num_quad):
+        return np.random.rand(num_quad-1)
+
+    @pytest.fixture()
+    def quads_array(self, num_quad: int, margins: NDArray):
+        origin = np.zeros(2)
+
+        col_widths = np.ones(num_quad)
+        col_margins = margins
+
+        row_heights = np.array([1])
+        row_margins = np.array([])
+
+        return self.make_quad_grid(
+            origin, col_margins, row_margins, col_widths, row_heights
+        )
+
+    def test_OuterMarginArray(
+        self,
+        quads_array: list[pr.Quadrilateral],
+        margins: NDArray,
+    ):
+        num_quad = len(quads_array)
+        constraint = co.OuterMarginArray((num_quad, ), side='right')
+        # BUG: This breaks if `margins` is an array of numpy integers instead
+        # of numpy floats!!
+        # Probably related to code not correctly detecting numpy integers as
+        # scalars?
+        res = constraint(quads_array, *margins)
+        assert np.all(np.isclose(res, 0))
+
 
 from matplotlib import pyplot as plt
 class TestAxesConstraints(GeometryFixtures):
