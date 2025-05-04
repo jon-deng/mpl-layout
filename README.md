@@ -79,8 +79,7 @@ The code above results in the figure:
 
 While this approach requires more code to specify the layout of figure elements, it allows precise specification of the layout.
 This can be useful, for example, in publication documents where precise figure, axes, and font sizes are desired.
-The layout approach also acts as a template that can be used to generate multiple figure with.
-Layouts can also be adjusted, for example, by adjusting margin arguments.
+In addition, layouts can be adjusted (for example, by adjusting margin arguments) and serve as a template to generate multiple figures.
 
 More examples can be found in the `examples` folder which demonstrate other constraints and geometric primitives used to achieve more complicated layouts.
 The example given above can be found at `examples/README_example.ipynb`.
