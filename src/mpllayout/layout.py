@@ -149,6 +149,18 @@ class Layout:
         """
         self.root_prim.add_child(key, prim)
 
+    def add_prims(self, prims: dict[str, pr.Primitive]):
+        """
+        Add multiple primitives to the layout
+
+        Parameters
+        ----------
+        prims: dict[str, pr.Primitive]
+            A dictionary of primitives to add
+        """
+        for key, prim in prims.items():
+            self.add_prim(prim, key)
+
     def add_constraint(
         self,
         constraint: cr.Constraint,
