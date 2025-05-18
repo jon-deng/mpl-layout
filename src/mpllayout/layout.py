@@ -192,6 +192,19 @@ class Layout:
         )
         if key == "":
             key = self._constraint_counter.add_item_to_nodes(constraint, *nodes)
+
+        # Notify the user if the input primitives or parameters to the constraint
+        # are incorrect
+        try:
+            constraint.validate_prims(tuple(self.root_prim[key] for key in prim_keys))
+        except TypeError as exc:
+            raise RuntimeError(f"Wrong primitives {prim_keys} for constraint {type(constraint)}\n{exc}") from exc
+
+        try:
+            constraint.validate_params(param)
+        except TypeError as exc:
+            raise RuntimeError(f"Wrong parameters {param} for constraint {type(constraint)}\n{exc}") from exc
+
         self.root_constraint.add_child(key, constraint)
         self.root_prim_keys.add_child(key, constraint.root_prim_keys(prim_keys))
         self.root_param.add_child(key, constraint.root_params(param))
