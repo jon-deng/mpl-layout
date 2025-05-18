@@ -248,17 +248,27 @@ class ConstructionNode(Node[ConstructionValue]):
 
     def validate_prims(self, prims: Prims):
         """
-        Raise an exception if primitives do not match the signature
+        Raise an exception if input primitives don't match the construction's signature
         """
-        if len(prims) != len(self.signature.prim_types):
-            raise TypeError(f"Incorrect number of primitives")
+        if not isinstance(prims, tuple):
+            raise TypeError(
+                f"Expected tuple of primitives, not {type(prims)}"
+            )
 
+        if len(prims) != len(self.signature.prim_types):
+            raise TypeError(
+                f"Expected {len(self.signature.prim_types)} primitives, not {len(prims)}"
+            )
+
+        prim_types = tuple(type(prim) for prim in prims)
         invalid_types = [
-            not isinstance(prim, prim_type)
-            for prim, prim_type in zip(prims, self.signature.prim_types)
+            not issubclass(in_type, exp_type)
+            for in_type, exp_type in zip(prim_types, self.signature.prim_types)
         ]
         if any(invalid_types):
-            raise TypeError(f"Incorrect primitive types")
+            raise TypeError(
+                f"Expected primitive types {self.signature.prim_types}, not {prim_types}"
+            )
 
     def validate_params(self, params: Params):
         """

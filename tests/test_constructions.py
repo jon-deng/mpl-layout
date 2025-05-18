@@ -14,6 +14,29 @@ from mpllayout.containers import Node, accumulate
 
 from tests.fixture_primitives import GeometryFixtures
 
+class TestConstructionValidation(GeometryFixtures):
+
+    def test_validate_prims(self):
+        midpoint = con.Midpoint()
+
+        line = self.make_line(np.random.rand(2), np.random.rand(2))
+        point_a = self.make_point(np.random.rand(2))
+        point_b = self.make_point(np.random.rand(2))
+
+        # midpoint((point_a, point_b))
+
+        with pytest.raises(TypeError, match=r"Expected tuple of primitives.*") as exc:
+            midpoint(line)
+        print(exc.value)
+
+        with pytest.raises(TypeError, match=r"Expected [0-9]* primitives.*") as exc:
+            midpoint((point_a, point_b))
+        print(exc.value)
+
+        with pytest.raises(TypeError, match=r"Expected primitive types.*") as exc:
+            midpoint((point_a,))
+        print(exc.value)
+
 class TestConstructionFunctions(GeometryFixtures):
 
     def test_transform_map(self):
