@@ -5,10 +5,10 @@ Test geometric onstraints
 import pytest
 
 from numpy.typing import NDArray
-
-import itertools
-
 import numpy as np
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
+
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
@@ -504,7 +504,18 @@ class TestQuadrilateralQuadrilateral(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
 
-class TestQuadrilateralArray(GeometryFixtures):
+class FigureFixture:
+
+    @pytest.fixture()
+    def fig(self):
+        """Return a figure for plotting test results in"""
+        fig = plt.figure(figsize=(1, 1))
+        yield fig
+        # Prevent warnings about too many open figures
+        plt.close(fig)
+
+
+class TestQuadrilateralArray(GeometryFixtures, FigureFixture):
     """
     Test constraints with signature `[Quadrilateral, ...]`
     """
@@ -572,10 +583,12 @@ class TestQuadrilateralArray(GeometryFixtures):
         quads_grid: list[pr.Quadrilateral],
         grid_shape: tuple[int, int],
         grid_parameters: tuple[NDArray, NDArray, NDArray, NDArray],
+        fig: Figure
     ):
         root_prim = Node(None, {f'Quad{n}': quad for n, quad in enumerate(quads_grid)})
 
-        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        fig.set_size_inches(8, 8)
+        ax = fig.add_axes((0, 0, 1, 1))
         ax.grid(which='both', axis='both')
         ax.xaxis.set_minor_locator(MultipleLocator(0.1))
         ax.yaxis.set_minor_locator(MultipleLocator(0.1))
@@ -624,8 +637,7 @@ class TestQuadrilateralArray(GeometryFixtures):
         assert np.all(np.isclose(res, 0))
 
 
-from matplotlib import pyplot as plt
-class TestAxesConstraints(GeometryFixtures):
+class TestAxesConstraints(GeometryFixtures, FigureFixture):
     """
     Test constraints with signature `[Axes, ...]`
     """
@@ -764,12 +776,13 @@ class TestAxesConstraints(GeometryFixtures):
             axes_size: tuple[float, float],
             xaxis_side,
             yaxis_side,
+            fig,
         ):
         width, height = axes_size
         # NOTE: Unit dimensions of the figure are used because units for
         # `fig.add_axes` are relative to figure dimensions.
         # This ensures that added axes have the correct sizes for testing.
-        fig = plt.figure(figsize=(1, 1))
+        fig.set_size_inches(1, 1)
         ax = fig.add_axes((0, 0, width, height))
 
         x = np.pi*2*np.linspace(0, 10)
